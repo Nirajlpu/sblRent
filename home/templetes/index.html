@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>SBLRent – House Rental Platform</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <!-- Bootstrap CSS CDN -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <style>
+    .hero {
+      background: url('cover1.jpg') no-repeat center center;
+      background-size: cover;
+      color: white;
+      height: 95vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+    }
+    .hero h1 {
+      font-size: 4rem;
+      font-weight: bold;
+    }
+    .hero p {
+      font-size: 1.2rem;
+    }
+    .carousel-indicators [data-bs-target] {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background-color: #ffffff;
+      opacity: 0.5;
+      transition: opacity 0.3s;
+    }
+    .carousel-indicators .active {
+      opacity: 1;
+      background-color: #0d6efd;
+    }
+  </style>
+</head>
+<body>
+{% load static %}
+  <!-- Navbar -->
+
+ {% include 'navbar.html'%}
+  <!-- Hero Carousel Section -->
+  <div id="heroCarousel" class="carousel slide" data-bs-ride="carousel" data-bs-interval="5000">
+    <div class="carousel-indicators">
+      <button type="button" data-bs-target="#heroCarousel" data-bs-slide-to="0" class="active" aria-current="true" aria-label="Slide 1"></button>
+      <button type="button" data-bs-target="#heroCarousel" data-bs-slide-to="1" aria-label="Slide 2"></button>
+      <button type="button" data-bs-target="#heroCarousel" data-bs-slide-to="2" aria-label="Slide 3"></button>
+    </div>
+    <div class="carousel-inner">
+     <div class="carousel-item active">
+       <div class="hero" style="background: url('{% static "images/cover1.jpg" %}') no-repeat center center; background-size: cover;">
+          <div class="container text-white text-center d-flex align-items-center justify-content-center" style="height: 90vh;">
+            <div>
+              <h1>Find Your Dream Rental</h1>
+              <p>Rent houses and apartments easily with SBLRent – trusted, fast and affordable</p>
+              <a href="/service" class="btn btn-primary mt-3">Explore Listings</a>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="carousel-item active">
+        <div class="hero" style="background: url('{% static "images/cover2.jpg" %}') no-repeat center center; background-size: cover;">
+          <div class="container text-white text-center d-flex align-items-center justify-content-center" style="height: 90vh;">
+            <div>
+              <h1>Comfortable Living Spaces</h1>
+              <p>Choose from a wide range of verified homes across cities</p>
+              <a href="/service" class="btn btn-primary mt-3">Browse Properties</a>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="carousel-item active">
+        <div class="hero" style="background: url('{% static "images/cover3.jpg" %}') no-repeat center center; background-size: cover;">
+          <div class="container text-white text-center d-flex align-items-center justify-content-center" style="height: 90vh;">
+            <div>
+              <h1>Easy & Transparent Rentals</h1>
+              <p>Enjoy a smooth renting process with no hidden costs</p>
+              <a href="/service" class="btn btn-primary mt-3">Get Started</a>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <button class="carousel-control-prev" type="button" data-bs-target="#heroCarousel" data-bs-slide="prev">
+      <span class="carousel-control-prev-icon" aria-hidden="true"></span>
+    </button>
+    <button class="carousel-control-next" type="button" data-bs-target="#heroCarousel" data-bs-slide="next">
+      <span class="carousel-control-next-icon" aria-hidden="true"></span>
+    </button>
+  </div>
+
+  <!-- Features Section -->
+  <section class="py-5">
+    <div class="container">
+      <h2 class="text-center mb-4">Why Choose SBLRent?</h2>
+      <div class="row text-center">
+        <div class="col-md-4">
+          <h5>Verified Listings</h5>
+          <p>All properties are personally verified and inspected for quality assurance.</p>
+        </div>
+        <div class="col-md-4">
+          <h5>Affordable Pricing</h5>
+          <p>Find homes that suit every budget – no hidden charges.</p>
+        </div>
+        <div class="col-md-4">
+          <h5>24/7 Support</h5>
+          <p>Our support team is here to assist you anytime with any queries.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Featured Properties -->
+   <h2 class="text-center mb-4">Featured Properties</h2>
+    {% include 'productCardNormalUser.html'%}
+
+  <!-- Footer -->
+  <footer class="bg-dark text-white text-center py-3">
+    <p>&copy; 2025 SBLRent. All rights reserved.</p>
+  </footer>
+
+  <!-- Bootstrap JS CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

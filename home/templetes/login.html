@@ -1,0 +1,78 @@
+{% load static %}
+<!DOCTYPE html>
+<html>
+<head><title>Login</title>
+  
+<style>
+
+  body{
+    background: url('cover1.jpg') no-repeat center center;
+  }
+
+  
+  form {
+    width: 100%;
+    max-width: 400px;
+    align-items: right;
+    background: #fff;
+    align-items: center;
+    padding: 30px;
+    border-radius: 8px;
+    box-shadow: 0px 0px 10px rgba(0,0,0,0.1);
+  }
+  
+  label {
+    display: block;
+    margin-top: 10px;
+  }
+  input {
+    width: 100%;
+    padding: 8px;
+    margin-top: 5px;
+    margin-bottom: 10px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+  }
+  button {
+    background-color: #007bff;
+    color: #fff;
+    padding: 10px 20px;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+  }
+  button:hover {
+    background-color: #0056b3;
+  }
+  .link {
+    margin-top: 15px;
+    display: block;
+    text-align: center;
+  }
+  .login {
+    display: flex;
+    justify-content: right;
+    align-items: right;
+    height: 100vh;
+  }
+</style>
+
+<body>
+  
+  {% include 'navbar.html'%}
+  {% if error %}<p style="color:red;">{{ error }}</p>{% endif %}
+  <div class="hero" style="background: url('{% static "images/cover1.jpg" %}') no-repeat center center; background-size: cover;">
+  <div class="login">
+    <form method="POST">
+      <h2>Login</h2>
+      {% csrf_token %}
+      <label>Username:</label><input type="text" name="username"><br>
+      <label>Password:</label><input type="password" name="password"><br>
+      <p>Forget password?</p>
+      
+      <button type="submit">Login</button>
+      <a class="link" href="/register">New user? Register here</a>
+    </form>
+</div>
+</body>
+</html>
