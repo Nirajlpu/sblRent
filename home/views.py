@@ -2,6 +2,15 @@ from django.shortcuts import render
 
 # -----------(IMPORT)add manually-----------
 from django.http import HttpResponse, JsonResponse 
+# --- User Registration, Login, Dashboard, Vendor CRUD, Booking ---
+from django.contrib.auth.models import User
+from django.contrib.auth import authenticate, login
+from django.shortcuts import redirect
+from .models import Property
+from django.contrib.auth.decorators import login_required
+
+from django.contrib.auth.models import User
+from .models import Profile
 
 
 # Create your views here.
@@ -14,32 +23,6 @@ def home(request):
     return render(request, 'index.html', {'properties': properties})
 
 
-def listPeople(request):
-    people=[
-        {'name':'Niraj','age':21},
-        {'name':'Sahil','age':14},
-        {'name':'Rajnish','age':21},
-        {'name':'aniket','age':26},
-        {'name':'anjali','age':16},
-        {'name':'priti','age':22},
-        {'name':'sonam','age':10},
-        {'name':'drishay','age':7},
-        ]
-    return render(request,'base.html',context={'people':people})
-
-
-
-
-
-# --- User Registration, Login, Dashboard, Vendor CRUD, Booking ---
-from django.contrib.auth.models import User
-from django.contrib.auth import authenticate, login
-from django.shortcuts import redirect
-from .models import Property
-from django.contrib.auth.decorators import login_required
-
-from django.contrib.auth.models import User
-from .models import Profile
 
 def register_user(request):
     if request.method == 'POST':
