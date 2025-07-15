@@ -25,9 +25,6 @@
             <li class="nav-item me-3"><a class="nav-link {% if request.path == '/service/' %}active{% endif %}" href="/service">Services</a></li>
             <li class="nav-item me-3"><a class="nav-link {% if request.path == '/contact/' %}active{% endif %}" href="/contact">Contact</a></li>
             {% if user.is_authenticated %}
-            <li class="nav-item me-3">
-                <a class="nav-link {% if request.path == '/login/' %}active{% endif %}" href="/logout">Logout</a>
-            </li>
             <li class="nav-item">
 <!--                <span class="d-inline-flex justify-content-center align-items-center rounded-circle bg-light text-dark fw-bold" style="width: 40px; height: 40px;">-->
 <!--                  {% if user_image_url %}-->
@@ -47,7 +44,6 @@
                     <a class="nav-link {% if request.path == '/login/' %}active{% endif %}" href="/login">Login</a>
                 </li>
             {% endif %}
-sfsfsfsf
         </div>
         </div>
     </nav>
