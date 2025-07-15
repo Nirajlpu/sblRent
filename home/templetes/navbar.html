@@ -13,18 +13,18 @@
 
     <!-- Navbar -->
     <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
-        <div class="container">
+        <div class="container-fluid">
         <a class="navbar-brand mt-0" href="">SBLRent</a>
         <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
             <span class="navbar-toggler-icon"></span> 
         </button>
-        <div class="collapse navbar-collapse" id="navbarNav">
-            <ul class="navbar-nav ms-auto">
-            <li class="nav-item-Home"><a class="nav-link {% if request.path == '/home/' %}active{% endif %}" href="/home">Home</a></li>
-            <li class="nav-item-About"><a class="nav-link {% if request.path == '/about/' %}active{% endif %}" href="/about">About</a></li>
-            <li class="nav-item-Services"><a class="nav-link {% if request.path == '/service/' %}active{% endif %}" href="/service">Services</a></li>
-            <li class="nav-item-Contact"><a class="nav-link {% if request.path == '/contact/' %}active{% endif %}" href="/contact">Contact</a></li>
-            <li class="nav-item-Login"><a class="nav-link {% if request.path == '/login/' %}active{% endif %}" href="/login">Login</a></li>
+        <div class="collapse navbar-collapse justify-content-end" id="navbarNav">
+            <ul class="navbar-nav ">
+            <li class="nav-item me-3"><a class="nav-link {% if request.path == '/home/' %}active{% endif %}" href="/home">Home</a></li>
+            <li class="nav-item me-3"><a class="nav-link {% if request.path == '/about/' %}active{% endif %}" href="/about">About</a></li>
+            <li class="nav-item me-3"><a class="nav-link {% if request.path == '/service/' %}active{% endif %}" href="/service">Services</a></li>
+            <li class="nav-item me-3"><a class="nav-link {% if request.path == '/contact/' %}active{% endif %}" href="/contact">Contact</a></li>
+            <li class="nav-item me-3"><a class="nav-link {% if request.path == '/login/' %}active{% endif %}" href="/login">Login</a></li>
             </ul>
         </div>
         </div>

@@ -15,7 +15,7 @@ def home(request):
 
 
 def listPeople(request):
-    peoples=[
+    people=[
         {'name':'Niraj','age':21},
         {'name':'Sahil','age':14},
         {'name':'Rajnish','age':21},
@@ -25,7 +25,7 @@ def listPeople(request):
         {'name':'sonam','age':10},
         {'name':'drishay','age':7},
         ]
-    return render(request,'base.html',context={'people':peoples})
+    return render(request,'base.html',context={'people':people})
 
 
 
