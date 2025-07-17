@@ -5,6 +5,7 @@ from django.http import HttpResponse, JsonResponse
 # --- User Registration, Login, Dashboard, Vendor CRUD, Booking ---
 from django.contrib.auth.models import User
 from django.contrib.auth import authenticate, login
+from django.contrib.auth import logout
 from django.shortcuts import redirect
 from .models import Property
 from django.contrib.auth.decorators import login_required
@@ -90,3 +91,9 @@ def book_property(request, property_id):
     property = Property.objects.get(id=property_id)
     # Add logic to mark property as booked by the current user or show booking form
     return render(request, 'book_property.html', {'property': property})
+
+
+# Logout view
+def logout_user(request):
+    logout(request)
+    return redirect('login')
