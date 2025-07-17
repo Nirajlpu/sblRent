@@ -1,35 +1,44 @@
 <!DOCTYPE html>
 <html>
-<head><title>User Dashboard</title>
-  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-</head>
-<body>
-<!-- Featured Properties -->
-  <section class="bg-light py-5">
-    <div class="container">
-      <div class="row">
-
-        {% for property in properties%}
-        <!-- Example Listing Card -->
-        <div class="col-md-4 mb-4">
-          <div class="card">
-            <img src="{{property.image_url}}" class="card-img-top" alt="House Image">
-            <div class="card-body">
-              <h5 class="card-title">{{property.title}}</h5>
-              <p class="card-text">{{property.description}}</p>
-              <div class="d-flex justify-content-between">
-                <a href="/service" class="btn btn-outline-primary">View Details</a>
-                <a href="/bookingDeatils" class="btn btn-outline-primary">Book Now</a>
+  <head>
+    <title>User Dashboard</title>
+    <link
+      href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css"
+      rel="stylesheet"
+    />
+  </head>
+  <body>
+    <!-- Featured Properties -->
+    <section class="bg-light py-5">
+      <div class="container">
+        <div class="row">
+          {% for property in properties%}
+          <!-- Example Listing Card -->
+          <div class="col-md-4 mb-4">
+            <div class="card">
+              <img
+                src="{{property.image_url}}"
+                class="card-img-top"
+                alt="House Image"
+              />
+              <div class="card-body">
+                <h5 class="card-title">{{property.title}}</h5>
+                <p class="card-text">{{property.description}}</p>
+                <div class="d-flex justify-content-between">
+                  <a href="/service" class="btn btn-outline-primary"
+                    >View Details</a
+                  >
+                  <a href="/bookingDeatils" class="btn btn-outline-primary"
+                    >Book Now</a
+                  >
+                </div>
               </div>
             </div>
           </div>
+          <!-- Add more listings -->
+          {% endfor %}
         </div>
-        <!-- Add more listings -->
-         {% endfor %}
-        
-        
       </div>
-    </div>
-  </section>
-</body>
+    </section>
+  </body>
 </html>

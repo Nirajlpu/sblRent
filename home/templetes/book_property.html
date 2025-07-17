@@ -1,12 +1,14 @@
 <!DOCTYPE html>
 <html>
-<head><title>Book Property</title></head>
-<body>
-  {% include 'navbar.html'%}
-  <h2>Book Property: {{ property.title }}</h2>
-  <p>{{ property.description }}</p>
-  <p>Price: ₹{{ property.price }}</p>
-  <p>Location: {{ property.location }}</p>
-  <img src="{{ property.image_url }}" width="300px">
-</body>
+  <head>
+    <title>Book Property</title>
+  </head>
+  <body>
+    {% include 'navbar.html'%}
+    <h2>Book Property: {{ property.title }}</h2>
+    <p>{{ property.description }}</p>
+    <p>Price: ₹{{ property.price }}</p>
+    <p>Location: {{ property.location }}</p>
+    <img src="{{ property.image_url }}" width="300px" />
+  </body>
 </html>

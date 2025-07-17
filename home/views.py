@@ -8,6 +8,7 @@ from django.contrib.auth import authenticate, login
 from django.contrib.auth import logout
 from django.shortcuts import redirect
 from .models import Property
+from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 
 from django.contrib.auth.models import User
@@ -23,20 +24,29 @@ def home(request):
     properties = Property.objects.all()  # fetch all records
     return render(request, 'index.html', {'properties': properties})
 
-
-
 def register_user(request):
     if request.method == 'POST':
-        username = request.POST['username']
-        password = request.POST['password']
+        first_name=request.POST.get('first_name')
+        last_name=request.POST.get('last_name')
+        email=request.POST.get('email')
+        username=request.POST.get('username')
+        password=request.POST.get('password')
         role = request.POST['role']
-        
-        user = User.objects.create_user(username=username, password=password)
-
-        # Create the associated profile
+        user=User.objects.filter(username=username)
+        if user.exists():
+            messages.info(request, f"{username} Username is already taken!")
+            return redirect('register')
+        user = User.objects.create_user(
+            first_name=first_name,
+            last_name=last_name,
+            email=email,
+            username=username,
+            password=password
+        )
         Profile.objects.create(user=user, role=role)
+        messages.info(request, "Your account is created successfully!")
+        return redirect('register')
 
-        return redirect('login')  # or wherever you want
     return render(request, 'register.html')
 
 def login_user(request):
@@ -92,6 +102,23 @@ def book_property(request, property_id):
     # Add logic to mark property as booked by the current user or show booking form
     return render(request, 'book_property.html', {'property': property})
 
+#update
+@login_required
+def updateProperty(request, property_id):
+    property = Property.objects.get(id=property_id)
+
+    if request.method == 'POST':
+        property.title = request.POST.get('title')
+        property.description = request.POST.get('description')
+        property.price = request.POST.get('price')
+        property.location = request.POST.get('location')
+        property.image_url = request.POST.get('image_url')
+
+        property.save()
+        messages.success(request, "Property updated successfully!")
+        return redirect('dashboard')  # redirect to the property list, adjust if needed
+
+    return render(request, 'add_property.html', {'property': property})
 
 # Logout view
 def logout_user(request):
