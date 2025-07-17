@@ -14,7 +14,7 @@
     <!-- Navbar -->
     <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
         <div class="container-fluid">
-        <a class="navbar-brand mt-0" href="">SBLRent</a>
+        <a class="navbar-brand mt-0" href="">SBL Rent</a>
         <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
             <span class="navbar-toggler-icon"></span> 
         </button>
@@ -34,9 +34,9 @@
 <!--                  {% endif %}-->
 <!--                </span>-->
 
-                <span class="d-inline-flex justify-content-center align-items-center rounded-circle bg-light text-dark fw-bold" style="width: 40px; height: 40px;">
-                    {{ "user_name"|slice:":2"|upper }}
-                </span>
+                <div class="d-inline-flex justify-content-center align-items-center rounded-circle bg-light text-dark fw-bold" style="width: 40px; height: 40px; cursor: pointer;" data-bs-toggle="offcanvas" data-bs-target="#userSidebar">
+                    {{ request.user.username|slice:":2"|upper }}
+                </div>
 
             </li>
             {% else %}
@@ -47,5 +47,19 @@
         </div>
         </div>
     </nav>
+
+    <div class="offcanvas offcanvas-end p-2 px-2" tabindex="-1" id="userSidebar" aria-labelledby="userSidebarLabel" style="max-width: 250px; background: rgba(255, 255, 255, 0.6); backdrop-filter: blur(15px); border-left: 1px solid rgba(0, 0, 0, 0.05); box-shadow: -2px 0 10px rgba(0,0,0,0.05);">
+      <div class="offcanvas-header">
+        <h5 class="offcanvas-title" id="userSidebarLabel">Welcome, {{request.user.username}}</h5>
+        <button type="button" class="btn-close text-reset" data-bs-dismiss="offcanvas" aria-label="Close"></button>
+      </div>
+      <div class="offcanvas-body">
+        <ul class="list-unstyled">
+          <li><a href="/profile" class="text-decoration-none d-block mb-2">Your Profile</a></li>
+          <li><a href="/settings" class="text-decoration-none d-block mb-2">Settings</a></li>
+          <li><a href="/logout" class="text-decoration-none d-block text-danger">Logout</a></li>
+        </ul>
+      </div>
+    </div>
     </body>
 </html>
