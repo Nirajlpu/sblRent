@@ -1,14 +1,267 @@
+{% load static %}
 <!DOCTYPE html>
-<html>
-  <head>
-    <title>Book Property</title>
-  </head>
-  <body>
-    {% include 'navbar.html'%}
-    <h2>Book Property: {{ property.title }}</h2>
-    <p>{{ property.description }}</p>
-    <p>Price: ₹{{ property.price }}</p>
-    <p>Location: {{ property.location }}</p>
-    <img src="{{ property.image_url }}" width="300px" />
-  </body>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Book {{ property.title }} | SBLRent</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <style>
+    :root {
+      --primary-color: #4361ee;
+      --secondary-color: #3f37c9;
+      --light-color: #f8f9fa;
+      --dark-color: #212529;
+      --success-color: #28a745;
+    }
+    
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      background-color: #f5f7fa;
+    }
+    
+    .booking-container {
+      max-width: 1200px;
+      margin: 2rem auto;
+      padding: 0 1rem;
+    }
+    
+    .booking-card {
+      background: white;
+      border-radius: 16px;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
+      overflow: hidden;
+    }
+    
+    .property-image {
+      height: 100%;
+      width: 100%;
+      object-fit: cover;
+      border-radius: 16px 0 0 16px;
+    }
+    
+    .booking-header {
+      padding: 1.5rem;
+      border-bottom: 1px solid #eee;
+    }
+    
+    .booking-body {
+      padding: 2rem;
+    }
+    
+    .property-features {
+      display: flex;
+      gap: 1.5rem;
+      margin: 1.5rem 0;
+    }
+    
+    .feature {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+    
+    .feature-icon {
+      color: var(--primary-color);
+    }
+    
+    .form-label {
+      font-weight: 500;
+      margin-bottom: 0.5rem;
+    }
+    
+    .form-control {
+      padding: 0.75rem 1rem;
+      border-radius: 8px;
+      border: 1px solid #e0e0e0;
+    }
+    
+    .form-control:focus {
+      border-color: var(--primary-color);
+      box-shadow: 0 0 0 0.25rem rgba(67, 97, 238, 0.15);
+    }
+    
+    .btn-book {
+      background-color: var(--success-color);
+      color: white;
+      padding: 0.75rem;
+      font-weight: 600;
+      border-radius: 8px;
+      width: 100%;
+      transition: all 0.3s ease;
+    }
+    
+    .btn-book:hover {
+      background-color: #218838;
+      transform: translateY(-2px);
+    }
+    
+    .price-summary {
+      background: #f8f9fa;
+      border-radius: 12px;
+      padding: 1.5rem;
+    }
+    
+    .price-item {
+      display: flex;
+      justify-content: space-between;
+      padding: 0.5rem 0;
+    }
+    
+    .price-total {
+      border-top: 1px solid #eee;
+      margin-top: 0.5rem;
+      padding-top: 0.5rem;
+      font-weight: 600;
+    }
+    
+    @media (max-width: 768px) {
+      .property-image {
+        border-radius: 16px 16px 0 0;
+        height: 300px;
+      }
+    }
+  </style>
+</head>
+<body>
+  {% include 'navbar.html' %}
+  
+  <div class="booking-container">
+    <div class="booking-card">
+      <div class="booking-header">
+        <h2 class="mb-0">Book Property</h2>
+      </div>
+      
+      <div class="row g-0">
+        <div class="col-md-6">
+          <img src="{{ property.image_url|default:'https://via.placeholder.com/800x600?text=Property+Image' }}" 
+               class="property-image" 
+               alt="{{ property.title }}">
+        </div>
+        
+        <div class="col-md-6">
+          <div class="booking-body">
+            <h3>{{ property.title }}</h3>
+            <p class="text-muted">{{ property.location }}</p>
+            <p>{{ property.description }}</p>
+            
+            <div class="property-features">
+              <div class="feature">
+                <i class="fas fa-bed feature-icon"></i>
+                <span>{{ property.bedrooms }} Bedrooms</span>
+              </div>
+              <div class="feature">
+                <i class="fas fa-bath feature-icon"></i>
+                <span>{{ property.bathrooms }} Bathrooms</span>
+              </div>
+              <div class="feature">
+                <i class="fas fa-ruler-combined feature-icon"></i>
+                <span>{{ property.area }} sq.ft</span>
+              </div>
+            </div>
+            
+            <form method="POST" action="{% url 'book_property' property.id %}">
+              {% csrf_token %}
+              
+              <div class="row g-3">
+                <div class="col-md-6">
+                  <label for="checkIn" class="form-label">Check-In Date</label>
+                  <input type="date" class="form-control" id="checkIn" name="check_in" required>
+                </div>
+                <div class="col-md-6">
+                  <label for="checkOut" class="form-label">Check-Out Date</label>
+                  <input type="date" class="form-control" id="checkOut" name="check_out" required>
+                </div>
+                <div class="col-12">
+                  <label for="guests" class="form-label">Number of Guests</label>
+                  <select class="form-select" id="guests" name="guests">
+                    <option value="1">1 Guest</option>
+                    <option value="2" selected>2 Guests</option>
+                    <option value="3">3 Guests</option>
+                    <option value="4">4 Guests</option>
+                    <option value="5">5+ Guests</option>
+                  </select>
+                </div>
+                <div class="col-12">
+                  <label for="specialRequests" class="form-label">Special Requests</label>
+                  <textarea class="form-control" id="specialRequests" name="special_requests" rows="3"></textarea>
+                </div>
+              </div>
+              
+              <div class="price-summary mt-4">
+                <h5 class="mb-3">Price Summary</h5>
+                <div class="price-item">
+                  <span>₹{{ property.price }} x <span id="nightsCount">1</span> nights</span>
+                  <span>₹<span id="subtotal">{{ property.price }}</span></span>
+                </div>
+                <div class="price-item">
+                  <span>Service Fee</span>
+                  <span>₹<span id="serviceFee">{% widthratio property.price 10 1 %}</span></span>
+                </div>
+                <div class="price-item price-total">
+                  <span>Total</span>
+                  <span>₹<span id="totalPrice">{% widthratio property.price 1 1.1 %}</span></span>
+                </div>
+              </div>
+              
+              <button type="submit" class="btn btn-book mt-4">
+                <i class="fas fa-calendar-check me-2"></i> Confirm Booking
+              </button>
+            </form>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+  <script>
+    // Calculate price based on dates
+    const checkInInput = document.getElementById('checkIn');
+    const checkOutInput = document.getElementById('checkOut');
+    const nightsCount = document.getElementById('nightsCount');
+    const subtotal = document.getElementById('subtotal');
+    const serviceFee = document.getElementById('serviceFee');
+    const totalPrice = document.getElementById('totalPrice');
+    const dailyRate = {{ property.price }};
+    
+    function calculateTotal() {
+      if (checkInInput.value && checkOutInput.value) {
+        const checkInDate = new Date(checkInInput.value);
+        const checkOutDate = new Date(checkOutInput.value);
+        const diffTime = checkOutDate - checkInDate;
+        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+        
+        if (diffDays > 0) {
+          nightsCount.textContent = diffDays;
+          const newSubtotal = dailyRate * diffDays;
+          subtotal.textContent = newSubtotal;
+          const newServiceFee = Math.round(newSubtotal * 0.1);
+          serviceFee.textContent = newServiceFee;
+          totalPrice.textContent = newSubtotal + newServiceFee;
+        }
+      }
+    }
+    
+    // Set minimum dates
+    const today = new Date().toISOString().split('T')[0];
+    checkInInput.min = today;
+    checkInInput.addEventListener('change', function() {
+      if (this.value) {
+        const nextDay = new Date(this.value);
+        nextDay.setDate(nextDay.getDate() + 1);
+        checkOutInput.min = nextDay.toISOString().split('T')[0];
+        calculateTotal();
+      }
+    });
+    
+    checkOutInput.addEventListener('change', calculateTotal);
+    
+    // Initialize date pickers
+    document.addEventListener('DOMContentLoaded', function() {
+      checkInInput.focus();
+    });
+  </script>
+</body>
 </html>

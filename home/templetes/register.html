@@ -1,94 +1,468 @@
 {% load static %}
 <!DOCTYPE html>
-<html>
-  <head>
-    <title>Register</title>
-    <style>
-      body {
-        background: url("cover1.jpg") no-repeat center center;
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Register | SBLRent</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <style>
+    :root {
+      --primary-color: #4361ee;
+      --secondary-color: #3f37c9;
+      --light-color: #f8f9fa;
+      --dark-color: #212529;
+    }
+    
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      background: linear-gradient(rgba(0, 0, 0, 0.6), rgba(0, 0, 0, 0.6)), url('{% static "images/cover1.jpg" %}') no-repeat center center;
+      background-size: cover;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+    
+    .register-container {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      flex: 1;
+      padding: 2rem;
+    }
+    
+    .register-card {
+      width: 100%;
+      max-width: 600px;
+      background: white;
+      border-radius: 16px;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15);
+      overflow: hidden;
+      animation: fadeInUp 0.5s ease;
+    }
+    
+    .register-header {
+      background: var(--primary-color);
+      color: white;
+      padding: 1.5rem;
+      text-align: center;
+    }
+    
+    .register-body {
+      padding: 2rem;
+    }
+    
+    .form-control {
+      padding: 0.75rem 1rem;
+      border-radius: 8px;
+      border: 1px solid #e0e0e0;
+      transition: all 0.3s ease;
+    }
+    
+    .form-control:focus {
+      border-color: var(--primary-color);
+      box-shadow: 0 0 0 0.25rem rgba(67, 97, 238, 0.25);
+    }
+    
+    .form-label {
+      font-weight: 500;
+      margin-bottom: 0.5rem;
+      color: var(--dark-color);
+    }
+    
+    .required-field::after {
+      content: " *";
+      color: #dc3545;
+    }
+    
+    .btn-register {
+      background-color: var(--primary-color);
+      border: none;
+      padding: 0.75rem;
+      font-weight: 600;
+      border-radius: 8px;
+      width: 100%;
+      transition: all 0.3s ease;
+    }
+    
+    .btn-register:hover {
+      background-color: var(--secondary-color);
+      transform: translateY(-2px);
+    }
+    
+    .login-link {
+      color: var(--primary-color);
+      text-decoration: none;
+      font-weight: 500;
+      transition: all 0.3s ease;
+    }
+    
+    .login-link:hover {
+      color: var(--secondary-color);
+      text-decoration: underline;
+    }
+    
+    .input-group-text {
+      background-color: white;
+      border-right: none;
+    }
+    
+    .password-toggle {
+      cursor: pointer;
+      background-color: white;
+      border-left: none;
+    }
+    
+    .role-select {
+      appearance: none;
+      background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e");
+      background-repeat: no-repeat;
+      background-position: right 1rem center;
+      background-size: 1em;
+    }
+    
+    .alert {
+      border-radius: 8px;
+    }
+    
+    .file-upload {
+      position: relative;
+      overflow: hidden;
+      display: inline-block;
+      width: 100%;
+    }
+    
+    .file-upload-input {
+      position: absolute;
+      left: 0;
+      top: 0;
+      opacity: 0;
+      width: 100%;
+      height: 100%;
+      cursor: pointer;
+    }
+    
+    .file-upload-label {
+      display: block;
+      padding: 0.75rem 1rem;
+      border: 1px dashed #ced4da;
+      border-radius: 8px;
+      text-align: center;
+      cursor: pointer;
+      transition: all 0.3s ease;
+    }
+    
+    .file-upload-label:hover {
+      border-color: var(--primary-color);
+      background-color: rgba(67, 97, 238, 0.05);
+    }
+    
+    .file-upload-preview {
+      width: 100px;
+      height: 100px;
+      border-radius: 50%;
+      object-fit: cover;
+      border: 3px solid #e9ecef;
+      display: block;
+      margin: 10px auto;
+    }
+    
+    .file-name {
+      display: block;
+      margin-top: 5px;
+      font-size: 0.8rem;
+      color: #6c757d;
+    }
+    
+    .vendor-fields {
+      display: none;
+    }
+    
+    @keyframes fadeInUp {
+      from {
+        opacity: 0;
+        transform: translateY(20px);
       }
-
-      form {
-        width: 100%;
-        max-width: 400px;
-        align-items: center;
-        background: #fff;
-
-        padding: 30px;
-        border-radius: 8px;
-        box-shadow: 0px 0px 10px rgba(0, 0, 0, 0.1);
+      to {
+        opacity: 1;
+        transform: translateY(0);
       }
-      label {
-        display: block;
-        margin-top: 10px;
+    }
+    
+    @media (max-width: 576px) {
+      .register-container {
+        padding: 1rem;
       }
-      input,
-      select {
-        width: 100%;
-        padding: 8px;
-        margin-top: 5px;
-        margin-bottom: 10px;
-        border: 1px solid #ccc;
-        border-radius: 4px;
+      
+      .register-body {
+        padding: 1.5rem;
       }
-      button {
-        background-color: #28a745;
-        color: #fff;
-        padding: 10px 20px;
-        border: none;
-        border-radius: 4px;
-        cursor: pointer;
-      }
-      button:hover {
-        background-color: #218838;
-      }
-      .link {
-        margin-top: 15px;
-        display: block;
-        text-align: center;
-      }
-      .register {
-        display: flex;
-        justify-content: center;
-        align-items: center;
-        height: 100vh;
-      }
-      .submit {
-        margin-top: 15px;
-        display: block;
-        margin-left: auto;
-        margin-right: auto;
-      }
-    </style>
-  </head>
-  <body>
-    {% include 'navbar.html'%}
-    <div class="hero" style="background: url('{% static "images/cover1.jpg" %}') no-repeat center center; background-size: cover;">
-    <div class="register">
-      <form method="POST">
-        <h2>Register</h2>
-
-        {% csrf_token %} {% if messages %}
-        <div class="alert alert-primary" role="alert">
-          {% for message in messages %} {{message}} {% endfor %}
-        </div>
-        {% endif %}
-        <label>First Name:</label
-        ><input type="text" name="first_name" required />
-        <label>Last Name:</label
-        ><input type="text" name="last_name" required /> <label>Email:</label
-        ><input type="email" name="email" required /> <label>Username:</label
-        ><input type="text" name="username" required />
-        <label>Password:</label>
-        <input type="password" name="password" required />
-        <label>Role:</label>
-        <select name="role" required>
-          <option value="user">User</option>
-          <option value="vendor">Vendor</option>
-        </select>
-        <button class="submit" type="submit">Register</button>
-        <a class="link" href="/login">Already registered? Login here</a>
-      </form>
+    }
+  </style>
+</head>
+<body>
+  {% include 'navbar.html' %}
+  
+  <div class="register-container">
+    <div class="register-card">
+      <div class="register-header">
+        <h2><i class="fas fa-user-plus me-2"></i> Create Account</h2>
+        <p class="mb-0">Join SBLRent to find or list properties</p>
+      </div>
+      
+      <div class="register-body">
+        <form method="POST" enctype="multipart/form-data">
+          {% csrf_token %}
+          
+          {% if messages %}
+          <div class="alert alert-primary alert-dismissible fade show" role="alert">
+            {% for message in messages %}
+              {{ message }}
+            {% endfor %}
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+          </div>
+          {% endif %}
+          
+          <!-- Profile Image Upload -->
+          <div class="mb-4 text-center">
+            <div class="file-upload">
+              <input type="file" id="profileImage" name="profile_image" class="file-upload-input" accept="image/*">
+              <label for="profileImage" class="file-upload-label">
+                <img id="profilePreview" src="{% static 'images/default-avatar.jpg' %}" class="file-upload-preview" alt="Profile Preview">
+                <span>Click to upload profile photo</span>
+                <span class="file-name" id="profileFileName">JPEG or PNG, Max 2MB</span>
+              </label>
+            </div>
+          </div>
+          
+          <div class="row g-3">
+            <div class="col-md-6">
+              <label for="firstName" class="form-label required-field">First Name</label>
+              <input type="text" class="form-control" id="firstName" name="first_name" required>
+            </div>
+            <div class="col-md-6">
+              <label for="lastName" class="form-label required-field">Last Name</label>
+              <input type="text" class="form-control" id="lastName" name="last_name" required>
+            </div>
+          </div>
+          
+          <div class="mt-3">
+            <label for="email" class="form-label required-field">Email Address</label>
+            <div class="input-group">
+              <span class="input-group-text"><i class="fas fa-envelope"></i></span>
+              <input type="email" class="form-control" id="email" name="email" required>
+            </div>
+          </div>
+          
+          <div class="mt-3">
+            <label for="phone" class="form-label required-field">Phone Number</label>
+            <div class="input-group">
+              <span class="input-group-text"><i class="fas fa-phone"></i></span>
+              <input type="tel" class="form-control" id="phone" name="phone" pattern="[0-9]{10}" required>
+            </div>
+            <div class="form-text">10-digit mobile number</div>
+          </div>
+          
+          <div class="mt-3">
+            <label for="username" class="form-label required-field">Username</label>
+            <div class="input-group">
+              <span class="input-group-text"><i class="fas fa-user"></i></span>
+              <input type="text" class="form-control" id="username" name="username" required>
+            </div>
+          </div>
+          
+          <div class="mt-3">
+            <label for="password" class="form-label required-field">Password</label>
+            <div class="input-group">
+              <span class="input-group-text"><i class="fas fa-lock"></i></span>
+              <input type="password" class="form-control" id="password" name="password" required>
+              <span class="input-group-text password-toggle" id="togglePassword">
+                <i class="fas fa-eye"></i>
+              </span>
+            </div>
+            <div class="form-text">Use 8 or more characters with a mix of letters, numbers & symbols</div>
+          </div>
+          
+          <div class="mt-3">
+            <label for="confirmPassword" class="form-label required-field">Confirm Password</label>
+            <div class="input-group">
+              <span class="input-group-text"><i class="fas fa-lock"></i></span>
+              <input type="password" class="form-control" id="confirmPassword" name="confirm_password" required>
+            </div>
+          </div>
+          
+          <div class="mt-3">
+            <label for="role" class="form-label required-field">I want to register as</label>
+            <select class="form-select role-select" id="role" name="role" required>
+              <option value="user">Tenant (Looking for a property)</option>
+              <option value="vendor">Vendor (Listing properties)</option>
+            </select>
+          </div>
+          
+          <!-- Vendor Specific Fields -->
+          <div id="vendorFields" class="vendor-fields mt-3">
+            <div class="mb-3">
+              <label for="aadhaarCard" class="form-label required-field">Aadhaar Card</label>
+              <div class="file-upload">
+                <input type="file" id="aadhaarCard" name="aadhaar_card" class="file-upload-input" accept="image/*,.pdf">
+                <label for="aadhaarCard" class="file-upload-label">
+                  <i class="fas fa-id-card fs-1 text-muted"></i>
+                  <div>Upload Aadhaar Card</div>
+                  <span class="file-name" id="aadhaarFileName">JPEG, PNG or PDF, Max 5MB</span>
+                </label>
+              </div>
+              <div class="form-text">Required for property verification</div>
+            </div>
+            
+            <div class="mb-3">
+              <label for="panCard" class="form-label">PAN Card (Optional)</label>
+              <div class="file-upload">
+                <input type="file" id="panCard" name="pan_card" class="file-upload-input" accept="image/*,.pdf">
+                <label for="panCard" class="file-upload-label">
+                  <i class="fas fa-credit-card fs-1 text-muted"></i>
+                  <div>Upload PAN Card</div>
+                  <span class="file-name" id="panFileName">JPEG, PNG or PDF, Max 5MB</span>
+                </label>
+              </div>
+            </div>
+          </div>
+          
+          <div class="form-check mt-4">
+            <input class="form-check-input" type="checkbox" id="termsCheck" required>
+            <label class="form-check-label" for="termsCheck">
+              I agree to the <a href="#" class="login-link">Terms of Service</a> and <a href="#" class="login-link">Privacy Policy</a>
+            </label>
+          </div>
+          
+          <button type="submit" class="btn btn-primary btn-register mt-4">
+            <i class="fas fa-user-plus me-2"></i> Register Now
+          </button>
+          
+          <div class="text-center mt-4">
+            <p class="mb-0">Already have an account? <a href="/login" class="login-link">Sign in here</a></p>
+          </div>
+        </form>
+      </div>
     </div>
-  </body>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+  <script>
+    // Password toggle functionality
+    const togglePassword = document.querySelector('#togglePassword');
+    const password = document.querySelector('#password');
+    
+    togglePassword.addEventListener('click', function() {
+      const type = password.getAttribute('type') === 'password' ? 'text' : 'password';
+      password.setAttribute('type', type);
+      this.innerHTML = type === 'password' ? '<i class="fas fa-eye"></i>' : '<i class="fas fa-eye-slash"></i>';
+    });
+    
+    // Profile image preview
+    const profileInput = document.getElementById('profileImage');
+    const profilePreview = document.getElementById('profilePreview');
+    const profileFileName = document.getElementById('profileFileName');
+    
+    profileInput.addEventListener('change', function() {
+      const file = this.files[0];
+      if (file) {
+        const reader = new FileReader();
+        reader.onload = function(e) {
+          profilePreview.src = e.target.result;
+        }
+        reader.readAsDataURL(file);
+        profileFileName.textContent = file.name;
+      }
+    });
+    
+    // Aadhaar file name display
+    const aadhaarInput = document.getElementById('aadhaarCard');
+    const aadhaarFileName = document.getElementById('aadhaarFileName');
+    
+    aadhaarInput.addEventListener('change', function() {
+      const file = this.files[0];
+      if (file) {
+        aadhaarFileName.textContent = file.name;
+      }
+    });
+    
+    // PAN file name display
+    const panInput = document.getElementById('panCard');
+    const panFileName = document.getElementById('panFileName');
+    
+    panInput.addEventListener('change', function() {
+      const file = this.files[0];
+      if (file) {
+        panFileName.textContent = file.name;
+      }
+    });
+    
+    // Show/hide vendor fields based on role selection
+    const roleSelect = document.getElementById('role');
+    const vendorFields = document.getElementById('vendorFields');
+    
+    roleSelect.addEventListener('change', function() {
+      if (this.value === 'vendor') {
+        vendorFields.style.display = 'block';
+        // Make vendor fields required
+        document.getElementById('aadhaarCard').required = true;
+      } else {
+        vendorFields.style.display = 'none';
+        // Remove required attribute for non-vendors
+        document.getElementById('aadhaarCard').required = false;
+      }
+    });
+    
+    // Form validation
+    const form = document.querySelector('form');
+    form.addEventListener('submit', function(e) {
+      const password = document.getElementById('password').value;
+      const confirmPassword = document.getElementById('confirmPassword').value;
+      
+      if (password.length < 8) {
+        e.preventDefault();
+        alert('Password must be at least 8 characters long');
+        return;
+      }
+      
+      if (password !== confirmPassword) {
+        e.preventDefault();
+        alert('Passwords do not match');
+        return;
+      }
+      
+      if (!document.getElementById('termsCheck').checked) {
+        e.preventDefault();
+        alert('You must agree to the Terms of Service and Privacy Policy');
+        return;
+      }
+      
+      // Additional validation for vendors
+      if (roleSelect.value === 'vendor') {
+        const aadhaarFile = document.getElementById('aadhaarCard').files[0];
+        if (!aadhaarFile) {
+          e.preventDefault();
+          alert('Aadhaar Card is required for vendor registration');
+          return;
+        }
+        
+        // Check file size (5MB max)
+        if (aadhaarFile.size > 5 * 1024 * 1024) {
+          e.preventDefault();
+          alert('Aadhaar Card file size exceeds 5MB limit');
+          return;
+        }
+      }
+      
+      // Check profile image size (2MB max)
+      const profileFile = document.getElementById('profileImage').files[0];
+      if (profileFile && profileFile.size > 2 * 1024 * 1024) {
+        e.preventDefault();
+        alert('Profile image size exceeds 2MB limit');
+        return;
+      }
+    });
+  </script>
+</body>
 </html>

@@ -127,7 +127,7 @@ TIME_ZONE = "UTC"
 USE_I18N = True
 
 USE_TZ = True
-
+AUTH_USER_MODEL = 'home.CustomUser'
 
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/5.2/howto/static-files/
@@ -145,3 +145,4 @@ DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 #add Manually
 MEDIA_URL = '/media/'
 MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
+
