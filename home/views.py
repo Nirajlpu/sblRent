@@ -10,20 +10,48 @@ from .forms import PropertyForm, ProfileForm
 import os
 from .models import Wishlist
 
+from django.core.paginator import Paginator
+from django.template.loader import render_to_string
+
+from django.utils import timezone
+from django.template.loader import render_to_string
+from django.http import JsonResponse
+
 def home(request):
-    
-    featured_properties = Property.objects.filter(
-        status='active', 
-        is_featured=True
-    )[:6]
-    recent_properties = Property.objects.filter(
-        status='active'
-    ).order_by('-date_added')[:6]
-    
+    featured_list = Property.objects.filter(status='active', is_featured=True)
+    recent_list = Property.objects.filter(status='active').order_by('-date_added')
+
+    featured_paginator = Paginator(featured_list, 6)
+    recent_paginator = Paginator(recent_list, 6)
+
+    page_featured = request.GET.get('page_featured')
+    page_recent = request.GET.get('page_recent')
+
+    featured_properties = featured_paginator.get_page(page_featured)
+    recent_properties = recent_paginator.get_page(page_recent)
+
+    now = timezone.now()
+
+    # AJAX response for featured
+    if request.headers.get('x-requested-with') == 'XMLHttpRequest' and 'page_featured' in request.GET:
+        html = render_to_string('partials/_featured_properties.html', {
+            'featured_properties': featured_properties,
+            'now': now
+        })
+        return JsonResponse({'html': html})
+
+    # AJAX response for recent
+    if request.headers.get('x-requested-with') == 'XMLHttpRequest' and 'page_recent' in request.GET:
+        html = render_to_string('partials/_recent_properties.html', {
+            'recent_properties': recent_properties,
+            'now': now
+        })
+        return JsonResponse({'html': html})
+
     return render(request, 'index.html', {
         'featured_properties': featured_properties,
-        
-        'recent_properties': recent_properties
+        'recent_properties': recent_properties,
+        'now': now,
     })
 
 def register_user(request):
@@ -101,52 +129,67 @@ def login_user(request):
             
     return render(request, 'login.html')
 
+
+
+
+
+from django.contrib.auth.decorators import login_required
+from django.shortcuts import render
+from django.core.paginator import Paginator
+from django.http import JsonResponse
+from django.template.loader import render_to_string
+from .models import Property, Booking
+
+
+
 @login_required
 def dashboard(request):
     user = request.user
     profile = user.profile
-   
-    
-   
+    page_number = request.GET.get('page')
 
-    
     if profile.role == 'vendor':
-        properties = Property.objects.filter(owner=user)
-        
+        # Vendor-specific properties and stats
+        properties = Property.objects.filter(owner=user).order_by('-date_added')
+        paginator = Paginator(properties, 6)
+        page_obj = paginator.get_page(page_number)
+
+        if request.headers.get('x-requested-with') == 'XMLHttpRequest':
+            html = render_to_string('partials/_vendor_properties.html', {
+                'properties': page_obj
+            }, request=request)
+            return JsonResponse({'html': html})
+
         stats = {
             'total_properties': properties.count(),
             'active_properties': properties.filter(status='active').count(),
             'pending_properties': properties.filter(status='pending').count(),
             'rented_properties': properties.filter(status='rented').count(),
             'total_bookings': Booking.objects.filter(property__owner=user).count(),
-            'pending_bookings': Booking.objects.filter(
-                property__owner=user, 
-                status='pending'
-            ).count()
+            'pending_bookings': Booking.objects.filter(property__owner=user, status='pending').count()
         }
-        
-        return render(request, 'vendor_dashboard.html', {
 
-            'properties': properties[:5],  # Show recent 5 properties
+        return render(request, 'vendor_dashboard.html', {
+            'properties': page_obj,
             'stats': stats,
             'pic': profile,
-            'recent_bookings': Booking.objects.filter(
-                property__owner=user
-            ).order_by('-created_at')[:5]
-        })
-    else:
-        # User dashboard
-        
-        properties = Property.objects.filter(status='active')
-        bookings = Booking.objects.filter(user=user).select_related('property')
-        
-        return render(request, 'user_dashboard.html', {
-            'properties': properties[:6],
-            'pic': profile,
-            'bookings': bookings,
-            'wishlist': properties.filter(wishlist__user=user)[:4]
+            'recent_bookings': Booking.objects.filter(property__owner=user).order_by('-created_at')[:5]
         })
 
+    else:
+        # User-specific view
+        all_properties = Property.objects.filter(status='active').order_by('-date_added')
+        paginator = Paginator(all_properties, 6)
+        page_obj = paginator.get_page(page_number)
+
+        bookings = Booking.objects.filter(user=user).select_related('property')
+
+        return render(request, 'user_dashboard.html', {
+            'properties': page_obj,
+            'pic': profile,
+            'bookings': bookings,
+            'wishlist': all_properties.filter(wishlist__user=user)[:4]
+        })
 @login_required
 def property_detail(request, property_id):
     property = get_object_or_404(Property, id=property_id)

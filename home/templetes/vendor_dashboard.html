@@ -376,7 +376,48 @@
 
     <!-- Dashboard Content -->
     <div class="row g-4 mb-4 m-4">
-      <!-- Properties Section -->
+      <!-- Sidebar Section (Moved Left) -->
+      <div class="stat-card col-lg-4">
+        <!-- Activity Timeline -->
+        <div class="text-center">
+          <h5 class="mb-4 text-primary fw-semibold"><i class="fas fa-history me-2"></i>Recent Activity</h5>
+        </div>
+        <div class="activity-timeline mb-4 p-3" style="max-height: 430px; overflow-y: auto;">
+         
+          <div class="d-flex flex-column gap-4">
+            <div class="timeline-item">
+              <h6 class="fw-bold mb-1 text-dark">New inquiry received</h6>
+              <p class="text-muted small mb-1">For your property in Koramangala</p>
+              <small class="text-muted"><i class="far fa-clock me-1"></i>2 hours ago</small>
+            </div>
+            <div class="timeline-item">
+              <h6 class="fw-bold mb-1 text-dark">Property approved</h6>
+              <p class="text-muted small mb-1">"Luxury Apartment in HSR Layout" is now active</p>
+              <small class="text-muted"><i class="far fa-clock me-1"></i>1 day ago</small>
+            </div>
+            <div class="timeline-item">
+              <h6 class="fw-bold mb-1 text-dark">New booking</h6>
+              <p class="text-muted small mb-1">Your property in Whitefield has been rented</p>
+              <small class="text-muted"><i class="far fa-clock me-1"></i>3 days ago</small>
+            </div>
+            <div class="timeline-item">
+              <h6 class="fw-bold mb-1 text-dark">Payment received</h6>
+              <p class="text-muted small mb-1">₹25,000 for your property in Indiranagar</p>
+              <small class="text-muted"><i class="far fa-clock me-1"></i>1 week ago</small>
+            </div>
+          </div>
+        </div>
+
+        <!-- Quick Stats -->
+        <div  style="min-height: 400px;">
+          <div class="chart-container p-3 d-flex flex-column align-items-center justify-content-center" style="height: 100%;">
+            <h5 class="mb-4 text-primary fw-semibold text-center"><i class="fas fa-chart-pie me-2"></i>Property Status</h5>
+            <canvas id="statusChart" height="200" style="max-width: 100%;"></canvas>
+          </div>
+        </div>
+      </div>
+
+      <!-- Properties Section (Moved Right) -->
       <div class="col-lg-8">
         <!-- Search and Filter Section -->
         <div class="search-container">
@@ -396,121 +437,9 @@
               </select>
             </div>
           </div>
-          
-          {% if properties %}
-          <div class="row g-4">
-            {% for property in properties %}
-            <div class="col-md-6 col-lg-6 col-xl-4 property-item" data-status="{{ property.status }}">
-              <div class="property-card">
-                <div class="property-img-container">
-                  <img src="{{ property.image_url|default:'https://images.unsplash.com/photo-1564013799919-ab600027ffc6?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=400&q=80' }}" 
-                       class="property-img" 
-                       alt="{{ property.title }}">
-                  <div class="property-badge status-{{ property.status }}">
-                    {% if property.status == 'active' %}Active
-                    {% elif property.status == 'pending' %}Pending
-                    {% elif property.status == 'rented' %}Rented
-                    {% else %}Inactive{% endif %}
-                  </div>
-                  <div class="property-actions">
-                    <a href="/edit-property/{{property.id}}/" class="action-btn edit" data-bs-toggle="tooltip" title="Edit">
-                      <i class="fas fa-pencil-alt"></i>
-                    </a>
-                    <a href="/delete-property/{{property.id}}/" class="action-btn delete" data-bs-toggle="tooltip" title="Delete">
-                      <i class="fas fa-trash"></i>
-                    </a>
-                  </div>
-                </div>
-                <div class="p-3">
-                  <h5 class="mb-1">{{ property.title|truncatechars:30 }}</h5>
-                  <p class="text-muted small mb-2"><i class="fas fa-map-marker-alt me-1"></i> {{ property.location|truncatechars:30 }}</p>
-                  <div class="d-flex justify-content-between align-items-center mb-2">
-                    <span class="fw-bold text-primary">₹{{ property.price }}/mo</span>
-                    <div>
-                      <span class="badge bg-light text-dark me-2"><i class="fas fa-bed me-1"></i> {{ property.bedrooms }}</span>
-                      <span class="badge bg-light text-dark"><i class="fas fa-bath me-1"></i> {{ property.bathrooms }}</span>
-                    </div>
-                  </div>
-                  <div class="d-flex justify-content-between align-items-center">
-                    <small class="text-muted"><i class="far fa-calendar me-1"></i> {{ property.date_added|date:"M d, Y" }}</small>
-                    <div>
-                      <span class="me-2 small"><i class="fas fa-eye me-1"></i> {{ property.views|default:"120" }}</span>
-                      <span class="small"><i class="fas fa-star text-warning me-1"></i> {{ property.rating|default:"4.5" }}</span>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-            {% endfor %}
+          <div id="property-list">
+            {% include 'partials/_vendor_properties.html' %}
           </div>
-          {% else %}
-          <div class="empty-state">
-            <div class="empty-state-icon">
-              <i class="fas fa-home"></i>
-            </div>
-            <h4 class="mb-3">No Properties Found</h4>
-            <p class="text-muted mb-4">You haven't added any properties yet. Get started by adding your first property listing.</p>
-            <a href="{% url 'add_property' %}" class="btn btn-primary">
-              <i class="fas fa-plus-circle me-2"></i>Add New Property
-            </a>
-          </div>
-          {% endif %}
-          
-          <!-- Pagination -->
-          {% if properties %}
-          <nav aria-label="Property pagination" class="mt-4">
-            <ul class="pagination justify-content-center">
-              <li class="page-item disabled">
-                <a class="page-link" href="#" tabindex="-1" aria-disabled="true">
-                  <i class="fas fa-chevron-left"></i>
-                </a>
-              </li>
-              <li class="page-item active"><a class="page-link" href="#">1</a></li>
-              <li class="page-item"><a class="page-link" href="#">2</a></li>
-              <li class="page-item"><a class="page-link" href="#">3</a></li>
-              <li class="page-item">
-                <a class="page-link" href="#">
-                  <i class="fas fa-chevron-right"></i>
-                </a>
-              </li>
-            </ul>
-          </nav>
-          {% endif %}
-        </div>
-      </div>
-      
-      <!-- Sidebar Section -->
-      <div class="col-lg-4">
-        <!-- Activity Timeline -->
-        <div class="activity-timeline mb-4">
-          <h5 class="mb-3">Recent Activity</h5>
-          <div class="timeline-item">
-            <h6 class="mb-1">New inquiry received</h6>
-            <p class="text-muted small mb-1">For your property in Koramangala</p>
-            <small class="text-muted">2 hours ago</small>
-          </div>
-          <div class="timeline-item">
-            <h6 class="mb-1">Property approved</h6>
-            <p class="text-muted small mb-1">"Luxury Apartment in HSR Layout" is now active</p>
-            <small class="text-muted">1 day ago</small>
-          </div>
-          <div class="timeline-item">
-            <h6 class="mb-1">New booking</h6>
-            <p class="text-muted small mb-1">Your property in Whitefield has been rented</p>
-            <small class="text-muted">3 days ago</small>
-          </div>
-          <div class="timeline-item">
-            <h6 class="mb-1">Payment received</h6>
-            <p class="text-muted small mb-1">₹25,000 for your property in Indiranagar</p>
-            <small class="text-muted">1 week ago</small>
-          </div>
-         
-        </div>
-        
-        <!-- Quick Stats -->
-        <div class="chart-container">
-          <h5 class="mb-3">Property Status</h5>
-          <canvas id="statusChart" height="200"></canvas>
         </div>
       </div>
     </div>
@@ -650,6 +579,32 @@
         }
       }
     });
+
+    function loadProperties(url) {
+  fetch(url, {
+    headers: {
+      'X-Requested-With': 'XMLHttpRequest'
+    }
+  })
+  .then(response => response.json())
+  .then(data => {
+    document.getElementById('property-list').innerHTML = data.html;
+    attachPaginationHandlers();
+  });
+}
+
+  function attachPaginationHandlers() {
+    document.querySelectorAll('#property-list .pagination a').forEach(link => {
+      link.addEventListener('click', function(e) {
+        e.preventDefault();
+        const url = this.getAttribute('href');
+        loadProperties(url);
+      });
+    });
+  }
+
+  // Run once on load
+  attachPaginationHandlers();
   </script>
 </body>
 </html>
