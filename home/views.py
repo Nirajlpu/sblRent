@@ -223,78 +223,84 @@ def manage_property(request, property_id=None):
     user = request.user
     profile = user.profile
 
-    property_obj = None
-    if property_id:
-        property_obj = get_object_or_404(Property, id=property_id, owner=user)
+    if profile.role == 'vendor':
 
-    if request.method == 'POST':
-        title = request.POST.get('title')
-        description = request.POST.get('description')
-        property_type = request.POST.get('property_type')
-        status = request.POST.get('status')
-        location = request.POST.get('location')
-        address = request.POST.get('address')
-        city = request.POST.get('city')
-        state = request.POST.get('state')
-        zip_code = request.POST.get('zip_code')
-        price = request.POST.get('price') or 0
-        deposit = request.POST.get('deposit') or 0
-        bedrooms = request.POST.get('bedrooms') or 0
-        bathrooms = request.POST.get('bathrooms') or 0
-        square_feet = request.POST.get('square_feet') or 0
-        year_built = request.POST.get('year_built') or None
-        amenities_json = request.POST.get('amenities', '[]')
-        image_url = request.POST.get('image_url')
-        image_upload = request.FILES.get('image_upload')
+        property_obj = None
+        if property_id:
+            property_obj = get_object_or_404(Property, id=property_id, owner=user)
 
-        try:
-            amenities = json.loads(amenities_json)
-        except json.JSONDecodeError:
-            amenities = []
+        if request.method == 'POST':
+            title = request.POST.get('title')
+            description = request.POST.get('description')
+            property_type = request.POST.get('property_type')
+            status = request.POST.get('status')
+            location = request.POST.get('location')
+            address = request.POST.get('address')
+            city = request.POST.get('city')
+            state = request.POST.get('state')
+            zip_code = request.POST.get('zip_code')
+            price = request.POST.get('price') or 0
+            deposit = request.POST.get('deposit') or 0
+            bedrooms = request.POST.get('bedrooms') or 0
+            bathrooms = request.POST.get('bathrooms') or 0
+            square_feet = request.POST.get('square_feet') or 0
+            year_built = request.POST.get('year_built') or None
+            amenities_json = request.POST.get('amenities', '[]')
+            image_url = request.POST.get('image_url')
+            image_upload = request.FILES.get('image_upload')
 
-        if property_obj:
-            property = property_obj
-        else:
-            property = Property(owner=user)
+            try:
+                amenities = json.loads(amenities_json)
+            except json.JSONDecodeError:
+                amenities = []
 
-        # Set all fields
-        property.title = title
-        property.description = description
-        property.property_type = property_type
-        property.status = status
-        property.location = location
-        property.address = address
-        property.city = city
-        property.state = state
-        property.zip_code = zip_code
-        property.price = price
-        property.deposit = deposit
-        property.bedrooms = bedrooms
-        property.bathrooms = bathrooms
-        property.area = square_feet
-        property.year_built = year_built
-        property.amenities = amenities
-        property.image_url = image_url if image_upload is None else ''
+            if property_obj:
+                property = property_obj
+            else:
+                property = Property(owner=user)
+
+            # Set all fields
+            property.title = title
+            property.description = description
+            property.property_type = property_type
+            property.status = status
+            property.location = location
+            property.address = address
+            property.city = city
+            property.state = state
+            property.zip_code = zip_code
+            property.price = price
+            property.deposit = deposit
+            property.bedrooms = bedrooms
+            property.bathrooms = bathrooms
+            property.area = square_feet
+            property.year_built = year_built
+            property.amenities = amenities
+            property.image_url = image_url if image_upload is None else ''
         
-        if image_upload:
-            property.image = image_upload  # Store the uploaded image
+            if image_upload:
+                property.image = image_upload  # Store the uploaded image
 
-        property.save()
+            property.save()
 
-        # Handle multiple images (if you're using another input for multiple images)
-        images = request.FILES.getlist('images')  # optional enhancement
-        for img in images:
-            PropertyImage.objects.create(property=property, image=img)
+            # Handle multiple images (if you're using another input for multiple images)
+            images = request.FILES.getlist('images')  # optional enhancement
+            for img in images:
+                PropertyImage.objects.create(property=property, image=img)
 
-        messages.success(request,
-                         "Property updated successfully!" if property_id else "Property added successfully!")
+            messages.success(request,
+                            "Property updated successfully!" if property_id else "Property added successfully!")
+            return redirect('dashboard')
+
+        return render(request, 'manage_property.html', {
+            'property': property_obj,
+            'pic': profile,
+            'images': property_obj.images.all() if property_obj else []
+        })
+    else:
+        messages.success(request,"You are normal user.You can't add Property")
         return redirect('dashboard')
 
-    return render(request, 'manage_property.html', {
-        'property': property_obj,
-        'pic': profile,
-        'images': property_obj.images.all() if property_obj else []
-    })
 
 @login_required
 def delete_property(request, property_id):
