@@ -28,13 +28,18 @@
           <a href="/property/{{ property.id }}" class="btn btn-outline-primary btn-sm">
             <i class="fas fa-eye me-1"></i> View Details
           </a>
-          <a href="/property/{{ property.id }}" class="btn btn-outline-primary btn-sm book-now-btn">
+          <a href="/book/{{ property.id }}" class="btn btn-outline-success btn-sm book-now-btn">
             Book Now
           </a>
         </div>
       </div>
       <div class="card-footer bg-white border-0">
-        <small class="text-muted"><i class="fas fa-map-marker-alt me-1"></i> {{ property.location }}</small>
+        <small class="text-muted">
+          <i class="fas fa-map-marker-alt me-1"></i>
+          <a href="https://www.google.com/maps?q={{ property.latitude }},{{ property.longitude }}" target="_blank">
+            {{ property.location }}
+          </a>
+        </small>
       </div>
     </div>
   </div>

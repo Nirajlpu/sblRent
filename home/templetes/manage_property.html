@@ -187,6 +187,38 @@
                      value="{{ property.zip_code|default:'' }}">
             </div>
           </div>
+
+          <div class="row mt-3">
+            <div class="col-md-6 mb-3">
+              <label for="latitude" class="form-label">Latitude</label>
+              <input type="text" class="form-control" id="latitude" name="latitude" value="{{ property.latitude|default:'' }}">
+            </div>
+            <div class="col-md-6 mb-3">
+              <label for="longitude" class="form-label">Longitude</label>
+              <input type="text" class="form-control" id="longitude" name="longitude" value="{{ property.longitude|default:'' }}">
+            </div>
+          </div>
+
+          <div class="mb-3">
+            <button type="button" class="btn btn-outline-primary" onclick="openMapModal()">Pick Location on Map</button>
+          </div>
+
+          <!-- Modal -->
+          <div class="modal fade" id="mapModal" tabindex="-1" aria-labelledby="mapModalLabel" aria-hidden="true">
+            <div class="modal-dialog modal-lg modal-dialog-centered">
+              <div class="modal-content">
+                <div class="modal-header">
+                  <h5 class="modal-title" id="mapModalLabel">Select Property Location</h5>
+                  <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body" style="height: 400px; position: relative;">
+                  <input type="text" id="map-search" class="form-control mb-2" placeholder="Search for a location..." autocomplete="off">
+                  <ul id="map-suggestions" class="list-group position-absolute bg-white border rounded shadow" style="top: 45px; left: 0; right: 0; z-index: 9999; max-height: 250px; overflow-y: auto; display: none;"></ul>
+                  <div id="map" style="height: 100%; width: 100%;"></div>
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
         
         <!-- Pricing Information Section -->
@@ -269,6 +301,11 @@
             <label for="image_upload" class="form-label">Or Upload Image</label>
             <input type="file" class="form-control" id="image_upload" name="image_upload" accept="image/*">
           </div>
+
+          <div class="mb-3">
+            <label for="video_upload" class="form-label">Upload Property Video</label>
+            <input type="file" class="form-control" id="video_upload" name="video" accept="video/mp4,video/x-m4v,video/*">
+          </div>
         </div>
         
         <div class="d-grid gap-2">
@@ -281,6 +318,9 @@
   </div>
 
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+
   <script>
     // Update image preview when URL changes
     function updateImagePreview(url) {
@@ -340,6 +380,94 @@
         .map(tag => tag.textContent.trim().replace('×', '').trim());
       document.getElementById('amenities').value = JSON.stringify(tags);
     }
+
+    function openMapModal() {
+      const modal = new bootstrap.Modal(document.getElementById('mapModal'));
+      modal.show();
+
+      setTimeout(() => {
+        const lat = parseFloat(document.getElementById('latitude').value) || 20.5937;
+        const lng = parseFloat(document.getElementById('longitude').value) || 78.9629;
+
+        if (window._map) {
+          window._map.remove();
+        }
+
+        window._map = L.map('map').setView([lat, lng], 15);
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+          attribution: '© OpenStreetMap contributors'
+        }).addTo(window._map);
+
+        window._marker = L.marker([lat, lng], { draggable: true }).addTo(window._map);
+        window._marker.on('dragend', function(e) {
+          const { lat, lng } = window._marker.getLatLng();
+          document.getElementById('latitude').value = lat.toFixed(6);
+          document.getElementById('longitude').value = lng.toFixed(6);
+        });
+
+        window._map.on('click', function(e) {
+          window._marker.setLatLng(e.latlng);
+          document.getElementById('latitude').value = e.latlng.lat.toFixed(6);
+          document.getElementById('longitude').value = e.latlng.lng.toFixed(6);
+        });
+      }, 300);
+    }
+
+    // Location search suggestions for map modal
+    const searchInput = document.getElementById('map-search');
+    const suggestionsBox = document.getElementById('map-suggestions');
+
+    searchInput.addEventListener('input', function () {
+      const query = this.value;
+      if (query.length < 3) {
+        suggestionsBox.style.display = 'none';
+        return;
+      }
+
+      fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${query}`)
+        .then(res => res.json())
+        .then(data => {
+          suggestionsBox.innerHTML = '';
+          data.slice(0, 5).forEach(place => {
+            const item = document.createElement('li');
+            item.className = 'list-group-item list-group-item-action';
+            item.textContent = place.display_name;
+            item.addEventListener('click', () => {
+              const lat = parseFloat(place.lat);
+              const lon = parseFloat(place.lon);
+              // Set map and marker if map is initialized
+              if (window.L && window.L.map) {
+                // Try to get the Leaflet map instance
+                let mapElem = document.getElementById('map');
+                if (mapElem && mapElem._leaflet_id) {
+                  let map = window.L.DomUtil.get(mapElem._leaflet_id);
+                  // But this is not the way to get the map instance; so instead, keep reference to map in openMapModal
+                }
+              }
+              // Actually, since map and marker are scoped in openMapModal, we need to use a workaround:
+              // We'll store last map/marker as window._map and window._marker
+              if (window._map && window._marker) {
+                window._map.setView([lat, lon], 16);
+                window._marker.setLatLng([lat, lon]);
+              }
+              document.getElementById('latitude').value = lat.toFixed(6);
+              document.getElementById('longitude').value = lon.toFixed(6);
+              searchInput.value = place.display_name;
+              suggestionsBox.style.display = 'none';
+            });
+            suggestionsBox.appendChild(item);
+          });
+          suggestionsBox.style.display = data.length ? 'block' : 'none';
+        });
+    });
+
+    document.addEventListener('click', (e) => {
+      if (!suggestionsBox.contains(e.target) && e.target !== searchInput) {
+        suggestionsBox.style.display = 'none';
+      }
+    });
+
+    // No patch needed, openMapModal now sets window._map and window._marker directly.
   </script>
 </body>
 </html>

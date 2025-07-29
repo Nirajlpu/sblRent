@@ -96,11 +96,31 @@ class Property(models.Model):
     city = models.CharField(max_length=50)
     state = models.CharField(max_length=50)
     zip_code = models.CharField(max_length=10)
+    latitude = models.DecimalField(
+        max_digits=9,
+        decimal_places=6,
+        null=True,
+        blank=True,
+        help_text="Latitude of the property"
+    )
+    longitude = models.DecimalField(
+        max_digits=9,
+        decimal_places=6,
+        null=True,
+        blank=True,
+        help_text="Longitude of the property"
+    )
     image_url = models.URLField(default='https://via.placeholder.com/400x300?text=Property+Image')
     image = models.ImageField(
         upload_to='property_images/',
         default='property_images/default.jpg',
         validators=[FileExtensionValidator(['jpg', 'jpeg', 'png'])]
+    )
+    video = models.FileField(
+        upload_to='property_videos/',
+        validators=[FileExtensionValidator(['mp4', 'mov', 'avi'])],
+        blank=True,
+        null=True
     )
     bedrooms = models.PositiveIntegerField(default=1)
     bathrooms = models.PositiveIntegerField(default=1)

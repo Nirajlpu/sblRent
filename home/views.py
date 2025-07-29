@@ -18,6 +18,7 @@ from django.template.loader import render_to_string
 from django.http import JsonResponse
 
 def home(request):
+    # logout(request)
     featured_list = Property.objects.filter(status='active', is_featured=True)
     recent_list = Property.objects.filter(status='active').order_by('-date_added')
 
@@ -192,6 +193,8 @@ def dashboard(request):
         })
 @login_required
 def property_detail(request, property_id):
+    user = request.user
+    profile = user.profile
     property = get_object_or_404(Property, id=property_id)
     is_bookmarked = False
     similar_properties = Property.objects.filter(
@@ -207,6 +210,7 @@ def property_detail(request, property_id):
     
     return render(request, 'property_detail.html', {
         'property': property,
+        'pic': profile,
         'similar_properties': similar_properties,
         'is_bookmarked': is_bookmarked,
         'reviews': Review.objects.filter(property=property).select_related('user')
@@ -248,6 +252,10 @@ def manage_property(request, property_id=None):
             amenities_json = request.POST.get('amenities', '[]')
             image_url = request.POST.get('image_url')
             image_upload = request.FILES.get('image_upload')
+            video_file = request.FILES.get('video')
+
+            latitude = request.POST.get('latitude') or None
+            longitude = request.POST.get('longitude') or None
 
             try:
                 amenities = json.loads(amenities_json)
@@ -269,6 +277,8 @@ def manage_property(request, property_id=None):
             property.city = city
             property.state = state
             property.zip_code = zip_code
+            property.latitude = latitude
+            property.longitude = longitude
             property.price = price
             property.deposit = deposit
             property.bedrooms = bedrooms
@@ -280,6 +290,8 @@ def manage_property(request, property_id=None):
         
             if image_upload:
                 property.image = image_upload  # Store the uploaded image
+            if video_file:
+                property.video = video_file
 
             property.save()
 
