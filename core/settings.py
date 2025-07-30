@@ -54,6 +54,7 @@ EXTERNAL_APPS=[
 INSTALLED_APPS += EXTERNAL_APPS
 
 MIDDLEWARE = [
+    "whitenoise.middleware.WhiteNoiseMiddleware",
     "django.middleware.security.SecurityMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.common.CommonMiddleware",
@@ -136,6 +137,7 @@ STATIC_URL = "static/"
 
 # Optional: if you want to collect static files
 STATICFILES_DIRS = [BASE_DIR / "static"]
+STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/5.2/ref/settings/#default-auto-field
@@ -145,4 +147,5 @@ DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 #add Manually
 MEDIA_URL = '/media/'
 MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
+
 

@@ -29,6 +29,7 @@ from django.http import HttpResponse
 from django.conf import settings
 from django.conf.urls.static import static
 
+
 urlpatterns = [
     # ... your existing URLs
     path("admin/", admin.site.urls),
