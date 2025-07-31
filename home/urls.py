@@ -29,6 +29,9 @@ urlpatterns = [
     path('book/<int:property_id>/', views.book_property, name='book_property'),
     path('booking/<int:booking_id>/', views.booking_confirmation, name='booking_confirmation'),
     path('my-bookings/', views.my_bookings, name='my_bookings'),
+    path('vendor/bookings/', views.vendor_booking_requests, name='vendor_booking_requests'),
+    path('vendor/bookings/<int:booking_id>/approve/', views.approve_booking, name='approve_booking'),
+    path('vendor/bookings/<int:booking_id>/decline/', views.decline_booking, name='decline_booking'),
     
     # Wishlist URLs
     path('wishlist/toggle/<int:property_id>/', views.toggle_wishlist, name='toggle_wishlist'),

@@ -19,6 +19,8 @@ from django.http import JsonResponse
 
 def home(request):
     # logout(request)
+    user = request.user
+    profile = user.profile if user.is_authenticated else None
     featured_list = Property.objects.filter(status='active', is_featured=True)
     recent_list = Property.objects.filter(status='active').order_by('-date_added')
 
@@ -51,6 +53,7 @@ def home(request):
 
     return render(request, 'index.html', {
         'featured_properties': featured_properties,
+        'pic': profile if profile else None,
         'recent_properties': recent_properties,
         'now': now,
     })
@@ -191,10 +194,10 @@ def dashboard(request):
             'bookings': bookings,
             'wishlist': all_properties.filter(wishlist__user=user)[:4]
         })
-@login_required
+
 def property_detail(request, property_id):
     user = request.user
-    profile = user.profile
+    profile = user.profile if user.is_authenticated else None
     property = get_object_or_404(Property, id=property_id)
     is_bookmarked = False
     similar_properties = Property.objects.filter(
@@ -210,7 +213,7 @@ def property_detail(request, property_id):
     
     return render(request, 'property_detail.html', {
         'property': property,
-        'pic': profile,
+       'pic': profile if profile else None,
         'similar_properties': similar_properties,
         'is_bookmarked': is_bookmarked,
         'reviews': Review.objects.filter(property=property).select_related('user')
@@ -321,19 +324,37 @@ def delete_property(request, property_id):
     messages.success(request, "Property deleted successfully!")
     return redirect('dashboard')
 
-@login_required
+@login_required(login_url='/login/')
 def book_property(request, property_id):
+    user = request.user
+    profile = user.profile if user.is_authenticated else None
     property_obj = get_object_or_404(Property, id=property_id, status='active')
-    
+
     if request.method == 'POST':
-        start_date = request.POST.get('start_date')
-        end_date = request.POST.get('end_date')
+        start_date_str = request.POST.get('start_date')
+        end_date_str = request.POST.get('end_date')
         notes = request.POST.get('notes', '')
-        
-        # Calculate total price (simple daily rate calculation)
+
+        if not start_date_str or not end_date_str:
+            messages.error(request, "Both check-in and check-out dates are required.")
+            return redirect('book_property', property_id=property_id)
+
+        try:
+            from datetime import datetime
+            start_date = datetime.strptime(start_date_str, "%Y-%m-%d").date()
+            end_date = datetime.strptime(end_date_str, "%Y-%m-%d").date()
+        except ValueError:
+            messages.error(request, "Invalid date format.")
+            return redirect('book_property', property_id=property_id)
+
+        if start_date >= end_date:
+            messages.error(request, "Check-out date must be after check-in date.")
+            return redirect('book_property', property_id=property_id)
+
         days = (end_date - start_date).days
-        total_price = days * property_obj.price
-        
+        from decimal import Decimal
+        total_price = (Decimal(days) / Decimal(30)) * property_obj.price
+
         booking = Booking.objects.create(
             property=property_obj,
             user=request.user,
@@ -342,13 +363,13 @@ def book_property(request, property_id):
             total_price=total_price,
             notes=notes
         )
-        
         messages.success(request, "Booking request submitted successfully!")
         return redirect('booking_confirmation', booking_id=booking.id)
-    
+
     return render(request, 'book_property.html', {
         'property': property_obj,
-        'available_dates': get_available_dates(property_obj)  # You'll need to implement this
+        'pic': profile if profile else None,
+        'available_dates': get_available_dates(property_obj)
     })
 
 @login_required
@@ -409,8 +430,18 @@ from .models import Booking  # Assuming you have a Booking model
 
 @login_required
 def my_bookings(request):
-    bookings = Booking.objects.filter(user=request.user)
-    return render(request, 'my_bookings.html', {'bookings': bookings})
+    user = request.user
+    profile = user.profile
+
+    if profile.role == 'vendor':
+        bookings = Booking.objects.filter(property__owner=user).select_related('user', 'property')
+    else:
+        bookings = Booking.objects.filter(user=user).select_related('property')
+
+    return render(request, 'my_bookings.html', {
+        'bookings': bookings,
+        'is_vendor': profile.role == 'vendor'
+    })
 
 from django.contrib.auth.decorators import login_required
 from django.shortcuts import render
@@ -420,3 +451,31 @@ from .models import Wishlist
 def my_wishlist(request):
     wishlist_items = Wishlist.objects.filter(user=request.user)
     return render(request, 'my_wishlist.html', {'wishlist_items': wishlist_items})
+
+@login_required
+def vendor_booking_requests(request):
+    if request.user.profile.role != 'vendor':
+        return redirect('home')
+    bookings = Booking.objects.filter(property__owner=request.user)
+    return render(request, 'vendor_bookings.html', {'bookings': bookings})
+
+@login_required
+def approve_booking(request, booking_id):
+    booking = get_object_or_404(Booking, id=booking_id, property__owner=request.user)
+    booking.status = 'approved'
+    booking.save()
+    return redirect('vendor_booking_requests')
+
+@login_required
+def decline_booking(request, booking_id):
+    booking = get_object_or_404(Booking, id=booking_id, property__owner=request.user)
+    booking.status = 'declined'
+    booking.save()
+    return redirect('vendor_booking_requests')
+
+from django.shortcuts import render, get_object_or_404
+from .models import Booking  # adjust if Booking is in a different app
+
+def booking_detail(request, booking_id):
+    booking = get_object_or_404(Booking, id=booking_id)
+    return render(request, 'booking_detail.html', {'booking': booking})

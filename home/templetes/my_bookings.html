@@ -1,0 +1,457 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>My Property Bookings</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        /* Base Styles */
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            background-color: #f5f5f5;
+            margin: 0;
+            padding: 0;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        
+        h1, h2, h3 {
+            margin-top: 0;
+        }
+        
+        a {
+            text-decoration: none;
+            color: inherit;
+        }
+        
+        /* Button Styles */
+        .btn {
+            display: inline-block;
+            padding: 0.5rem 1rem;
+            border-radius: 4px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        
+        .btn-primary {
+            background-color: #4361ee;
+            color: white;
+            border: 1px solid #4361ee;
+        }
+        
+        .btn-primary:hover {
+            background-color: #3a56d4;
+            border-color: #3a56d4;
+        }
+        
+        .btn-sm {
+            padding: 0.25rem 0.5rem;
+            font-size: 0.8rem;
+        }
+        
+        .btn-view {
+            background-color: #17a2b8;
+            color: white;
+        }
+        
+        .btn-cancel {
+            background-color: #dc3545;
+            color: white;
+        }
+        
+        .btn-download {
+            background-color: #28a745;
+            color: white;
+        }
+        
+        /* Bookings Page Specific Styles */
+        .bookings-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 2rem;
+            flex-wrap: wrap;
+            gap: 1rem;
+        }
+        
+        .header-actions {
+            display: flex;
+            gap: 1rem;
+            align-items: center;
+        }
+        
+        .search-filter {
+            display: flex;
+            gap: 0.5rem;
+        }
+        
+        #booking-search, #status-filter {
+            padding: 0.5rem;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-family: inherit;
+        }
+        
+        .bookings-list {
+            background-color: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+        }
+        
+        .responsive-table {
+            overflow-x: auto;
+        }
+        
+        .bookings-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        
+        .bookings-table th {
+            background-color: #f8f9fa;
+            padding: 1rem;
+            text-align: left;
+            font-weight: 600;
+        }
+        
+        .bookings-table td {
+            padding: 1rem;
+            border-bottom: 1px solid #eee;
+            vertical-align: middle;
+        }
+        
+        .property-info {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+        
+        .property-img {
+            width: 80px;
+            height: 60px;
+            border-radius: 4px;
+            object-fit: cover;
+        }
+        
+        .status-badge {
+            padding: 0.25rem 0.75rem;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            font-weight: 500;
+            display: inline-block;
+        }
+        
+        .status-active {
+            background-color: #d4edda;
+            color: #155724;
+        }
+        
+        .status-pending {
+            background-color: #fff3cd;
+            color: #856404;
+        }
+        
+        .status-cancelled {
+            background-color: #f8d7da;
+            color: #721c24;
+        }
+        
+        .status-completed {
+            background-color: #e2e3e5;
+            color: #383d41;
+        }
+        
+        .action-buttons {
+            display: flex;
+            gap: 0.5rem;
+        }
+        
+        .empty-state {
+            text-align: center;
+            padding: 3rem 0;
+        }
+        
+        .empty-img {
+            max-width: 300px;
+            margin-bottom: 1.5rem;
+            opacity: 0.7;
+        }
+        
+        .pagination {
+            display: flex;
+            justify-content: center;
+            padding: 1.5rem;
+            background-color: #f8f9fa;
+        }
+        
+        .pagination a {
+            margin: 0 0.5rem;
+            padding: 0.5rem 1rem;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            color: #4361ee;
+        }
+        
+        .pagination a:hover {
+            background-color: #f1f1f1;
+        }
+        
+        .pagination .current {
+            padding: 0.5rem 1rem;
+            margin: 0 0.5rem;
+            font-weight: bold;
+        }
+        
+        /* Responsive adjustments */
+        @media (max-width: 768px) {
+            .bookings-header {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+            
+            .header-actions {
+                width: 100%;
+                flex-direction: column;
+                gap: 1rem;
+            }
+            
+            .search-filter {
+                width: 100%;
+            }
+            
+            #booking-search, #status-filter {
+                width: 100%;
+            }
+            
+            .bookings-table {
+                display: block;
+            }
+            
+            .bookings-table thead {
+                display: none;
+            }
+            
+            .bookings-table tr {
+                display: block;
+                margin-bottom: 1rem;
+                border: 1px solid #ddd;
+                border-radius: 4px;
+            }
+            
+            .bookings-table td {
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                border-bottom: 1px solid #eee;
+            }
+            
+            .bookings-table td::before {
+                content: attr(data-label);
+                font-weight: bold;
+                margin-right: 1rem;
+            }
+            
+            .action-buttons {
+                justify-content: flex-end;
+            }
+            
+            .property-img {
+                width: 60px;
+                height: 45px;
+            }
+        }
+    </style>
+</head>
+<body>
+    {% include 'navbar.html' %}
+    
+    <div class="container">
+        <div class="bookings-container">
+            <div class="bookings-header">
+                <h1>My Property Bookings</h1>
+                <div class="header-actions">
+                    <div class="search-filter">
+                        <input type="text" id="booking-search" placeholder="Search properties...">
+                        <select id="status-filter">
+                            <option value="all">All Statuses</option>
+                            <option value="active">Active</option>
+                            <option value="pending">Pending</option>
+                            <option value="completed">Completed</option>
+                            <option value="cancelled">Cancelled</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+
+            <div class="bookings-list">
+                <div class="responsive-table">
+                    <table class="bookings-table">
+                        <thead>
+                            <tr>
+                                <th>Booking ID</th>
+                                <th>Property</th>
+                                <th>Dates</th>
+                                <th>Tenant</th>
+                                <th>Status</th>
+                                <th>Amount</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for booking in bookings %}
+                            <tr>
+                                <td data-label="Booking ID">#{{ booking.id }}</td>
+                                <td data-label="Property">
+                                    <div class="property-info">
+                                        <img src="{{ booking.property.image_url|default:'https://via.placeholder.com/80x60?text=Property' }}" 
+                                             alt="{{ booking.property.title }}" class="property-img">
+                                        <div>
+                                            <strong>{{ booking.property.title|truncatechars:20 }}</strong><br>
+                                            <small>{{ booking.property.location|truncatechars:20 }}</small>
+                                        </div>
+                                    </div>
+                                </td>
+                                <td data-label="Dates">
+                                    {{ booking.start_date|date:"M d, Y" }}<br>
+                                    to {{ booking.end_date|date:"M d, Y" }}
+                                </td>
+                                {% if is_vendor %}
+                                <td data-label="Tenant">
+                                    {{ booking.user.username|default:"-" }}<br>
+                                    <small>{{ booking.user.email|default:"" }}</small>
+                                </td>
+                                {% else %}
+                                <td data-label="Tenant">You</td>
+                                {% endif %}
+                                <td data-label="Status">
+                                    <span class="status-badge status-{{ booking.status|lower }}">
+                                        {{ booking.get_status_display }}
+                                    </span>
+                                </td>
+                                <td data-label="Amount">${{ booking.total_amount }}</td>
+                                <td data-label="Actions">
+                                    <div class="action-buttons">
+                                        {% if is_vendor %}
+                                            {% if booking.status == 'pending' %}
+                                                <a href="{% url 'approve_booking' booking.id %}" class="btn btn-sm btn-view">Approve</a>
+                                                <a href="{% url 'decline_booking' booking.id %}" class="btn btn-sm btn-cancel">Decline</a>
+                                            {% else %}
+                                                <button class="btn btn-sm" disabled>{{ booking.status|title }}</button>
+                                            {% endif %}
+                                        {% else %}
+                                            {% if booking.status == 'active' or booking.status == 'pending' %}
+                                                <button class="btn btn-sm btn-cancel" disabled>Cancel</button>
+                                            {% else %}
+                                                <button class="btn btn-sm btn-cancel" title="Cannot Cancel" disabled>
+                                                    <i class="fas fa-ban"></i>
+                                                </button>
+                                            {% endif %}
+                                        {% endif %}
+                                    </div>
+                                </td>
+                            </tr>
+                            {% empty %}
+                            <tr>
+                                <td colspan="7">
+                                    <div class="empty-state">
+                                        <img src="https://via.placeholder.com/300x200?text=No+Bookings" alt="No bookings" class="empty-img">
+                                        <h3>No Bookings Found</h3>
+                                        <p>You don't have any property bookings yet.</p>
+                                        {% comment %} <a href="{% url 'properties' %}" class="btn btn-primary">
+                                            <i class="fas fa-search"></i> Browse Properties
+                                        </a> {% endcomment %}
+                                    </div>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+
+                {% if bookings.has_other_pages %}
+                <div class="pagination">
+                    <span class="step-links">
+                        {% if bookings.has_previous %}
+                            <a href="?page=1">&laquo; first</a>
+                            <a href="?page={{ bookings.previous_page_number }}">previous</a>
+                        {% endif %}
+                        
+                        <span class="current">
+                            Page {{ bookings.number }} of {{ bookings.paginator.num_pages }}.
+                        </span>
+                        
+                        {% if bookings.has_next %}
+                            <a href="?page={{ bookings.next_page_number }}">next</a>
+                            <a href="?page={{ bookings.paginator.num_pages }}">last &raquo;</a>
+                        {% endif %}
+                    </span>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Search functionality
+            const searchInput = document.getElementById('booking-search');
+            if (searchInput) {
+                searchInput.addEventListener('input', function() {
+                    const searchTerm = this.value.toLowerCase();
+                    const rows = document.querySelectorAll('.bookings-table tbody tr');
+                    
+                    rows.forEach(row => {
+                        const text = row.textContent.toLowerCase();
+                        if (text.includes(searchTerm)) {
+                            row.style.display = '';
+                        } else {
+                            row.style.display = 'none';
+                        }
+                    });
+                });
+            }
+
+            // Status filter functionality
+            const statusFilter = document.getElementById('status-filter');
+            if (statusFilter) {
+                statusFilter.addEventListener('change', function() {
+                    const status = this.value;
+                    const rows = document.querySelectorAll('.bookings-table tbody tr');
+                    
+                    rows.forEach(row => {
+                        if (status === 'all') {
+                            row.style.display = '';
+                        } else {
+                            const rowStatus = row.querySelector('.status-badge').textContent.toLowerCase();
+                            if (rowStatus.includes(status)) {
+                                row.style.display = '';
+                            } else {
+                                row.style.display = 'none';
+                            }
+                        }
+                    });
+                });
+            }
+
+            // Confirmation for cancel actions
+            const cancelButtons = document.querySelectorAll('.btn-cancel');
+            cancelButtons.forEach(button => {
+                button.addEventListener('click', function(e) {
+                    if (!confirm('Are you sure you want to cancel this booking?')) {
+                        e.preventDefault();
+                    }
+                });
+            });
+        });
+    </script>
+</body>
+</html>

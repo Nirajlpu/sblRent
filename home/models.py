@@ -168,9 +168,8 @@ class PropertyImage(models.Model):
 class Booking(models.Model):
     STATUS_CHOICES = (
         ('pending', 'Pending'),
-        ('confirmed', 'Confirmed'),
-        ('cancelled', 'Cancelled'),
-        ('completed', 'Completed')
+        ('approved', 'Approved'),
+        ('declined', 'Declined'),
     )
     
     property = models.ForeignKey(Property, on_delete=models.CASCADE, related_name='bookings')

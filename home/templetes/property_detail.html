@@ -46,6 +46,8 @@
     
     .gallery-container {
       position: relative;
+      border-radius: 16px;
+      overflow: hidden;
     }
     
     .main-image {
@@ -53,7 +55,7 @@
       height: 500px;
       object-fit: cover;
       cursor: pointer;
-      border-radius: 16px 16px 0 0;
+      border-radius: 16px;
     }
     
     .thumbnail-container {
@@ -79,11 +81,19 @@
     .video-container {
       position: relative;
       margin-top: 1.5rem;
+      border-radius: 16px;
+      overflow: hidden;
     }
-    
+
     .property-video {
       width: 100%;
-      border-radius: 8px;
+      max-height: 500px;
+      height: auto;
+      border-radius: 16px;
+      display: block;
+      margin: 0 auto;
+      transform-origin: center center;
+      transition: transform 0.3s ease;
     }
     
     .play-button {
@@ -448,13 +458,29 @@
       if (video) {
         const playButton = document.createElement('i');
         playButton.className = 'fas fa-play-circle play-button';
-        playButton.addEventListener('click', function() {
+        playButton.style.position = 'absolute';
+        playButton.style.top = '50%';
+        playButton.style.left = '50%';
+        playButton.style.transform = 'translate(-50%, -50%)';
+        playButton.style.fontSize = '48px';
+        playButton.style.color = 'white';
+        playButton.style.opacity = '0.8';
+        playButton.style.cursor = 'pointer';
+        playButton.addEventListener('click', function () {
           video.play();
-          this.style.display = 'none';
         });
-        video.parentNode.insertBefore(playButton, video);
-        
-        video.addEventListener('pause', function() {
+        video.parentNode.appendChild(playButton);
+
+        // Hide play button on play
+        video.addEventListener('play', function () {
+          playButton.style.display = 'none';
+        });
+
+        // Show play button on pause or ended
+        video.addEventListener('pause', function () {
+          playButton.style.display = 'block';
+        });
+        video.addEventListener('ended', function () {
           playButton.style.display = 'block';
         });
       }
