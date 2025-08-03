@@ -360,7 +360,7 @@
             <div class="d-flex justify-content-between align-items-center mb-4">
               <span class="price-badge">₹{{ property.price }}/month</span>
               
-              <span class="text-muted"><i class="fas fa-calendar-alt"></i> Available Now</span>
+             
            
             </div>
             
@@ -374,9 +374,7 @@
             
             <div class="contact-card" > 
               <div class="text-center mb-3">
-                {% comment %} <img src="{{ property.owner.profile_picture.url|default:'images/default-avatar.jpg' }}" 
-                     class="owner-avatar mb-2" 
-                     alt="{{ property.owner.get_full_name }}"> {% endcomment %}
+                
                 <h5>{{ property.owner.get_full_name }}</h5>
                 <p class="text-muted">Property Owner</p>
               </div>

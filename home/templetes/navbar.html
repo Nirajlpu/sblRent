@@ -343,7 +343,7 @@
           </a>
           
           <div class="menu-divider"></div>
-          
+           {% if user.profile.role != 'vendor' %}
           <h6 class="px-3 mb-3 text-uppercase small fw-bold text-muted">My Activities</h6>
           <a href="/my-bookings" class="user-menu-item">
             <i class="fas fa-calendar-check"></i> Bookings
@@ -354,7 +354,7 @@
           <a href="/reviews" class="user-menu-item">
             <i class="fas fa-comment-alt"></i> Reviews
           </a>
-          
+           {% endif %}
           {% if user.profile.role == 'vendor' %}
           <div class="menu-divider"></div>
           
@@ -362,7 +362,7 @@
           <a href="/my-properties" class="user-menu-item">
             <i class="fas fa-home"></i> My Properties
           </a>
-          <a href="/bookings" class="user-menu-item">
+          <a href="/my-bookings" class="user-menu-item">
             <i class="fas fa-calendar-alt"></i> Reservations
           </a>
           <a href="/earnings" class="user-menu-item">

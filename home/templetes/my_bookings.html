@@ -63,8 +63,20 @@
         }
         
         .btn-cancel {
-            background-color: #dc3545;
+            display: inline-block;
+            text-align: center;
+            background-color: #e63946;
             color: white;
+            border: 1px solid #e63946;
+            padding: 0.25rem 0.5rem;
+            font-size: 0.8rem;
+            border-radius: 4px;
+            transition: background-color 0.3s ease;
+        }
+
+        .btn-cancel:hover {
+            background-color: #c82333;
+            border-color: #bd2130;
         }
         
         .btn-download {
@@ -299,9 +311,12 @@
                             <tr>
                                 <th>Booking ID</th>
                                 <th>Property</th>
-                                <th>Dates</th>
-                                <th>Tenant</th>
-                                <th>Status</th>
+                               <th>Stay Duration</th>
+                                {% if is_vendor %}
+                                    <th>Tenant</th>
+                                {% else %}
+                                    <th>Property Owner</th>
+                                {% endif %}
                                 <th>Amount</th>
                                 <th>Actions</th>
                             </tr>
@@ -312,10 +327,14 @@
                                 <td data-label="Booking ID">#{{ booking.id }}</td>
                                 <td data-label="Property">
                                     <div class="property-info">
-                                        <img src="{{ booking.property.image_url|default:'https://via.placeholder.com/80x60?text=Property' }}" 
-                                             alt="{{ booking.property.title }}" class="property-img">
+                                        <a href="{% url 'reservation_detail' booking.id %}">
+                                            <img src="{{ booking.property.image_url|default:'https://via.placeholder.com/80x60?text=Property' }}" 
+                                                 alt="{{ booking.property.title }}" class="property-img">
+                                        </a>
                                         <div>
-                                            <strong>{{ booking.property.title|truncatechars:20 }}</strong><br>
+                                            <a href="{% url 'reservation_detail' booking.id %}">
+                                                <strong>{{ booking.property.title|truncatechars:20 }}</strong>
+                                            </a><br>
                                             <small>{{ booking.property.location|truncatechars:20 }}</small>
                                         </div>
                                     </div>
@@ -330,38 +349,38 @@
                                     <small>{{ booking.user.email|default:"" }}</small>
                                 </td>
                                 {% else %}
-                                <td data-label="Tenant">You</td>
-                                {% endif %}
-                                <td data-label="Status">
-                                    <span class="status-badge status-{{ booking.status|lower }}">
-                                        {{ booking.get_status_display }}
-                                    </span>
+                                <td data-label="Property Owner">
+                                    {{ booking.property.owner.username|default:"-" }}<br>
+                                    <small>{{ booking.property.owner.email|default:"" }}</small>
                                 </td>
-                                <td data-label="Amount">${{ booking.total_amount }}</td>
+                                {% endif %}
+                                <td data-label="Amount">₹{{ booking.total_price }}</td>
                                 <td data-label="Actions">
                                     <div class="action-buttons">
                                         {% if is_vendor %}
-                                            {% if booking.status == 'pending' %}
-                                                <a href="{% url 'approve_booking' booking.id %}" class="btn btn-sm btn-view">Approve</a>
-                                                <a href="{% url 'decline_booking' booking.id %}" class="btn btn-sm btn-cancel">Decline</a>
-                                            {% else %}
-                                                <button class="btn btn-sm" disabled>{{ booking.status|title }}</button>
-                                            {% endif %}
+                                                {% comment %} <form method="post" action="{% url 'cancel_booking' booking.id %}">
+                                                    {% csrf_token %}
+                                                    <button type="submit" class="btn btn-sm btn-cancel" style="background-color:#e63946; color:white; border:1px solid #e63946;">Cancel</button>
+                                                </form> {% endcomment %}
+                                            
                                         {% else %}
-                                            {% if booking.status == 'active' or booking.status == 'pending' %}
-                                                <button class="btn btn-sm btn-cancel" disabled>Cancel</button>
-                                            {% else %}
-                                                <button class="btn btn-sm btn-cancel" title="Cannot Cancel" disabled>
+                                            {% comment %} {% if booking.total_price == booking.total_amount %} {% endcomment %}
+                                                <form method="post" action="{% url 'cancel_booking' booking.id %}">
+                                                    {% csrf_token %}
+                                                    <button type="submit" class="btn btn-sm btn-cancel" style="background-color:#e63946; color:white; border:1px solid #e63946;">Cancel</button>
+                                                </form>
+                                            {% comment %} {% else %}
+                                                <button class="btn btn-sm btn-cancel" title="Incomplete Payment" disabled>
                                                     <i class="fas fa-ban"></i>
                                                 </button>
-                                            {% endif %}
+                                            {% endif %} {% endcomment %}
                                         {% endif %}
                                     </div>
                                 </td>
                             </tr>
                             {% empty %}
                             <tr>
-                                <td colspan="7">
+                                <td colspan="6">
                                     <div class="empty-state">
                                         <img src="https://via.placeholder.com/300x200?text=No+Bookings" alt="No bookings" class="empty-img">
                                         <h3>No Bookings Found</h3>

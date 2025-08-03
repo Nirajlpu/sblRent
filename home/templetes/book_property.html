@@ -146,13 +146,17 @@
     }
     
     .btn-book {
-      background-color: var(--success-color);
+      background-color: var(--success-color) !important;
+      background-image: none;
       color: white;
       padding: 0.75rem;
       font-weight: 600;
       border-radius: 8px;
       width: 100%;
       transition: all 0.3s ease;
+      display: block;
+      border: none;
+      text-align: center;
     }
     
     .btn-book:hover {
@@ -297,7 +301,7 @@
             </div>
             {% endif %}
             
-            <form method="POST" action="{% url 'book_property' property.id %}" class="mt-4">
+            <form method="POST" action="" class="mt-4">
               {% csrf_token %}
               
               <h5 class="mb-3">Booking Details</h5>
@@ -348,8 +352,7 @@
               
               
               <button type="submit" class="btn btn-book mt-4">
-                <i class="fas fa-calendar-check me-2"></i> Confirm Booking
-                
+                <i class="fas fa-calendar-check me-2"></i> Confirm Booking & Make Payment
               </button>
               
               

@@ -181,6 +181,7 @@ class Booking(models.Model):
     updated_at = models.DateTimeField(auto_now=True)
     total_price = models.DecimalField(max_digits=10, decimal_places=2)
     notes = models.TextField(blank=True, null=True)
+    
 
     def __str__(self):
         return f"Booking #{self.id} - {self.property.title}"

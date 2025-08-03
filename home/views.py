@@ -1,3 +1,5 @@
+# Payment view for user after vendor approval
+from django.views.decorators.csrf import csrf_exempt
 from django.shortcuts import render, redirect, get_object_or_404
 from django.http import HttpResponse, JsonResponse 
 from django.contrib.auth import authenticate, login, logout
@@ -328,6 +330,9 @@ def delete_property(request, property_id):
 def book_property(request, property_id):
     user = request.user
     profile = user.profile if user.is_authenticated else None
+    if profile and profile.role == 'vendor':
+        messages.warning(request, "Vendors cannot book properties directly. Please create a tenant account to proceed.")
+        return redirect('home')
     property_obj = get_object_or_404(Property, id=property_id, status='active')
 
     if request.method == 'POST':
@@ -364,7 +369,7 @@ def book_property(request, property_id):
             notes=notes
         )
         messages.success(request, "Booking request submitted successfully!")
-        return redirect('booking_confirmation', booking_id=booking.id)
+        return redirect('make_payment', booking_id=booking.id)
 
     return render(request, 'book_property.html', {
         'property': property_obj,
@@ -375,6 +380,10 @@ def book_property(request, property_id):
 @login_required
 def booking_confirmation(request, booking_id):
     booking = get_object_or_404(Booking, id=booking_id, user=request.user)
+    # Mark property as rented if booking is paid
+    if booking.status == 'paid':
+        booking.property.status = 'rented'
+        booking.property.save()
     return render(request, 'booking_confirmation.html', {'booking': booking})
 
 @login_required
@@ -443,6 +452,22 @@ def my_bookings(request):
         'is_vendor': profile.role == 'vendor'
     })
 
+
+# Allow users to cancel/delete their own bookings
+@login_required
+def cancel_booking(request, booking_id):
+    booking = get_object_or_404(Booking, id=booking_id, user=request.user)
+    # Allow cancel if payment is complete
+    if True : # booking.status in ['pending', 'approved', 'active', 'paid'] and booking.total_price == booking.total_amount
+        booking.status = 'cancelled'
+        booking.property.status = 'active'
+        booking.property.save()
+        booking.delete()
+        messages.success(request, "Booking has been cancelled.")
+    else:
+        messages.error(request, "This booking cannot be cancelled.")
+    return redirect('my_bookings')
+
 from django.contrib.auth.decorators import login_required
 from django.shortcuts import render
 from .models import Wishlist
@@ -452,30 +477,70 @@ def my_wishlist(request):
     wishlist_items = Wishlist.objects.filter(user=request.user)
     return render(request, 'my_wishlist.html', {'wishlist_items': wishlist_items})
 
+# @login_required
+# def vendor_booking_requests(request):
+#     if request.user.profile.role != 'vendor':
+#         return redirect('home')
+#     bookings = Booking.objects.filter(property__owner=request.user)
+#     return render(request, 'vendor_bookings.html', {'bookings': bookings})
+
+# @login_required
+# def approve_booking(request, booking_id):
+#     booking = get_object_or_404(Booking, id=booking_id, property__owner=request.user)
+#     booking.status = 'approved'
+#     booking.save()
+#     return redirect('vendor_booking_requests')
+
+# @login_required
+# def decline_booking(request, booking_id):
+#     booking = get_object_or_404(Booking, id=booking_id, property__owner=request.user)
+#     booking.status = 'declined'
+#     booking.save()
+#     return redirect('vendor_booking_requests')
+
+
+# Reservation details view
+
+# Reservation details view
+from django.db import models
+from .models import Review
 @login_required
-def vendor_booking_requests(request):
-    if request.user.profile.role != 'vendor':
-        return redirect('home')
-    bookings = Booking.objects.filter(property__owner=request.user)
-    return render(request, 'vendor_bookings.html', {'bookings': bookings})
+def reservation_details(request, booking_id):
+    booking = get_object_or_404(Booking.objects.select_related('property', 'user__profile'), id=booking_id)
 
+    # Duration in nights (or days)
+    booking_duration = (booking.end_date - booking.start_date).days
+
+    # Calculate previous bookings and average rating
+    previous_bookings = Booking.objects.filter(user=booking.user).exclude(id=booking.id).count()
+    user_reviews = Review.objects.filter(user=booking.user)
+    average_rating = round(user_reviews.aggregate(models.Avg('rating'))['rating__avg'] or 0, 1)
+
+    return render(request, 'reservation_details.html', {
+        'booking': booking,
+        'booking_duration': booking_duration,
+        'previous_bookings': previous_bookings,
+        'average_rating': average_rating
+    })
+
+
+# User payment after vendor approval
 @login_required
-def approve_booking(request, booking_id):
-    booking = get_object_or_404(Booking, id=booking_id, property__owner=request.user)
-    booking.status = 'approved'
-    booking.save()
-    return redirect('vendor_booking_requests')
+@csrf_exempt
+def make_payment(request, booking_id):
+    booking = get_object_or_404(Booking, id=booking_id, user=request.user)
 
-@login_required
-def decline_booking(request, booking_id):
-    booking = get_object_or_404(Booking, id=booking_id, property__owner=request.user)
-    booking.status = 'declined'
-    booking.save()
-    return redirect('vendor_booking_requests')
+    # if booking.status != 'approved':
+    #     messages.error(request, "Booking is not approved yet. You cannot make payment.")
+    #     return redirect('reservation_details', booking_id=booking.id)
 
-from django.shortcuts import render, get_object_or_404
-from .models import Booking  # adjust if Booking is in a different app
+    if request.method == 'POST':
+        # Simulate successful payment (replace with real integration)
+        booking.status = 'paid'
+        booking.save()
+        messages.success(request, "Payment successful!")
+        return redirect('booking_confirmation', booking_id=booking.id)
 
-def booking_detail(request, booking_id):
-    booking = get_object_or_404(Booking, id=booking_id)
-    return render(request, 'booking_detail.html', {'booking': booking})
+    return render(request, 'make_payment.html', {
+        'booking': booking
+    })
