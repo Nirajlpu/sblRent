@@ -338,6 +338,7 @@ def book_property(request, property_id):
     if request.method == 'POST':
         start_date_str = request.POST.get('start_date')
         end_date_str = request.POST.get('end_date')
+        guest=request.POST.get('guests')
         notes = request.POST.get('notes', '')
 
         if not start_date_str or not end_date_str:
@@ -366,6 +367,7 @@ def book_property(request, property_id):
             start_date=start_date,
             end_date=end_date,
             total_price=total_price,
+            guest=guest,
             notes=notes
         )
         messages.success(request, "Booking request submitted successfully!")
@@ -440,8 +442,9 @@ from .models import Booking  # Assuming you have a Booking model
 @login_required
 def my_bookings(request):
     user = request.user
-    profile = user.profile
+    profile = user.profile if user.is_authenticated else None
 
+   
     if profile.role == 'vendor':
         bookings = Booking.objects.filter(property__owner=user).select_related('user', 'property')
     else:
@@ -449,6 +452,7 @@ def my_bookings(request):
 
     return render(request, 'my_bookings.html', {
         'bookings': bookings,
+        'pic': profile if profile else None,
         'is_vendor': profile.role == 'vendor'
     })
 
@@ -503,9 +507,11 @@ def my_wishlist(request):
 
 # Reservation details view
 from django.db import models
-from .models import Review
+from .models import Review 
 @login_required
 def reservation_details(request, booking_id):
+    user = request.user
+    profile = user.profile if user.is_authenticated else None
     booking = get_object_or_404(Booking.objects.select_related('property', 'user__profile'), id=booking_id)
 
     # Duration in nights (or days)
@@ -520,6 +526,7 @@ def reservation_details(request, booking_id):
         'booking': booking,
         'booking_duration': booking_duration,
         'previous_bookings': previous_bookings,
+        'pic': profile if profile else None,
         'average_rating': average_rating
     })
 

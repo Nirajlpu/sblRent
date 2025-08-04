@@ -171,19 +171,19 @@
         <div class="booking-details">
           <div class="detail-item">
             <span class="fw-bold">Confirmation Number:</span>
-            <span>#{{ booking.confirmation_number }}</span>
+            <span>#{{ booking.id }}</span>
           </div>
           <div class="detail-item">
             <span class="fw-bold">Check-in:</span>
-            <span>{{ booking.check_in|date:"F j, Y" }}</span>
+            <span>{{ booking.start_date|date:"M d, Y" }}</span>
           </div>
           <div class="detail-item">
             <span class="fw-bold">Check-out:</span>
-            <span>{{ booking.check_out|date:"F j, Y" }}</span>
+            <span>{{ booking.end_date|date:"M d, Y" }}</span>
           </div>
           <div class="detail-item">
             <span class="fw-bold">Guests:</span>
-            <span>{{ booking.guests }}</span>
+            <span>{{ booking.guest }}</span>
           </div>
           <div class="detail-item">
             <span class="fw-bold">Total Amount:</span>

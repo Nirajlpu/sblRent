@@ -553,7 +553,7 @@
       data: {
         labels: ['Active', 'Pending', 'Rented', 'Inactive'],
         datasets: [{
-          data: [12, 3, 5, 2],
+          data: [{{ stats.active_properties }}, {{ stats.pending_properties }}, {{ stats.rented_properties }}, 2],
           backgroundColor: [
             '#00a854',
             '#fa8c16',
