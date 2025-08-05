@@ -7,6 +7,7 @@ from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.db.models import Count, Q
 from django.utils import timezone
+from datetime import datetime
 from .models import Property, Profile, CustomUser, Booking, Review, PropertyImage
 from .forms import PropertyForm, ProfileForm
 import os
@@ -291,6 +292,7 @@ def manage_property(request, property_id=None):
             property.area = square_feet
             property.year_built = year_built
             property.amenities = amenities
+            property.last_updated=datetime.now()
             property.image_url = image_url if image_upload is None else ''
         
             if image_upload:
@@ -521,9 +523,10 @@ def reservation_details(request, booking_id):
     previous_bookings = Booking.objects.filter(user=booking.user).exclude(id=booking.id).count()
     user_reviews = Review.objects.filter(user=booking.user)
     average_rating = round(user_reviews.aggregate(models.Avg('rating'))['rating__avg'] or 0, 1)
-
+    current_year = datetime.now().year
     return render(request, 'reservation_details.html', {
         'booking': booking,
+        'current_year': current_year,
         'booking_duration': booking_duration,
         'previous_bookings': previous_bookings,
         'pic': profile if profile else None,

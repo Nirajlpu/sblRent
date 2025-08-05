@@ -44,7 +44,7 @@
       height: 400px;
       width: 100%;
       object-fit: cover;
-      border-radius: 16px 0 0 16px;
+      border-radius: 16px;
       cursor: pointer;
       transition: transform 0.3s ease;
     }
@@ -183,13 +183,14 @@
       font-weight: 600;
     }
     
+    /* Reusable amenities styles */
     .amenities-list {
       display: flex;
       flex-wrap: wrap;
       gap: 10px;
       margin-top: 1rem;
     }
-    
+
     .amenity-badge {
       background: #e9ecef;
       padding: 6px 12px;
@@ -199,7 +200,7 @@
     
     @media (max-width: 768px) {
       .gallery-main {
-        border-radius: 16px 16px 0 0;
+        border-radius: 16px;
       }
       
       .property-gallery {
@@ -332,7 +333,7 @@
               <div class="price-summary mt-4">
                 <h5 class="mb-3">Price Summary</h5>
                 <div class="price-item">
-                  <span>₹{{ property.price }} x <span id="nightsCount">1</span> month</span>
+                  <span>₹{{ property.price }} x <span id="nightsCount">0</span></span>
                   <span>₹<span id="subtotal">0</span></span>
                 </div>
                 <div class="price-item">
@@ -384,17 +385,34 @@
       if (checkInInput.value && checkOutInput.value) {
         const checkInDate = new Date(checkInInput.value);
         const checkOutDate = new Date(checkOutInput.value);
-        const diffMonths = (checkOutDate.getFullYear() - checkInDate.getFullYear()) * 12 + (checkOutDate.getMonth() - checkInDate.getMonth());
-        
-        if (diffMonths > 0) {
-          nightsCount.textContent = diffMonths;
-          nightsCount.nextSibling.textContent = diffMonths > 1 ? ' months' : ' month';
+        const msInDay = 24 * 60 * 60 * 1000;
+        let fullMonths = 0;
+        let extraDays = 0;
+        const tempDate = new Date(checkInDate);
+
+        while (tempDate <= checkOutDate) {
+          const nextMonth = new Date(tempDate);
+          nextMonth.setMonth(nextMonth.getMonth() + 1);
           
-          const newSubtotal = dailyRate * diffMonths;
-          subtotal.textContent = newSubtotal;
+          if (nextMonth <= checkOutDate) {
+            fullMonths++;
+            tempDate.setMonth(tempDate.getMonth() + 1);
+          } else {
+            break;
+          }
+        }
+
+        const remainingTime = checkOutDate - tempDate;
+        extraDays = Math.ceil(remainingTime / msInDay);
+
+        if (checkOutDate > checkInDate) {
+          nightsCount.textContent = `${fullMonths} month${fullMonths !== 1 ? 's' : ''}${extraDays > 0 ? ' and ' + extraDays + ' day' + (extraDays !== 1 ? 's' : '') : ''}`;
+          
+          const newSubtotal = dailyRate * (fullMonths + (extraDays / 30));
+          subtotal.textContent = Math.round(newSubtotal);
           const newServiceFee = Math.round(newSubtotal * 0.01);
           serviceFee.textContent = newServiceFee;
-          const newTotal = newSubtotal + newServiceFee + cleaningFeeAmount;
+          const newTotal = Math.round(newSubtotal + newServiceFee + cleaningFeeAmount);
           totalPrice.textContent = newTotal;
         }
       }

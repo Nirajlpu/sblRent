@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Property Reservation Management | SBLRent</title>
+    {% load custom_filters %}
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
@@ -172,7 +173,7 @@
             background: white;
             padding: 1.75rem;
             border-radius: var(--border-radius-lg);
-            margin-top: 2.5rem;
+            
             box-shadow: var(--box-shadow-sm);
             border: 1px solid rgba(0,0,0,0.05);
         }
@@ -387,7 +388,21 @@
             from { opacity: 0; }
             to { opacity: 1; }
         }
+            
+        /* Reusable amenities styles */
+        .amenities-list {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+        margin-top: 1rem;
+        }
 
+        .amenity-badge {
+        background: hsla(0, 0%, 100%, 1.00);
+        padding: 6px 12px;
+        border-radius: 20px;
+        font-size: 0.85rem;
+        }
         .modal-content {
             background: white;
             margin: 5% auto;
@@ -552,10 +567,19 @@
                     <p class="detail-value"><i class="fas fa-building"></i> {{ booking.property.property_type }}</p>
                 </div>
 
-                <div class="detail-group">
+                {% if booking.property.amenities %}
+                    <div class="detail-group">
                     <span class="detail-label">Amenities</span>
-                    <p class="detail-value"><i class="fas fa-star"></i> {{ booking.property.amenities|join:", " }}</p>
-                </div>
+                    <div class="amenities-list mt-2">
+                        {% for amenity in booking.property.amenities %}
+                        <span class="amenity-badge">
+                            <i class="fas fa-check me-1"></i>
+                            {{ amenity }}
+                        </span>
+                        {% endfor %}
+                    </div>
+                    </div>
+                    {% endif %}
 
                 <div class="detail-group">
                     <span class="detail-label">Capacity</span>
@@ -565,49 +589,54 @@
                     </p>
                 </div>
 
-                <!-- Booking Timeline -->
-                <div class="timeline">
-                    <div class="timeline-item">
-                        <div class="timeline-dot"></div>
-                        <div class="timeline-content">
-                            <div class="timeline-date">Requested on {{ booking.created_at|date:"M d, Y" }}</div>
-                            <div class="timeline-text">Booking request submitted</div>
-                        </div>
-                    </div>
-                    
-                    {% if booking.status == 'approved' or booking.status == 'completed' %}
-                    <div class="timeline-item">
-                        <div class="timeline-dot"></div>
-                        <div class="timeline-content">
-                            <div class="timeline-date">Approved on {{ booking.updated_at|date:"M d, Y" }}</div>
-                            <div class="timeline-text">Booking approved by host</div>
-                        </div>
-                    </div>
-                    {% endif %}
-                    
-                    {% if booking.payment_status == 'paid' %}
-                    <div class="timeline-item">
-                        <div class="timeline-dot"></div>
-                        <div class="timeline-content">
-                            <div class="timeline-date">Paid on {{ booking.payment_date|date:"M d, Y" }}</div>
-                            <div class="timeline-text">Payment completed</div>
-                        </div>
-                    </div>
-                    {% endif %}
-                    
-                    {% if booking.status == 'completed' %}
-                    <div class="timeline-item">
-                        <div class="timeline-dot"></div>
-                        <div class="timeline-content">
-                            <div class="timeline-date">Completed on {{ booking.end_date|date:"M d, Y" }}</div>
-                            <div class="timeline-text">Stay completed</div>
-                        </div>
-                    </div>
-                    {% endif %}
                 </div>
 
                 <div class="price-summary">
-                    <h4><i class="fas fa-receipt"></i> Price Summary</h4>
+                    <h4><i class="fas fa-receipt"></i> Payment Summary</h4>
+                    <div class="mb-3">
+                        <label for="yearSelect" class="form-label">Select Year</label>
+                        <select id="yearSelect" class="form-select" onchange="filterPaymentsByYear(this.value)">
+    {% for year in booking.start_date.year|add:"0"|to_int|get_range:current_year %}
+        <option value="{{ year }}" {% if year == selected_year %}selected{% endif %}>{{ year }}</option>
+    {% endfor %}
+</select>
+                    </div>
+                    <div class="timeline">
+                        {% comment %} {% for payment in monthly_payments %} {% endcomment %}
+                        <div class="timeline-item">
+                            <div class="timeline-dot" style="border-color: {% if payment.status == 'paid' %}#28a745{% else %}#dc3545{% endif %};"></div>
+                            <div class="timeline-content">
+                                <div class="timeline-date">
+                                    {{ payment.month }} - {{ payment.date|date:"M d, Y" }}
+                                </div>
+                                <div class="timeline-text">
+                                    {% if payment.status == 'paid' %}
+                                        <i class="fas fa-check-circle text-success"></i> Payment received
+                                    {% else %}
+                                        <i class="fas fa-times-circle text-danger"></i> Payment missing
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                        {% comment %} {% endfor %} {% endcomment %}
+                    </div>
+                    <div class="mt-4">
+                        <h5 class="mb-3"><i class="fas fa-file-invoice-dollar"></i> Monthly Payment Details</h5>
+                        <ul class="list-group">
+                            {% for payment in monthly_payments %}
+                                <li class="list-group-item d-flex justify-content-between align-items-center">
+                                    <span>{{ payment.month }} - ₹{{ payment.amount }}</span>
+                                    <span class="badge bg-{% if payment.status == 'paid' %}success{% else %}danger{% endif %}">
+                                        {% if payment.status == 'paid' %}
+                                            <i class="fas fa-check-circle"></i> Paid
+                                        {% else %}
+                                            <i class="fas fa-times-circle"></i> Not Paid
+                                        {% endif %}
+                                    </span>
+                                </li>
+                            {% endfor %}
+                        </ul>
+                    </div>
                     <div class="price-item">
                         <span>Base Price ({{ booking_duration }} nights)</span>
                         <span>₹{{ booking.property.price }}</span>
@@ -742,11 +771,6 @@
                     <div class="detail-group">
                         <span class="detail-label">Host Since</span>
                         <p class="detail-value"><i class="fas fa-calendar-alt"></i> {{ booking.property.owner.date_joined|date:"M Y" }}</p>
-                    </div>
-
-                    <div class="detail-group">
-                        <span class="detail-label">Response Rate</span>
-                        <p class="detail-value"><i class="fas fa-comment-dots"></i> 98% (typically responds within 2 hours)</p>
                     </div>
 
                     {% if booking.status == 'approved' and booking.payment_status != 'paid' %}
@@ -918,6 +942,12 @@
                 alertDiv.style.opacity = '0';
                 setTimeout(() => alertDiv.remove(), 300);
             }, 3000);
+        }
+        // Year filter for payment summary
+        function filterPaymentsByYear(year) {
+            const url = new URL(window.location.href);
+            url.searchParams.set('year', year);
+            window.location.href = url.toString();
         }
     </script>
 </body>
