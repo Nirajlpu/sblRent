@@ -690,13 +690,22 @@
                             {% endif %}
                         </div>
                         <div class="timeline-content">
-                            <div class="timeline-date">{{ payment.month }} - {{ payment.date|date:"M d, Y" }}</div>
+                            <div class="timeline-date">
+                                {{ payment.month }} 
+                                {% if payment.status == 'paid' %}
+                                    - Paid on {{ payment.date|date:"M d, Y" }}
+                                {% else %}
+                                    - Due for payment
+                                {% endif %}
+                            </div>
                             <div class="timeline-text">
                                 {% if payment.status == 'paid' %}
                                 <i class="fas fa-check-circle text-success"></i> Payment received
                                 {% else %}
                                 <i class="fas fa-times-circle text-danger"></i> Payment missing
+                                {% if request.user.profile.role == 'user' %}
                                 <a href="{% url 'make_payment' booking.id %}?month={{ payment.month }}&year={{ payment.year }}" class="btn btn-sm btn-warning ms-2">Pay Now</a>
+                                {% endif %}
                                 {% endif %}
                             </div>
                         </div>

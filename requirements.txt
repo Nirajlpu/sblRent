@@ -9,6 +9,7 @@ EditorConfig==0.17.1
 jsbeautifier==1.15.4
 json5==0.12.0
 pathspec==0.12.1
+gunicorn
 pillow==11.3.0
 python-dateutil==2.9.0.post0
 PyYAML==6.0.2
