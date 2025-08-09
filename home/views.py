@@ -374,7 +374,13 @@ def book_property(request, property_id):
             notes=notes
         )
         messages.success(request, "Booking request submitted successfully!")
-        return redirect('make_payment', booking_id=booking.id)
+        from django.urls import reverse
+
+        first_month = booking.start_date.strftime('%B')
+        first_year = booking.start_date.year
+        pay_url = reverse('make_payment', kwargs={'booking_id': booking.id})
+        return redirect(f'{pay_url}?month={first_month}&year={first_year}')
+       
 
     return render(request, 'book_property.html', {
         'property': property_obj,
@@ -610,9 +616,17 @@ def reservation_details(request, booking_id):
         current = period_end
 
     # Filter out past periods: only show from today onwards
-    from datetime import date
-    # today = date.today()
-    # monthly_payments = [p for p in monthly_payments if p["period_start"] <= today]
+    from django.utils.timezone import localdate
+    # Use Django's timezone utilities to get IST (Asia/Kolkata) date
+    # today = timezone.localtime(timezone.now(), timezone.get_fixed_timezone(330)).date()
+
+    today = date(2026, 12, 1)  # Year, Month, Day
+    print("Today Niraj:", today)
+
+    monthly_payments = [p for p in monthly_payments if p["date"] <= today]
+    # Filter by selected year if provided
+    print("Monthly Payments Niraj:", monthly_payments)
+ 
 
     selected_year = int(request.GET.get('year', booking.start_date.year))
     filtered_payments = []
@@ -653,7 +667,7 @@ def make_payment(request, booking_id):
     year = request.GET.get('year')
     if not month or not year:
         messages.error(request, "Invalid payment period.")
-        return redirect('reservation_details', booking_id=booking.id)
+        return redirect('book_property', booking_id=booking.id)
 
     if request.method == 'POST':
         # Simulate successful payment (replace with real integration)
@@ -692,9 +706,10 @@ def make_payment(request, booking_id):
         # Optionally, check if all months are paid and update booking.status/payment_status
         # (You can add this logic if needed)
 
+        booking.status = 'paid'
         booking.save()
         messages.success(request, f"Payment for {month} {year} successful!")
-        return redirect('reservation_details', booking_id=booking.id)
+        return redirect('booking_confirmation', booking_id=booking.id)
 
     return render(request, 'make_payment.html', {
         'booking': booking,

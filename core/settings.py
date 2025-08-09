@@ -27,6 +27,8 @@ SECRET_KEY = "django-insecure-lzo1%_b=*l(*yj(npt97&m#$jgh498z2&x%xz0y!j&)9*&96@j
 DEBUG = True
 
 ALLOWED_HOSTS = ['*']
+TIME_ZONE = 'Asia/Kolkata'
+USE_TZ = True
 
 
 # Application definition
