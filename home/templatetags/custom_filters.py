@@ -10,7 +10,7 @@ def to_int(value):
         return 0
 
 @register.filter(name='get_range')
-def get_range(start, end):
+def get_range(start, end): 
     try:
         return range(start, end + 1)
     except:

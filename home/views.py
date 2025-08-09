@@ -12,6 +12,7 @@ from .models import Property, Profile, CustomUser, Booking, Review, PropertyImag
 from .forms import PropertyForm, ProfileForm
 import os
 from .models import Wishlist
+from dateutil.relativedelta import relativedelta
 
 from django.core.paginator import Paginator
 from django.template.loader import render_to_string
@@ -510,47 +511,193 @@ def my_wishlist(request):
 # Reservation details view
 from django.db import models
 from .models import Review 
+from django.utils.dateparse import parse_date
+from django.contrib import messages
+from django.utils.timezone import now  # Optional, for date comparison
+
+from calendar import month_name
+from django.utils import timezone
+from datetime import timedelta, date
+from dateutil.relativedelta import relativedelta
+
+
 @login_required
 def reservation_details(request, booking_id):
+    from calendar import month_name
+    from dateutil.relativedelta import relativedelta
+    from django.utils.dateparse import parse_date
+    from datetime import datetime
+
     user = request.user
     profile = user.profile if user.is_authenticated else None
-    booking = get_object_or_404(Booking.objects.select_related('property', 'user__profile'), id=booking_id)
 
-    # Duration in nights (or days)
+    booking = get_object_or_404(
+        Booking.objects.select_related('property', 'user__profile'),
+        id=booking_id
+    )
+
+    # Handle extension form submission
+    if request.method == 'POST':
+        new_end_date_str = request.POST.get('new_end_date')
+        new_end_date = parse_date(new_end_date_str)
+        if new_end_date and new_end_date > booking.end_date:
+            booking.end_date = new_end_date
+            booking.save()
+            messages.success(request, 'Checkout date extended successfully.')
+            return redirect('reservation_details', booking_id=booking.id)
+        else:
+            messages.error(request, 'Invalid date. Please select a future date.')
+
     booking_duration = (booking.end_date - booking.start_date).days
-
-    # Calculate previous bookings and average rating
     previous_bookings = Booking.objects.filter(user=booking.user).exclude(id=booking.id).count()
     user_reviews = Review.objects.filter(user=booking.user)
     average_rating = round(user_reviews.aggregate(models.Avg('rating'))['rating__avg'] or 0, 1)
     current_year = datetime.now().year
+
+    # Generate monthly payments: each period is from start_date to same day next month
+    monthly_payments = []
+    payment_data = booking.payment_data or []
+    payment_lookup = {}
+    for year_entry in payment_data:
+        year = year_entry.get('year')
+        for month_name_str, payments in year_entry.get('months', {}).items():
+            if payments:
+                try:
+                    month = datetime.strptime(month_name_str, "%B").month
+                except Exception:
+                    continue
+                payment_lookup[(year, month)] = payments[0]
+
+    current = booking.start_date
+    end = booking.end_date
+    while current < end:
+        next_month = current + relativedelta(months=1)
+        # If next_month's day is less than start_date's day, adjust to last day of month
+        try:
+            period_end = next_month.replace(day=current.day)
+        except ValueError:
+            # For months with fewer days, use last day of next month
+            from calendar import monthrange
+            last_day = monthrange(next_month.year, next_month.month)[1]
+            period_end = next_month.replace(day=last_day)
+        if period_end > end:
+            period_end = end
+        year, month = current.year, current.month
+        payment = payment_lookup.get((year, month))
+        payment_date = None
+        amount = None
+        if payment:
+            try:
+                payment_date = datetime.strptime(payment['payment_date'], "%Y-%m-%d").date()
+            except Exception:
+                payment_date = current
+            try:
+                amount = float(payment['payment_amount'])
+            except Exception:
+                amount = float(booking.property.price)
+        else:
+            payment_date = current
+            amount = float(booking.property.price)
+        monthly_payments.append({
+            "month": month_name[month],
+            "year": year,
+            "date": payment_date,
+            "amount": amount,
+            "period_start": current,
+            "period_end": period_end,
+            "status": "paid" if payment else "pending"
+        })
+        current = period_end
+
+    # Filter out past periods: only show from today onwards
+    from datetime import date
+    # today = date.today()
+    # monthly_payments = [p for p in monthly_payments if p["period_start"] <= today]
+
+    selected_year = int(request.GET.get('year', booking.start_date.year))
+    filtered_payments = []
+    for payment in monthly_payments:
+        if payment['year'] == selected_year:
+            # Start year: show from start month
+            if selected_year == booking.start_date.year:
+                if payment['period_start'].month >= booking.start_date.month:
+                    filtered_payments.append(payment)
+            # End year: show up to end month
+            elif selected_year == booking.end_date.year:
+                if payment['period_start'].month <= booking.end_date.month:
+                    filtered_payments.append(payment)
+            # Middle years: show all months
+            else:
+                filtered_payments.append(payment)
+
     return render(request, 'reservation_details.html', {
         'booking': booking,
         'current_year': current_year,
         'booking_duration': booking_duration,
         'previous_bookings': previous_bookings,
         'pic': profile if profile else None,
-        'average_rating': average_rating
+        'average_rating': average_rating,
+        'monthly_payments': filtered_payments,
+        'selected_year': selected_year,
     })
 
-
 # User payment after vendor approval
+
 @login_required
 @csrf_exempt
 def make_payment(request, booking_id):
     booking = get_object_or_404(Booking, id=booking_id, user=request.user)
 
-    # if booking.status != 'approved':
-    #     messages.error(request, "Booking is not approved yet. You cannot make payment.")
-    #     return redirect('reservation_details', booking_id=booking.id)
+    # Get month and year from query params
+    month = request.GET.get('month')
+    year = request.GET.get('year')
+    if not month or not year:
+        messages.error(request, "Invalid payment period.")
+        return redirect('reservation_details', booking_id=booking.id)
 
     if request.method == 'POST':
         # Simulate successful payment (replace with real integration)
-        booking.status = 'paid'
+        from datetime import datetime
+        now = datetime.now()
+        payment_date = now.strftime('%Y-%m-%d')
+        payment_time = now.strftime('%H:%M:%S')
+
+        new_payment = {
+            'payment_date': payment_date,
+            'payment_time': payment_time,
+            'payment_amount': float(booking.property.price)
+        }
+
+        data = booking.payment_data
+
+        # Find or create year entry
+        year = int(year)
+        year_entry = next((entry for entry in data if entry['year'] == year), None)
+        if year_entry:
+            if month in year_entry['months']:
+                year_entry['months'][month].append(new_payment)
+            else:
+                year_entry['months'][month] = [new_payment]
+        else:
+            data.append({
+                'year': year,
+                'months': {
+                    month: [new_payment]
+                }
+            })
+
+        # Update payment_data and booking status if all months paid
+        booking.payment_data = data
+
+        # Optionally, check if all months are paid and update booking.status/payment_status
+        # (You can add this logic if needed)
+
         booking.save()
-        messages.success(request, "Payment successful!")
-        return redirect('booking_confirmation', booking_id=booking.id)
+        messages.success(request, f"Payment for {month} {year} successful!")
+        return redirect('reservation_details', booking_id=booking.id)
 
     return render(request, 'make_payment.html', {
-        'booking': booking
+        'booking': booking,
+        'month': month,
+        'year': year
     })

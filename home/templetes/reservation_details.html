@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -25,7 +26,7 @@
             --border-radius: 12px;
             --border-radius-lg: 16px;
             --box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
-            --box-shadow-sm: 0 5px 15px rgba(0,0,0,0.05);
+            --box-shadow-sm: 0 5px 15px rgba(0, 0, 0, 0.05);
             --transition: all 0.3s ease;
         }
 
@@ -54,10 +55,11 @@
         }
 
         .reservation-card:hover {
-            box-shadow: 0 15px 40px rgba(0,0,0,0.12);
+            box-shadow: 0 15px 40px rgba(0, 0, 0, 0.12);
         }
 
-        .property-section, .user-section {
+        .property-section,
+        .user-section {
             padding: 2.5rem;
             flex: 1;
         }
@@ -73,7 +75,7 @@
             align-items: center;
             margin-bottom: 1.75rem;
             padding-bottom: 1rem;
-            border-bottom: 1px solid rgba(0,0,0,0.05);
+            border-bottom: 1px solid rgba(0, 0, 0, 0.05);
         }
 
         .section-header h2 {
@@ -128,7 +130,7 @@
         .property-image:hover {
             transform: scale(1.01);
         }
-        
+
 
         .user-pic {
             width: 260px;
@@ -173,9 +175,9 @@
             background: white;
             padding: 1.75rem;
             border-radius: var(--border-radius-lg);
-            
+
             box-shadow: var(--box-shadow-sm);
-            border: 1px solid rgba(0,0,0,0.05);
+            border: 1px solid rgba(0, 0, 0, 0.05);
         }
 
         .price-summary h4 {
@@ -268,7 +270,39 @@
         }
 
         .btn:hover {
-            box-shadow: 0 7px 20px rgba(0,0,0,0.15);
+            box-shadow: 0 7px 20px rgba(0, 0, 0, 0.15);
+        }
+        .timeline {
+            position: relative;
+            margin-left: 20px;
+        }
+
+        .timeline-item {
+            position: relative;
+            margin-bottom: 20px;
+            padding-left: 30px;
+        }
+
+        .timeline-dot {
+            position: absolute;
+            left: -10px;
+            top: 5px;
+            width: 14px;
+            height: 14px;
+            border-radius: 50%;
+            border: 3px solid;
+            background-color: white;
+        }
+
+        .timeline-content {
+            padding: 10px 15px;
+            border-left: 2px solid #ccc;
+            margin-left: 10px;
+        }
+
+        .timeline-date {
+            font-weight: bold;
+            margin-bottom: 5px;
         }
 
         .notes-box {
@@ -379,30 +413,36 @@
             top: 0;
             width: 100%;
             height: 100%;
-            background-color: rgba(0,0,0,0.7);
+            background-color: rgba(0, 0, 0, 0.7);
             backdrop-filter: blur(5px);
             animation: fadeIn 0.3s ease;
         }
 
         @keyframes fadeIn {
-            from { opacity: 0; }
-            to { opacity: 1; }
+            from {
+                opacity: 0;
+            }
+
+            to {
+                opacity: 1;
+            }
         }
-            
+
         /* Reusable amenities styles */
         .amenities-list {
-        display: flex;
-        flex-wrap: wrap;
-        gap: 10px;
-        margin-top: 1rem;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-top: 1rem;
         }
 
         .amenity-badge {
-        background: hsla(0, 0%, 100%, 1.00);
-        padding: 6px 12px;
-        border-radius: 20px;
-        font-size: 0.85rem;
+            background: hsla(0, 0%, 100%, 1.00);
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-size: 0.85rem;
         }
+
         .modal-content {
             background: white;
             margin: 5% auto;
@@ -410,17 +450,18 @@
             width: 80%;
             max-width: 900px;
             border-radius: var(--border-radius-lg);
-            box-shadow: 0 15px 40px rgba(0,0,0,0.2);
+            box-shadow: 0 15px 40px rgba(0, 0, 0, 0.2);
             position: relative;
             animation: slideDown 0.4s ease;
         }
 
         @keyframes slideDown {
-            from { 
+            from {
                 opacity: 0;
                 transform: translateY(-50px);
             }
-            to { 
+
+            to {
                 opacity: 1;
                 transform: translateY(0);
             }
@@ -451,7 +492,9 @@
 
         /* Responsive design */
         @media (max-width: 1200px) {
-            .property-section, .user-section {
+
+            .property-section,
+            .user-section {
                 padding: 2rem;
             }
         }
@@ -460,26 +503,27 @@
             .reservation-card {
                 flex-direction: column;
             }
-            
+
             .property-section {
                 border-right: none;
                 border-bottom: 1px solid #e9ecef;
             }
-            
+
             .property-image {
                 height: 280px;
             }
-            
+
             .action-buttons {
                 justify-content: center;
                 flex-wrap: wrap;
             }
-            
-            .btn-approve, .btn-decline {
+
+            .btn-approve,
+            .btn-decline {
                 width: 100%;
                 margin: 0.5rem 0;
             }
-            
+
             .btn-decline {
                 margin-left: 0;
             }
@@ -490,13 +534,14 @@
                 margin: 1rem auto;
                 padding: 0 1rem;
             }
-            
-            .property-section, .user-section {
+
+            .property-section,
+            .user-section {
                 padding: 1.75rem;
             }
-            
-            
-            
+
+
+
             .modal-content {
                 width: 90%;
                 padding: 1.75rem;
@@ -504,25 +549,29 @@
         }
 
         @media (max-width: 576px) {
-            .property-section, .user-section {
+
+            .property-section,
+            .user-section {
                 padding: 1.5rem;
             }
-            
-           
-            
+
+
+
             .property-image {
                 height: 220px;
             }
-            
+
             .modal-content {
                 width: 95%;
                 padding: 1.5rem;
             }
-            
+
             .btn {
                 padding: 0.75rem 1.5rem;
             }
         }
+        
+
         .user-section,
         .property-section,
         .price-summary,
@@ -533,42 +582,55 @@
         }
     </style>
 </head>
+
 <body>
-     {% include 'navbar.html' %}
+    {% include 'navbar.html' %}
+    {% if messages %}
+    <div class="container mt-3">
+        {% for message in messages %}
+        <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+            {{ message }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+        {% endfor %}
+    </div>
+    {% endif %}
     <div class="container">
         <div class="reservation-card">
             <!-- Left Side - Property Details -->
             <div class="property-section">
                 <div class="section-header">
-                    <h2><i class="fas fa-home"></i> Property Details</h2>
+                    <h2>
+                        <i class="fas fa-home"></i> Property Details
+                    </h2>
                     <span class="status-badge status-{{ booking.status }}">{{ booking.status|title }}</span>
                 </div>
-
-                <img src="{{ booking.property.image_url|default:'https://via.placeholder.com/600x320?text=No+Image' }}" alt="Property Image" class="property-image">
-
+                <img src="{{ booking.property.image_url|default:'https://via.placeholder.com/600x320?text=No+Image' }}"
+                    alt="Property Image" class="property-image">
                 <div class="detail-group">
                     <span class="detail-label">Property Name</span>
                     <p class="detail-value">{{ booking.property.title }}</p>
                 </div>
-
                 <div class="detail-group">
                     <span class="detail-label">Address</span>
-                    <p class="detail-value"><i class="fas fa-map-marker-alt"></i> {{ booking.property.address }}</p>
+                    <p class="detail-value">
+                        <i class="fas fa-map-marker-alt"></i> {{ booking.property.address }}
+                    </p>
                 </div>
                 <div class="detail-group">
-                    <a href="https://www.google.com/maps/search/?api=1&query={{ booking.property.latitude }},{{ booking.property.longitude }}" 
-                       target="_blank" class="btn btn-outline-primary">
+                    <a href="https://www.google.com/maps/search/?api=1&query={{ booking.property.latitude }},{{ booking.property.longitude }}"
+                        target="_blank" class="btn btn-outline-primary">
                         <i class="fas fa-map-location-dot me-2"></i> View on Google Maps
                     </a>
                 </div>
-
                 <div class="detail-group">
                     <span class="detail-label">Property Type</span>
-                    <p class="detail-value"><i class="fas fa-building"></i> {{ booking.property.property_type }}</p>
+                    <p class="detail-value">
+                        <i class="fas fa-building"></i> {{ booking.property.property_type }}
+                    </p>
                 </div>
-
                 {% if booking.property.amenities %}
-                    <div class="detail-group">
+                <div class="detail-group">
                     <span class="detail-label">Amenities</span>
                     <div class="amenities-list mt-2">
                         {% for amenity in booking.property.amenities %}
@@ -578,244 +640,271 @@
                         </span>
                         {% endfor %}
                     </div>
-                    </div>
-                    {% endif %}
-
+                </div>
+                {% endif %}
                 <div class="detail-group">
                     <span class="detail-label">Capacity</span>
                     <p class="detail-value">
-                        <i class="fas fa-bed"></i> {{ booking.property.bedrooms }} Bedrooms • 
+                        <i class="fas fa-bed"></i> {{ booking.property.bedrooms }} Bedrooms •
                         <i class="fas fa-bath"></i> {{ booking.property.bathrooms }} Bathrooms
                     </p>
                 </div>
+            </div>
+            <div class="price-summary">
+                {% if request.user == booking.user %}
+                <form method="post" action="{% url 'reservation_details' booking.id %}" class="mt-3">
+                    {% csrf_token %}
+                    <label for="new_end_date" class="form-label">Extend Checkout Date:</label>
+                    <input type="date" name="new_end_date" id="new_end_date" class="form-control"
+                        min="{{ booking.end_date }}" required>
+                    <button type="submit" class="btn btn-sm btn-primary mt-2 m-4">Extend</button>
+                </form>
+                {% endif %}
 
+                <h4>
+                    <i class="fas fa-receipt"></i> Payment Summary
+                </h4>
+
+                <!-- Year Selector -->
+                <div class="mb-3">
+                    <label for="yearSelect" class="form-label">Select Year</label>
+                    <select id="yearSelect" class="form-select" onchange="filterPaymentsByYear(this.value)">
+                        {% with start=booking.start_date.year end=booking.end_date.year %}
+                            {% for year in start|get_range:end %}
+                                <option value="{{ year }}" {% if year == selected_year %}selected{% endif %}>{{ year }}</option>
+                            {% endfor %}
+                        {% endwith %}
+                    </select>
                 </div>
 
-                <div class="price-summary">
-                    <h4><i class="fas fa-receipt"></i> Payment Summary</h4>
-                    <div class="mb-3">
-                        <label for="yearSelect" class="form-label">Select Year</label>
-                        <select id="yearSelect" class="form-select" onchange="filterPaymentsByYear(this.value)">
-    {% for year in booking.start_date.year|add:"0"|to_int|get_range:current_year %}
-        <option value="{{ year }}" {% if year == selected_year %}selected{% endif %}>{{ year }}</option>
-    {% endfor %}
-</select>
-                    </div>
-                    <div class="timeline">
-                        {% comment %} {% for payment in monthly_payments %} {% endcomment %}
-                        <div class="timeline-item">
-                            <div class="timeline-dot" style="border-color: {% if payment.status == 'paid' %}#28a745{% else %}#dc3545{% endif %};"></div>
-                            <div class="timeline-content">
-                                <div class="timeline-date">
-                                    {{ payment.month }} - {{ payment.date|date:"M d, Y" }}
-                                </div>
-                                <div class="timeline-text">
-                                    {% if payment.status == 'paid' %}
-                                        <i class="fas fa-check-circle text-success"></i> Payment received
-                                    {% else %}
-                                        <i class="fas fa-times-circle text-danger"></i> Payment missing
-                                    {% endif %}
-                                </div>
+                <!-- Timeline View -->
+                <div class="timeline">
+                    {% for payment in monthly_payments %}
+                    <div class="timeline-item">
+                        <div class="timeline-dot d-flex justify-content-center align-items-center"
+                             style="border-color: {% if payment.status == 'paid' %}#28a745{% else %}#dc3545{% endif %}; color: {% if payment.status == 'paid' %}#28a745{% else %}#dc3545{% endif %}; font-size: 12px;">
+                            {% if payment.status == 'paid' %}
+                            <i class="fas fa-check"></i>
+                            {% else %}
+                            <i class="fas fa-times"></i>
+                            {% endif %}
+                        </div>
+                        <div class="timeline-content">
+                            <div class="timeline-date">{{ payment.month }} - {{ payment.date|date:"M d, Y" }}</div>
+                            <div class="timeline-text">
+                                {% if payment.status == 'paid' %}
+                                <i class="fas fa-check-circle text-success"></i> Payment received
+                                {% else %}
+                                <i class="fas fa-times-circle text-danger"></i> Payment missing
+                                <a href="{% url 'make_payment' booking.id %}?month={{ payment.month }}&year={{ payment.year }}" class="btn btn-sm btn-warning ms-2">Pay Now</a>
+                                {% endif %}
                             </div>
                         </div>
-                        {% comment %} {% endfor %} {% endcomment %}
                     </div>
-                    <div class="mt-4">
-                        <h5 class="mb-3"><i class="fas fa-file-invoice-dollar"></i> Monthly Payment Details</h5>
-                        <ul class="list-group">
-                            {% for payment in monthly_payments %}
-                                <li class="list-group-item d-flex justify-content-between align-items-center">
-                                    <span>{{ payment.month }} - ₹{{ payment.amount }}</span>
-                                    <span class="badge bg-{% if payment.status == 'paid' %}success{% else %}danger{% endif %}">
-                                        {% if payment.status == 'paid' %}
-                                            <i class="fas fa-check-circle"></i> Paid
-                                        {% else %}
-                                            <i class="fas fa-times-circle"></i> Not Paid
-                                        {% endif %}
-                                    </span>
-                                </li>
-                            {% endfor %}
-                        </ul>
-                    </div>
-                    <div class="price-item">
-                        <span>Base Price ({{ booking_duration }} nights)</span>
-                        <span>₹{{ booking.property.price }}</span>
-                    </div>
-                    <div class="price-item">
-                        <span>Service Fee</span>
-                        <span>₹{{ booking.service_fee }}</span>
-                    </div>
-                    <div class="price-item">
-                        <span>Taxes</span>
-                        <span>₹{{ booking.tax_amount }}</span>
-                    </div>
-                    <div class="price-total">
-                        <span>Total Amount</span>
-                        <span>₹{{ booking.total_price }}</span>
-                    </div>
-                    
-                   {% if booking.payment_status %}
-                    <div class="mt-3">
-                        <span class="payment-status payment-{{ booking.payment_status }}">
-                            {% if booking.payment_status == 'paid' %}
-                                <i class="fas fa-check-circle"></i>
-                            {% else %}
-                                <i class="fas fa-clock"></i>
-                            {% endif %}
-                            Payment {{ booking.payment_status|title }}
-                        </span>
-                    </div>
-                    {% endif %}
+                    {% endfor %}
                 </div>
+
+                <!-- Monthly Details View -->
+                <div class="mt-4">
+                    <h5 class="mb-3">
+                        <i class="fas fa-file-invoice-dollar"></i> Monthly Payment Details
+                    </h5>
+                    <ul class="list-group">
+                        {% for payment in monthly_payments %}
+                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                            <span>{{ payment.month }} - ₹{{ payment.amount }}</span>
+                            <span class="badge bg-{% if payment.status == 'paid' %}success{% else %}danger{% endif %}">
+                                {% if payment.status == 'paid' %}
+                                <i class="fas fa-check-circle"></i> Paid
+                                {% else %}
+                                <i class="fas fa-times-circle"></i> Not Paid
+                                {% endif %}
+                            </span>
+                        </li>
+                        {% endfor %}
+                    </ul>
+                </div>
+                <div class="price-item">
+                    <span>Base Price ({{ booking_duration }} days)</span>
+                    <span>₹{{ booking.property.price}}</span>
+                </div>
+                <div class="price-item">
+                    <span>Service Fee</span>
+                    <span>₹{{ booking.service_fee }}</span>
+                </div>
+                <div class="price-item">
+                    <span>Taxes</span>
+                    <span>₹{{ booking.tax_amount }}</span>
+                </div>
+                <div class="price-total">
+                    <span>Total Amount</span>
+                    <span>₹{{ booking.total_price }}</span>
+                </div>
+                {% if booking.status == 'approved' and booking.payment_status != 'paid' %}
+                <div class="action-buttons" style="justify-content: flex-start;">
+                    <a href="{% url 'make_payment' booking.id %}" class="btn btn-pay">
+                        <i class="fas fa-credit-card"></i> Complete Payment Now
+                    </a>
+                </div>
+                {% elif booking.status == 'approved' and booking.payment_status == 'paid' %}
+                <div class="action-buttons" style="justify-content: flex-start;">
+                    <button class="btn btn-approve" disabled>
+                        <i class="fas fa-check-circle"></i> Payment Completed
+                    </button>
+                </div>
+                {% endif %}
+                {% if booking.payment_status %}
+                <div class="mt-3">
+                    <span class="payment-status payment-{{ booking.payment_status }}">
+                        {% if booking.payment_status == 'paid' %}
+                        <i class="fas fa-check-circle"></i>
+                        {% else %}
+                        <i class="fas fa-clock"></i>
+                        {% endif %}
+                        Payment {{ booking.payment_status|title }}
+                    </span>
+                </div>
+                {% endif %}
             </div>
-
-            <!-- Right Side - User/Vendor Details (conditional) -->
-            {% if request.user.profile.role == 'vendor' %}
-                <!-- Show Guest Info to Vendor -->
-                <div class="user-section" style="border-radius: 16px; overflow: hidden;">
-                    <div class="section-header">
-                       
-                        <h2><i class="fas fa-user-circle"></i> Tenant Information</h2>
-                      
-                    </div>
-
-                   <img src="{{ booking.user.profile.profile_picture.url }}" alt="User Avatar" class="user-pic" >
-
-                    <div class="detail-group">
-                        <span class="detail-label">Full Name</span>
-                        <p class="detail-value"><i class="fas fa-user"></i> {{ booking.user.get_full_name }}</p>
-                    </div>
-
-                    <div class="detail-group">
-                        <span class="detail-label">Email Address</span>
-                        <p class="detail-value"><i class="fas fa-envelope"></i> {{ booking.user.email }}</p>
-                    </div>
-
-                    <div class="detail-group">
-                        <span class="detail-label">Phone Number</span>
-                        <p class="detail-value"><i class="fas fa-phone"></i> {{ booking.user.profile.phone_number }}</p>
-                    </div>
-
-                    <div class="detail-group">
-                        <span class="detail-label">Aadhar Number</span>
-                        <p class="detail-value"><i class="fas fa-id-card"></i> {{ booking.user.profile.aadhaar_number }}</p>
-                        <button class="btn btn-view" id="viewAadharBtn">
-                            <i class="fas fa-file-pdf"></i> View Aadhar PDF
-                        </button>
-                    </div>
-
-                    <div class="detail-group">
-                        <span class="detail-label">Booking Dates</span>
-                        <p class="detail-value">
-                            <i class="fas fa-calendar-check"></i> {{ booking.start_date|date:"M d, Y" }} - 
-                            {{ booking.end_date|date:"M d, Y" }} ({{ booking_duration }} nights)
-                        </p>
-                    </div>
-
-                    <div class="notes-box">
-                        <h5><i class="fas fa-sticky-note"></i>Tenant Notes</h5>
-                        <p class="mt-2">"{{ booking.notes }}"</p>
-                    </div>
-
-                    
-
-                    {% if booking.status == 'pending' %}
-                    <div class="action-buttons">
-                        <button class="btn btn-approve" id="approveBtn">
-                            <i class="fas fa-check-circle"></i> Approve Booking
-                        </button>
-                        <button class="btn btn-decline" id="declineBtn">
-                            <i class="fas fa-times-circle"></i> Decline Booking
-                        </button>
-                    </div>
-                    {% elif booking.status == 'approved' and booking.payment_status == 'pending' %}
-                    <div class="action-buttons">
-                        <button class="btn btn-sm btn-approve" disabled>
-                            <i class="fas fa-check-circle"></i> Approved - Waiting for Payment
-                        </button>
-                    </div>
-                    {% elif booking.status == 'approved' and booking.payment_status == 'paid' %}
-                    <div class="action-buttons">
-                        <button class="btn btn-sm btn-approve" disabled>
-                            <i class="fas fa-check-circle"></i> Booking Confirmed
-                        </button>
-                    </div>
-                    {% endif %}
-                </div>
-            {% else %}
-                <!-- Show Vendor Info to User -->
-                <div class="user-section" style="border-radius: 16px; overflow: hidden;">
-                    <div class="section-header">
-                        
-                           
-                        <h2><i class="fas fa-user-circle"></i> Property Owner Information</h2>
-                      
-                    </div>
-
-                    <img src="{{ booking.property.owner.profile.profile_picture.url }}" alt="Vendor Avatar" class="user-pic" >
-                    <div class="detail-group">
-                        <span class="detail-label">Full Name</span>
-                        <p class="detail-value"><i class="fas fa-user"></i> {{ booking.property.owner.get_full_name }}</p>
-                    </div>
-
-                    <div class="detail-group">
-                        <span class="detail-label">Email Address</span>
-                        <p class="detail-value"><i class="fas fa-envelope"></i> {{ booking.property.owner.email }}</p>
-                    </div>
-
-                    <div class="detail-group">
-                        <span class="detail-label">Phone Number</span>
-                        <p class="detail-value"><i class="fas fa-phone"></i> {{ booking.property.owner.profile.phone_number }}</p>
-                    </div>
-
-                    <div class="detail-group">
-                        <span class="detail-label">Host Since</span>
-                        <p class="detail-value"><i class="fas fa-calendar-alt"></i> {{ booking.property.owner.date_joined|date:"M Y" }}</p>
-                    </div>
-
-                    {% if booking.status == 'approved' and booking.payment_status != 'paid' %}
-                    <div class="action-buttons" style="justify-content: flex-start;">
-                        <a href="{% url 'make_payment' booking.id %}" class="btn btn-pay">
-                            <i class="fas fa-credit-card"></i> Complete Payment Now
-                        </a>
-                    </div>
-                    {% elif booking.status == 'approved' and booking.payment_status == 'paid' %}
-                    <div class="action-buttons" style="justify-content: flex-start;">
-                        <button class="btn btn-approve" disabled>
-                            <i class="fas fa-check-circle"></i> Payment Completed
-                        </button>
-                    </div>
-                    {% endif %}
-                </div>
+        </div>
+        <!-- Right Side - User/Vendor Details (conditional) -->
+        {% if request.user.profile.role == 'vendor' %}
+        <!-- Show Guest Info to Vendor -->
+        <div class="user-section" style="border-radius: 16px; overflow: hidden;">
+            <div class="section-header">
+                <h2>
+                    <i class="fas fa-user-circle"></i> Tenant Information
+                </h2>
+            </div>
+            <img src="{{ booking.user.profile.profile_picture.url }}" alt="User Avatar" class="user-pic">
+            <div class="detail-group">
+                <span class="detail-label">Full Name</span>
+                <p class="detail-value">
+                    <i class="fas fa-user"></i> {{ booking.user.get_full_name }}
+                </p>
+            </div>
+            <div class="detail-group">
+                <span class="detail-label">Email Address</span>
+                <p class="detail-value">
+                    <i class="fas fa-envelope"></i> {{ booking.user.email }}
+                </p>
+            </div>
+            <div class="detail-group">
+                <span class="detail-label">Phone Number</span>
+                <p class="detail-value">
+                    <i class="fas fa-phone"></i> {{ booking.user.profile.phone_number }}
+                </p>
+            </div>
+            <div class="detail-group">
+                <span class="detail-label">Aadhar Number</span>
+                <p class="detail-value">
+                    <i class="fas fa-id-card"></i> {{ booking.user.profile.aadhaar_number }}
+                </p>
+                <button class="btn btn-view" id="viewAadharBtn">
+                    <i class="fas fa-file-pdf"></i> View Aadhar PDF
+                </button>
+            </div>
+            <div class="detail-group">
+                <span class="detail-label">Booking Dates</span>
+                <p class="detail-value">
+                    <i class="fas fa-calendar-check"></i> {{ booking.start_date|date:"M d, Y" }} -
+                    {{ booking.end_date|date:"M d, Y" }} ({{ booking_duration }} nights)
+                </p>
+            </div>
+            <div class="notes-box">
+                <h5>
+                    <i class="fas fa-sticky-note"></i>Tenant Notes
+                </h5>
+                <p class="mt-2">"{{ booking.notes }}"</p>
+            </div>
+            {% if booking.status == 'pending' %}
+            <div class="action-buttons">
+                <button class="btn btn-approve" id="approveBtn">
+                    <i class="fas fa-check-circle"></i> Approve Booking
+                </button>
+                <button class="btn btn-decline" id="declineBtn">
+                    <i class="fas fa-times-circle"></i> Decline Booking
+                </button>
+            </div>
+            {% elif booking.status == 'approved' and booking.payment_status == 'pending' %}
+            <div class="action-buttons">
+                <button class="btn btn-sm btn-approve" disabled>
+                    <i class="fas fa-check-circle"></i> Approved - Waiting for Payment
+                </button>
+            </div>
+            {% elif booking.status == 'approved' and booking.payment_status == 'paid' %}
+            <div class="action-buttons">
+                <button class="btn btn-sm btn-approve" disabled>
+                    <i class="fas fa-check-circle"></i> Booking Confirmed
+                </button>
+            </div>
             {% endif %}
         </div>
-    </div>
+        {% else %}
+        <!-- Show Vendor Info to User -->
+        <div class="user-section" style="border-radius: 16px; overflow: hidden;">
+            <div class="section-header">
+                <h2>
+                    <i class="fas fa-user-circle"></i> Property Owner Information
+                </h2>
+            </div>
+            <img src="{{ booking.property.owner.profile.profile_picture.url }}" alt="Vendor Avatar" class="user-pic">
+            <div class="detail-group">
+                <span class="detail-label">Full Name</span>
+                <p class="detail-value">
+                    <i class="fas fa-user"></i> {{ booking.property.owner.get_full_name }}
+                </p>
+            </div>
+            <div class="detail-group">
+                <span class="detail-label">Email Address</span>
+                <p class="detail-value">
+                    <i class="fas fa-envelope"></i> {{ booking.property.owner.email }}
+                </p>
+            </div>
+            <div class="detail-group">
+                <span class="detail-label">Phone Number</span>
+                <p class="detail-value">
+                    <i class="fas fa-phone"></i> {{ booking.property.owner.profile.phone_number }}
+                </p>
+            </div>
+            <div class="detail-group">
+                <span class="detail-label">Host Since</span>
+                <p class="detail-value">
+                    <i class="fas fa-calendar-alt"></i> {{ booking.property.owner.date_joined|date:"M Y" }}
+                </p>
+            </div>
 
+        </div>
+        {% endif %}
+    </div>
+    </div>
     <!-- Aadhar PDF Modal -->
     <div id="aadharModal" class="modal">
         <div class="modal-content">
             <span class="close">&times;</span>
-            <h3><i class="fas fa-id-card"></i> Aadhar Verification Document</h3>
-            <p class="mb-3">Tenant: {{ booking.user.get_full_name }} | Aadhar: {{ booking.user.profile.aadhaar_number }}</p>
-            {% comment %} <iframe id="aadharPdfViewer" src="{{ booking.user.profile.aadhaar_document.url }}"></iframe> {% endcomment %}
+            <h3>
+                <i class="fas fa-id-card"></i> Aadhar Verification Document
+            </h3>
+            <p class="mb-3">Tenant: {{ booking.user.get_full_name }} | Aadhar: {{ booking.user.profile.aadhaar_number }}
+            </p>
+            {% comment %} <iframe id="aadharPdfViewer" src="{{ booking.user.profile.aadhaar_document.url }}"></iframe>
+            {% endcomment %}
         </div>
     </div>
-
     <!-- Confirmation Modal -->
     <div id="confirmModal" class="modal">
         <div class="modal-content" style="max-width: 500px;">
             <span class="close" onclick="closeConfirmModal()">&times;</span>
-            <h3 id="confirmModalTitle"><i class="fas fa-check-circle"></i> Confirm Action</h3>
-            <div id="confirmModalContent" class="my-3">
-                Are you sure you want to proceed with this action?
-            </div>
+            <h3 id="confirmModalTitle">
+                <i class="fas fa-check-circle"></i> Confirm Action
+            </h3>
+            <div id="confirmModalContent" class="my-3">Are you sure you want to proceed with this action?</div>
             <div class="d-flex justify-content-end gap-2 mt-4">
                 <button class="btn btn-light" onclick="closeConfirmModal()">Cancel</button>
                 <button class="btn" id="confirmActionBtn">Confirm</button>
             </div>
         </div>
     </div>
-
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script>
         // Modal functionality
@@ -823,17 +912,17 @@
         const btn = document.getElementById("viewAadharBtn");
         const span = document.getElementsByClassName("close")[0];
 
-        btn.onclick = function() {
+        btn.onclick = function () {
             modal.style.display = "block";
             document.body.style.overflow = 'hidden';
         }
 
-        span.onclick = function() {
+        span.onclick = function () {
             modal.style.display = "none";
             document.body.style.overflow = 'auto';
         }
 
-        window.onclick = function(event) {
+        window.onclick = function (event) {
             if (event.target == modal) {
                 modal.style.display = "none";
                 document.body.style.overflow = 'auto';
@@ -842,7 +931,7 @@
 
         // Confirmation Modal
         const confirmModal = document.getElementById("confirmModal");
-        
+
         function showConfirmModal(title, content, confirmCallback) {
             document.getElementById("confirmModalTitle").innerHTML = title;
             document.getElementById("confirmModalContent").innerHTML = content;
@@ -850,18 +939,18 @@
             confirmModal.style.display = "block";
             document.body.style.overflow = 'hidden';
         }
-        
+
         function closeConfirmModal() {
             confirmModal.style.display = "none";
             document.body.style.overflow = 'auto';
         }
 
         // Approve/Decline buttons functionality
-        document.getElementById('approveBtn')?.addEventListener('click', function() {
+        document.getElementById('approveBtn')?.addEventListener('click', function () {
             showConfirmModal(
                 '<i class="fas fa-check-circle"></i> Approve Booking',
                 'Are you sure you want to approve this booking request? The guest will be notified and asked to complete payment.',
-                function() {
+                function () {
                     // AJAX call to approve booking
                     fetch('/api/bookings/{{ booking.id }}/approve/', {
                         method: 'POST',
@@ -870,36 +959,36 @@
                             'Content-Type': 'application/json'
                         }
                     })
-                    .then(response => response.json())
-                    .then(data => {
-                        if(data.success) {
-                            showAlert('success', 'Booking approved successfully! Payment link has been sent to the guest.');
-                            setTimeout(() => location.reload(), 1500);
-                        } else {
-                            showAlert('error', 'Error: ' + data.message);
-                        }
-                    })
-                    .catch(error => {
-                        console.error('Error:', error);
-                        showAlert('error', 'An error occurred while approving the booking.');
-                    })
-                    .finally(() => closeConfirmModal());
+                        .then(response => response.json())
+                        .then(data => {
+                            if (data.success) {
+                                showAlert('success', 'Booking approved successfully! Payment link has been sent to the guest.');
+                                setTimeout(() => location.reload(), 1500);
+                            } else {
+                                showAlert('error', 'Error: ' + data.message);
+                            }
+                        })
+                        .catch(error => {
+                            console.error('Error:', error);
+                            showAlert('error', 'An error occurred while approving the booking.');
+                        })
+                        .finally(() => closeConfirmModal());
                 }
             );
         });
 
-        document.getElementById('declineBtn')?.addEventListener('click', function() {
+        document.getElementById('declineBtn')?.addEventListener('click', function () {
             showConfirmModal(
                 '<i class="fas fa-times-circle"></i> Decline Booking',
                 '<div class="mb-3">Please specify reason for declining this booking:</div>' +
                 '<textarea id="declineReason" class="form-control" rows="3" placeholder="Enter reason for declining..."></textarea>',
-                function() {
+                function () {
                     const reason = document.getElementById('declineReason').value;
                     if (!reason) {
                         alert('Please provide a reason for declining the booking.');
                         return;
                     }
-                    
+
                     // AJAX call to decline booking
                     fetch('/api/bookings/{{ booking.id }}/decline/', {
                         method: 'POST',
@@ -907,22 +996,22 @@
                             'X-CSRFToken': '{{ csrf_token }}',
                             'Content-Type': 'application/json'
                         },
-                        body: JSON.stringify({reason: reason})
+                        body: JSON.stringify({ reason: reason })
                     })
-                    .then(response => response.json())
-                    .then(data => {
-                        if(data.success) {
-                            showAlert('success', 'Booking declined successfully. The guest has been notified.');
-                            setTimeout(() => location.reload(), 1500);
-                        } else {
-                            showAlert('error', 'Error: ' + data.message);
-                        }
-                    })
-                    .catch(error => {
-                        console.error('Error:', error);
-                        showAlert('error', 'An error occurred while declining the booking.');
-                    })
-                    .finally(() => closeConfirmModal());
+                        .then(response => response.json())
+                        .then(data => {
+                            if (data.success) {
+                                showAlert('success', 'Booking declined successfully. The guest has been notified.');
+                                setTimeout(() => location.reload(), 1500);
+                            } else {
+                                showAlert('error', 'Error: ' + data.message);
+                            }
+                        })
+                        .catch(error => {
+                            console.error('Error:', error);
+                            showAlert('error', 'An error occurred while declining the booking.');
+                        })
+                        .finally(() => closeConfirmModal());
                 }
             );
         });
@@ -935,9 +1024,9 @@
             alertDiv.style.zIndex = '1050';
             alertDiv.style.boxShadow = '0 5px 15px rgba(0,0,0,0.1)';
             alertDiv.innerHTML = message;
-            
+
             document.body.appendChild(alertDiv);
-            
+
             setTimeout(() => {
                 alertDiv.style.opacity = '0';
                 setTimeout(() => alertDiv.remove(), 300);
@@ -951,4 +1040,5 @@
         }
     </script>
 </body>
+
 </html>

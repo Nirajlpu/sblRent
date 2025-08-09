@@ -35,6 +35,7 @@ urlpatterns = [
     # path('vendor/bookings/<int:booking_id>/decline/', views.decline_booking, name='decline_booking'),
     path('booking/<int:booking_id>/pay/', views.make_payment, name='make_payment'),
     path('cancel-booking/<int:booking_id>/', views.cancel_booking, name='cancel_booking'),
+    path('reservation/<int:booking_id>/', views.reservation_details, name='reservation_details'),
     
     # Wishlist URLs
     path('wishlist/toggle/<int:property_id>/', views.toggle_wishlist, name='toggle_wishlist'),
