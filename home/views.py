@@ -20,6 +20,11 @@ from django.template.loader import render_to_string
 from django.utils import timezone
 from django.template.loader import render_to_string
 from django.http import JsonResponse
+from django.core.mail import send_mail
+import threading
+
+def send_email_async(subject, message, from_email, recipient_list):
+    send_mail(subject=subject, message=message, from_email=from_email, recipient_list=recipient_list, fail_silently=False)
 
 def home(request):
     # logout(request)
@@ -373,7 +378,34 @@ def book_property(request, property_id):
             guest=guest,
             notes=notes
         )
-        messages.success(request, "Booking request submitted successfully!")
+
+        messages.success(request, "Booking successful!")
+
+        vendor_email = property_obj.owner.email
+        customer_email = request.user.email
+
+        t1 = threading.Thread(
+            target=send_email_async,
+            kwargs={
+                "subject": "A property has been booked",
+                "message": f"Dear {property_obj.owner.username},\n{request.user.username} has successfully booked your property named: {property_obj.title}",
+                "from_email": None,
+                "recipient_list": [vendor_email],
+            }
+        )
+        t1.start()
+
+        t2 = threading.Thread(
+            target=send_email_async,
+            kwargs={
+                "subject": "Your property booking has been confirmed",
+                "message": f"Dear {request.user.username}, \nYour booking of property under title: {property_obj.title} was successful",
+                "from_email": None,
+                "recipient_list": [customer_email],
+            }
+        )
+        t2.start()
+
         from django.urls import reverse
 
         first_month = booking.start_date.strftime('%B')
