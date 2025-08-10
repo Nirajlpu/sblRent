@@ -172,6 +172,10 @@ class Booking(models.Model):
         ('declined', 'Declined'),
     )
     
+    PAYMENT_TYPE_CHOICES = (
+        ('monthly', 'Monthly'),
+    )
+    
     property = models.ForeignKey(Property, on_delete=models.CASCADE, related_name='bookings')
     user = models.ForeignKey(CustomUser, on_delete=models.CASCADE, related_name='bookings')
     start_date = models.DateField()
@@ -183,6 +187,8 @@ class Booking(models.Model):
     total_price = models.DecimalField(max_digits=10, decimal_places=2)
     notes = models.TextField(blank=True, null=True)
     payment_data = models.JSONField(default=list, blank=True)
+    payment_type = models.CharField(max_length=10, choices=PAYMENT_TYPE_CHOICES, default='full')
+    monthly_due_dates = models.JSONField(default=list, blank=True)  # [{'due_date': ..., 'amount': ..., 'paid': True/False}]
 
     def __str__(self):
         return f"Booking #{self.id} - {self.property.title}"

@@ -341,15 +341,16 @@ def book_property(request, property_id):
     if request.method == 'POST':
         start_date_str = request.POST.get('start_date')
         end_date_str = request.POST.get('end_date')
-        guest=request.POST.get('guests')
+        guest = request.POST.get('guests')
         notes = request.POST.get('notes', '')
+        total_price_str = request.POST.get('calculated_total_price')
+        payment_type = 'monthly'  # Always monthly
 
         if not start_date_str or not end_date_str:
             messages.error(request, "Both check-in and check-out dates are required.")
             return redirect('book_property', property_id=property_id)
 
         try:
-            from datetime import datetime
             start_date = datetime.strptime(start_date_str, "%Y-%m-%d").date()
             end_date = datetime.strptime(end_date_str, "%Y-%m-%d").date()
         except ValueError:
@@ -360,9 +361,30 @@ def book_property(request, property_id):
             messages.error(request, "Check-out date must be after check-in date.")
             return redirect('book_property', property_id=property_id)
 
-        days = (end_date - start_date).days
         from decimal import Decimal
-        total_price = (Decimal(days) / Decimal(30)) * property_obj.price
+        try:
+            total_price = Decimal(total_price_str)
+        except (TypeError, ValueError):
+            days = (end_date - start_date).days
+            total_price = (Decimal(days) / Decimal(30)) * property_obj.price
+
+        # Calculate monthly dues
+        monthly_due_dates = []
+        current = start_date
+        while current < end_date:
+            next_due = current + relativedelta(months=1)
+            if next_due > end_date:
+                next_due = end_date
+            monthly_due_dates.append({
+                'due_date': next_due.strftime('%Y-%m-%d'),
+                'amount': float(property_obj.price),
+                'paid': False
+            })
+            current = next_due
+
+        # Only first month paid
+        if monthly_due_dates:
+            monthly_due_dates[0]['paid'] = True
 
         booking = Booking.objects.create(
             property=property_obj,
@@ -371,16 +393,17 @@ def book_property(request, property_id):
             end_date=end_date,
             total_price=total_price,
             guest=guest,
-            notes=notes
+            notes=notes,
+            payment_type=payment_type,
+            monthly_due_dates=monthly_due_dates
         )
-        messages.success(request, "Booking request submitted successfully!")
+       
         from django.urls import reverse
 
         first_month = booking.start_date.strftime('%B')
         first_year = booking.start_date.year
         pay_url = reverse('make_payment', kwargs={'booking_id': booking.id})
         return redirect(f'{pay_url}?month={first_month}&year={first_year}')
-       
 
     return render(request, 'book_property.html', {
         'property': property_obj,
@@ -392,9 +415,10 @@ def book_property(request, property_id):
 def booking_confirmation(request, booking_id):
     booking = get_object_or_404(Booking, id=booking_id, user=request.user)
     # Mark property as rented if booking is paid
-    if booking.status == 'paid':
-        booking.property.status = 'rented'
-        booking.property.save()
+    booking.status = 'paid'
+    booking.property.status = 'rented'
+    booking.property.save()
+    booking.save()
     return render(request, 'booking_confirmation.html', {'booking': booking})
 
 @login_required
@@ -662,7 +686,6 @@ def reservation_details(request, booking_id):
 def make_payment(request, booking_id):
     booking = get_object_or_404(Booking, id=booking_id, user=request.user)
 
-    # Get month and year from query params
     month = request.GET.get('month')
     year = request.GET.get('year')
     if not month or not year:
@@ -670,7 +693,6 @@ def make_payment(request, booking_id):
         return redirect('book_property', booking_id=booking.id)
 
     if request.method == 'POST':
-        # Simulate successful payment (replace with real integration)
         from datetime import datetime
         now = datetime.now()
         payment_date = now.strftime('%Y-%m-%d')
@@ -679,12 +701,11 @@ def make_payment(request, booking_id):
         new_payment = {
             'payment_date': payment_date,
             'payment_time': payment_time,
-            'payment_amount': float(booking.property.price)
+            'payment_amount': float(booking.total_price)
         }
 
         data = booking.payment_data
 
-        # Find or create year entry
         year = int(year)
         year_entry = next((entry for entry in data if entry['year'] == year), None)
         if year_entry:
@@ -700,13 +721,16 @@ def make_payment(request, booking_id):
                 }
             })
 
-        # Update payment_data and booking status if all months paid
         booking.payment_data = data
 
-        # Optionally, check if all months are paid and update booking.status/payment_status
-        # (You can add this logic if needed)
+        # Mark the first unpaid month as paid
+        unpaid_found = False
+        for due in booking.monthly_due_dates:
+            if not due['paid'] and not unpaid_found:
+                due['paid'] = True
+                unpaid_found = True
+                break
 
-        booking.status = 'paid'
         booking.save()
         messages.success(request, f"Payment for {month} {year} successful!")
         return redirect('booking_confirmation', booking_id=booking.id)
@@ -716,3 +740,21 @@ def make_payment(request, booking_id):
         'month': month,
         'year': year
     })
+
+# Example task (Celery)
+from django.core.mail import send_mail
+from django.utils import timezone
+from .models import Booking
+
+def send_payment_reminders():
+    today = timezone.now().date()
+    for booking in Booking.objects.filter(payment_type='monthly'):
+        for due in booking.monthly_due_dates:
+            due_date = datetime.strptime(due['due_date'], '%Y-%m-%d').date()
+            if not due['paid'] and (due_date - today).days == 3:
+                send_mail(
+                    'Payment Reminder',
+                    f'Your next payment of ₹{due["amount"]} is due on {due_date}.',
+                    'noreply@sblrent.com',
+                    [booking.user.email]
+                )

@@ -312,7 +312,12 @@
                   <input type="date" class="form-control" id="checkIn" name="start_date" required>
                 </div>
                 <div class="col-md-6">
-                  <label for="checkOut" class="form-label">Check-Out Date</label>
+                  <label for="checkOut" class="form-label">
+                    Check-Out Date
+                    <i class="fas fa-info-circle text-primary ms-1"
+                       style="cursor:pointer"
+                       id="infoIcon"></i>
+                  </label>
                   <input type="date" class="form-control" id="checkOut" name="end_date" required>
                 </div>
                 <div class="col-12">
@@ -330,6 +335,18 @@
                 </div>
               </div>
               
+              <div class="mt-4">
+                <h5 class="mb-2">Payment Option</h5>
+                <div id="paymentTypeOptions">
+                  <div class="form-check">
+                    <input class="form-check-input" type="radio" name="payment_type" id="payMonthly" value="monthly" checked>
+                    <label class="form-check-label" for="payMonthly">
+                      Pay Monthly (First month now, rest auto-charged)
+                    </label>
+                  </div>
+                </div>
+              </div>
+              
               <div class="price-summary mt-4">
                 <h5 class="mb-3">Price Summary</h5>
                 <div class="price-item">
@@ -340,17 +357,12 @@
                   <span>Service Fee</span>
                   <span>₹<span id="serviceFee">0</span></span>
                 </div>
-                <div class="price-item">
-                  <span>Cleaning Fee</span>
-                  <span>₹<span id="cleaningFee">300</span></span>
-                </div>
                 <div class="price-item price-total">
                   <span>Total</span>
                   <span>₹<span id="totalPrice">0</span></span>
                 </div>
+                <input type="hidden" name="calculated_total_price" id="calculatedTotalPrice" value="0">
               </div>
-
-              
               
               <button type="submit" class="btn btn-book mt-4">
                 <i class="fas fa-calendar-check me-2"></i> Confirm Booking & Make Payment
@@ -365,7 +377,22 @@
         </div>
       </div>
     </div>
-  </div>-ø
+  </div>
+
+  <div class="modal fade" id="infoModal" tabindex="-1" aria-labelledby="infoModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="infoModalLabel"><i class="fas fa-info-circle text-primary me-2"></i>Extend Checkout Date</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          You can further extend your checkout date after booking.<br>
+          Just select any date now. You will be able to change it later from your reservation details page.
+        </div>
+      </div>
+    </div>
+  </div>
 
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/lightgallery-js/2.7.1/js/lightgallery.min.js"></script>
@@ -376,11 +403,10 @@
     const nightsCount = document.getElementById('nightsCount');
     const subtotal = document.getElementById('subtotal');
     const serviceFee = document.getElementById('serviceFee');
-    const cleaningFee = document.getElementById('cleaningFee');
     const totalPrice = document.getElementById('totalPrice');
-    const dailyRate = {{ property.price }};
-    const cleaningFeeAmount = 300;
+    const dailyRate = {{ property.price }} / 30;
     
+    // Only monthly payment logic
     function calculateTotal() {
       if (checkInInput.value && checkOutInput.value) {
         const checkInDate = new Date(checkInInput.value);
@@ -393,7 +419,6 @@
         while (tempDate <= checkOutDate) {
           const nextMonth = new Date(tempDate);
           nextMonth.setMonth(nextMonth.getMonth() + 1);
-          
           if (nextMonth <= checkOutDate) {
             fullMonths++;
             tempDate.setMonth(tempDate.getMonth() + 1);
@@ -406,14 +431,15 @@
         extraDays = Math.ceil(remainingTime / msInDay);
 
         if (checkOutDate > checkInDate) {
-          nightsCount.textContent = `${fullMonths} month${fullMonths !== 1 ? 's' : ''}${extraDays > 0 ? ' and ' + extraDays + ' day' + (extraDays !== 1 ? 's' : '') : ''}`;
-          
-          const newSubtotal = dailyRate * (fullMonths + (extraDays / 30));
+        // Always display "First Month" for the payment period
+          nightsCount.textContent = "First Month";
+          const newSubtotal = {{ property.price }};
           subtotal.textContent = Math.round(newSubtotal);
           const newServiceFee = Math.round(newSubtotal * 0.01);
           serviceFee.textContent = newServiceFee;
-          const newTotal = Math.round(newSubtotal + newServiceFee + cleaningFeeAmount);
+          const newTotal = Math.round(newSubtotal + newServiceFee);
           totalPrice.textContent = newTotal;
+          document.getElementById('calculatedTotalPrice').value = newTotal;
         }
       }
     }
@@ -509,6 +535,33 @@ checkOutInput.addEventListener('input', function () {
           playButton.style.display = 'block';
         });
       }
+      
+      var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+      tooltipTriggerList.forEach(function (tooltipTriggerEl) {
+        new bootstrap.Tooltip(tooltipTriggerEl);
+      });
+      
+      // Show modal on hover
+      const infoIcon = document.getElementById('infoIcon');
+      const infoModal = new bootstrap.Modal(document.getElementById('infoModal'));
+
+      let modalTimeout;
+
+      infoIcon.addEventListener('mouseenter', function() {
+        modalTimeout = setTimeout(() => {
+          infoModal.show();
+        }, 150); // slight delay to avoid accidental triggers
+      });
+
+      infoIcon.addEventListener('mouseleave', function() {
+        clearTimeout(modalTimeout);
+        infoModal.hide();
+      });
+
+      // Optional: Also show modal on click for accessibility
+      infoIcon.addEventListener('click', function() {
+        infoModal.show();
+      });
     });
     
     // Form validation
@@ -530,6 +583,8 @@ checkOutInput.addEventListener('input', function () {
       
       return true;
     });
+    
+    
   </script>
 </body>
 </html>
