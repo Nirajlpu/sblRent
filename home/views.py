@@ -20,6 +20,11 @@ from django.template.loader import render_to_string
 from django.utils import timezone
 from django.template.loader import render_to_string
 from django.http import JsonResponse
+from django.core.mail import send_mail
+import threading
+
+def send_email_async(subject, message, from_email, recipient_list):
+    send_mail(subject=subject, message=message, from_email=from_email, recipient_list=recipient_list, fail_silently=False)
 
 def home(request):
     # logout(request)
@@ -397,7 +402,7 @@ def book_property(request, property_id):
             payment_type=payment_type,
             monthly_due_dates=monthly_due_dates
         )
-       
+        messages.success(request, "Booking request submitted successfully!")
         from django.urls import reverse
 
         first_month = booking.start_date.strftime('%B')
