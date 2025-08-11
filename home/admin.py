@@ -1,10 +1,19 @@
 from django.contrib import admin
-# ----------------add manually------------------
-from home.models import  Profile#add manually
-from home.models import Property #add manually
-from home.models import Booking #add manually
+from .models import (
+    CustomUser,
+    Profile,
+    Property,
+    PropertyImage,
+    Booking,
+    Review,
+    Wishlist
+)
 
-# Register your models here.
-admin.site.register(Profile) #add manually
-admin.site.register(Property) #add manually
-admin.site.register(Booking) #add manually
+# Register models
+admin.site.register(CustomUser)
+admin.site.register(Profile)
+admin.site.register(Property)
+admin.site.register(PropertyImage)
+admin.site.register(Booking)
+admin.site.register(Review)
+admin.site.register(Wishlist)

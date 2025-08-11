@@ -468,19 +468,27 @@ def manage_profile(request):
     
     return render(request, 'manage_profile.html', {'form': form})
 
-@login_required
+from django.shortcuts import get_object_or_404, redirect
+from django.contrib.auth.decorators import login_required
+from django.http import JsonResponse
+from .models import Property, Wishlist
+
+@login_required(login_url='/login/')
 def toggle_wishlist(request, property_id):
-    property = get_object_or_404(Property, id=property_id)
-    wishlist_item, created = Wishlist.objects.get_or_create(
-        user=request.user,
-        property=property
-    )
-    
+    property_obj = get_object_or_404(Property, id=property_id)
+
+    wishlist_item, created = Wishlist.objects.get_or_create(user=request.user, property=property_obj)
+
     if not created:
         wishlist_item.delete()
-        return JsonResponse({'status': 'removed'})
-    
-    return JsonResponse({'status': 'added'})
+        status = "removed"
+    else:
+        status = "added"
+
+    if request.headers.get("X-Requested-With") == "XMLHttpRequest":
+        return JsonResponse({"status": status})
+    else:
+        return redirect(request.META.get("HTTP_REFERER", "home"))
 
 def logout_user(request):
     logout(request)
@@ -494,11 +502,76 @@ def get_available_dates(property):
     return []
 
 from django.contrib.auth.decorators import login_required
+from django.core.paginator import Paginator
+from django.shortcuts import render
+from .models import Property
 
-@login_required
+from django.core.paginator import Paginator
+from django.contrib.auth.decorators import login_required
+from .models import Property, Wishlist
+from django.shortcuts import render
+
+from django.core.paginator import Paginator
+from .models import Property, Wishlist
+
 def property_list(request):
-    properties = Property.objects.filter(status='active')
-    return render(request, 'property_list.html', {'properties': properties})
+    user = request.user
+    profile = user.profile if user.is_authenticated else None
+    # Determine initial queryset
+    if request.user.is_authenticated and hasattr(request.user, 'profile') and request.user.profile.role == 'vendor':
+        # Vendor: show only their properties
+        queryset = Property.objects.filter(owner=request.user)
+    elif request.GET.get('view') == 'wishlist' and request.user.is_authenticated:
+        # Wishlist view
+        queryset = Property.objects.filter(wishlist__user=request.user)
+    else:
+        # Default: active properties
+        queryset = Property.objects.filter(status='active')
+
+    # Apply filters for all cases
+    location = request.GET.get('location')
+    property_type = request.GET.get('property_type')
+    price_range = request.GET.get('price_range')
+
+    if location:
+        queryset = queryset.filter(location__icontains=location)
+    if property_type and property_type != "Any Type":
+        queryset = queryset.filter(property_type=property_type)
+    if price_range:
+        if price_range == "Under ₹10,000":
+            queryset = queryset.filter(price__lt=10000)
+        elif price_range == "₹10,000-₹20,000":
+            queryset = queryset.filter(price__gte=10000, price__lte=20000)
+        elif price_range == "₹20,000-₹30,000":
+            queryset = queryset.filter(price__gte=20000, price__lte=30000)
+        elif price_range == "Over ₹30,000":
+            queryset = queryset.filter(price__gt=30000)
+
+    # Order newest first
+    queryset = queryset.order_by('-date_added')
+
+    # Add wishlist status for heart icon
+    if request.user.is_authenticated:
+        wishlist_ids = set(
+            Wishlist.objects.filter(user=request.user).values_list('property_id', flat=True)
+        )
+        for prop in queryset:
+            prop.in_wishlist = prop.id in wishlist_ids
+    else:
+        for prop in queryset:
+            prop.in_wishlist = False
+
+    # Pagination
+    paginator = Paginator(queryset, 6)  # 6 per page
+    page = request.GET.get('page')
+    properties = paginator.get_page(page)
+
+    return render(request, 'property_list.html', {
+        'properties': properties,
+        'pic': profile if profile else None,
+        'showing_wishlist': request.GET.get('view') == 'wishlist',
+        'is_vendor': request.user.is_authenticated and hasattr(request.user, 'profile') and request.user.profile.role == 'vendor'
+    })
 
 from django.contrib.auth.decorators import login_required
 from django.shortcuts import render
@@ -543,7 +616,7 @@ from .models import Wishlist
 
 @login_required
 def my_wishlist(request):
-    wishlist_items = Wishlist.objects.filter(user=request.user)
+    wishlist_items = Wishlist.objects.filter(user=request.user).select_related('property').order_by('-property__date_added')
     return render(request, 'my_wishlist.html', {'wishlist_items': wishlist_items})
 
 # @login_required
@@ -676,7 +749,7 @@ def reservation_details(request, booking_id):
     # Use Django's timezone utilities to get IST (Asia/Kolkata) date
     # today = timezone.localtime(timezone.now(), timezone.get_fixed_timezone(330)).date()
 
-    today = date(2026, 12, 1)  # Year, Month, Day
+    today = date(2028, 12, 1)  # Year, Month, Day
     print("Today Niraj:", today)
 
     monthly_payments = [p for p in monthly_payments if p["date"] <= today]

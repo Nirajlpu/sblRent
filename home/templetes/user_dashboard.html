@@ -116,7 +116,7 @@
           </div>
           <div>
             <a href="/my-bookings" class="btn btn-light me-2">My Bookings</a>
-            <a href="/saved-properties" class="btn btn-outline-light">Saved Properties</a>
+            <a href="/properties?view=wishlist" class="btn btn-outline-light">Saved Properties</a>
           </div>
         </div>
       </div>
@@ -186,6 +186,7 @@
         </div>
         <div id="property-container">
           <div class="row">{% include 'partials/property_list.html' %}</div>
+          
         </div>
       </section>
       <!-- Recently Viewed -->
@@ -336,6 +337,57 @@
           });
         }
       });
+      function getCookie(name) {
+  let cookieValue = null;
+  if (document.cookie && document.cookie !== "") {
+    const cookies = document.cookie.split(";");
+    for (let i = 0; i < cookies.length; i++) {
+      const cookie = cookies[i].trim();
+      if (cookie.substring(0, name.length + 1) === name + "=") {
+        cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+        break;
+      }
+    }
+  }
+  return cookieValue;
+}
+
+document.addEventListener("DOMContentLoaded", function () {
+  const saveButtons = document.querySelectorAll(".btn-outline-danger, .btn-danger");
+
+  saveButtons.forEach((button) => {
+    button.addEventListener("click", function (e) {
+      e.preventDefault();
+
+      const propertyId = this.getAttribute("data-id");
+      const btn = this;
+
+      fetch(`/wishlist/toggle/${propertyId}/`, {
+        method: "POST",
+        headers: {
+          "X-CSRFToken": getCookie("csrftoken"),
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({}),
+      })
+        .then((res) => res.json())
+        .then((data) => {
+          if (data.status === "added") {
+            btn.classList.remove("btn-outline-danger");
+            btn.classList.add("btn-danger");
+            btn.innerHTML = '<i class="fas fa-heart me-1"></i> Wishlist';
+          } else if (data.status === "removed") {
+            btn.classList.remove("btn-danger");
+            btn.classList.add("btn-outline-danger");
+            btn.innerHTML = '<i class="far fa-heart"></i> Wishlist';
+          }
+        })
+        .catch((error) => {
+          console.error("Error toggling wishlist:", error);
+        });
+    });
+  });
+});
     </script>
   </body>
 </html>

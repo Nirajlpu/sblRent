@@ -367,9 +367,9 @@
             <a href="/my-bookings" class="user-menu-item">
               <i class="fas fa-calendar-check"></i> Bookings
             </a>
-            <a href="/wishlist" class="user-menu-item">
-              <i class="fas fa-heart"></i> Wishlist
-            </a>
+           <a href="/properties?view=wishlist" class="user-menu-item">
+    <i class="fas fa-heart"></i> Wishlist
+</a>
             <a href="/reviews" class="user-menu-item">
               <i class="fas fa-comment-alt"></i> Reviews
             </a>
@@ -377,7 +377,7 @@
           {% if user.profile.role == 'vendor' %}
             <div class="menu-divider"></div>
             <h6 class="px-3 mb-3 text-uppercase small fw-bold text-muted">Vendor Tools</h6>
-            <a href="/my-properties" class="user-menu-item">
+            <a href="/properties" class="user-menu-item">
               <i class="fas fa-home"></i> My Properties
             </a>
             <a href="/my-bookings" class="user-menu-item">

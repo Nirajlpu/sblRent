@@ -40,6 +40,9 @@ urlpatterns = [
     # Wishlist URLs
     path('wishlist/toggle/<int:property_id>/', views.toggle_wishlist, name='toggle_wishlist'),
     path('my-wishlist/', views.my_wishlist, name='my_wishlist'),
+    path('properties/', views.property_list, name='property_list'),
+    path('my-wishlist/', views.my_wishlist, name='my_wishlist'),
+    path('wishlist/toggle/<int:property_id>/', views.toggle_wishlist, name='toggle_wishlist'),
     
     # Authentication URLs (password reset)
     path('password-reset/', 

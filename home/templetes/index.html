@@ -509,7 +509,7 @@
                 reliable, fast, and affordable rental platform.
               </p>
               <div class="hero-buttons">
-                <a href="/service" class="btn btn-primary btn-lg px-4">
+                <a href="/properties" class="btn btn-primary btn-lg px-4">
                   Explore Listings
                 </a>
                 <a
@@ -535,7 +535,7 @@
                 city.
               </p>
               <div class="hero-buttons">
-                <a href="/service" class="btn btn-primary btn-lg px-4">
+                <a href="#featured-properties" class="btn btn-primary btn-lg px-4">
                   Browse Properties
                 </a>
               </div>
@@ -555,7 +555,7 @@
                 confusion.
               </p>
               <div class="hero-buttons">
-                <a href="/service" class="btn btn-primary btn-lg px-4"
+                <a href="/login" class="btn btn-primary btn-lg px-4"
                   >Get Started</a
                 >
               </div>
@@ -699,7 +699,7 @@
         </section>
 
         <div class="text-center mt-5">
-          <a href="/service" class="btn btn-primary btn-lg px-5">
+          <a href="/properties" class="btn btn-primary btn-lg px-5">
             View All Properties <i class="fas fa-arrow-right ms-2"></i>
           </a>
         </div>
@@ -806,7 +806,7 @@
             SBLRent. Start your search today!
           </p>
           <div class="d-flex justify-content-center flex-wrap">
-            <a href="/service" class="btn btn-light btn-lg px-4 me-3 mb-3"
+            <a href="/properties" class="btn btn-light btn-lg px-4 me-3 mb-3"
               >Browse Properties</a
             >
             <a href="/register" class="btn btn-outline-light btn-lg px-4 mb-3"
@@ -1027,6 +1027,48 @@
             });
         }
       });
+      document.addEventListener("click", function (e) {
+    const btn = e.target.closest(".wishlist-btn");
+    if (!btn) return;
+
+    const propertyId = btn.dataset.id;
+
+    fetch(`/wishlist/toggle/${propertyId}/`, {
+        method: "POST",
+        headers: {
+            "X-CSRFToken": getCookie("csrftoken"),
+            "X-Requested-With": "XMLHttpRequest"
+        }
+    })
+    .then(res => res.json())
+    .then(data => {
+        if (data.status === "added") {
+            btn.classList.remove("btn-outline-secondary");
+            btn.classList.add("btn-danger");
+            btn.innerHTML = '<i class="fas fa-heart"></i>';
+        } else {
+            btn.classList.remove("btn-danger");
+            btn.classList.add("btn-outline-secondary");
+            btn.innerHTML = '<i class="far fa-heart"></i>';
+        }
+    });
+});
+
+// Helper to get CSRF token
+function getCookie(name) {
+    let cookieValue = null;
+    if (document.cookie && document.cookie !== '') {
+        const cookies = document.cookie.split(';');
+        for (let i = 0; i < cookies.length; i++) {
+            const cookie = cookies[i].trim();
+            if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                break;
+            }
+        }
+    }
+    return cookieValue;
+}
     </script>
   </body>
 </html>
