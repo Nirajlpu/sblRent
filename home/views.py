@@ -402,7 +402,34 @@ def book_property(request, property_id):
             payment_type=payment_type,
             monthly_due_dates=monthly_due_dates
         )
-        messages.success(request, "Booking request submitted successfully!")
+        
+        messages.success(request, "Booking successful!")
+
+        vendor_email = property_obj.owner.email
+        customer_email = request.user.email
+
+        t1 = threading.Thread(
+            target=send_email_async,
+            kwargs={
+                "subject": "A property has been booked",
+                "message": f"Dear {property_obj.owner.username},\n{request.user.username} has successfully booked your property named: {property_obj.title}",
+                "from_email": None,
+                "recipient_list": [vendor_email],
+            }
+        )
+        t1.start()
+
+        t2 = threading.Thread(
+            target=send_email_async,
+            kwargs={
+                "subject": "Your property booking has been confirmed",
+                "message": f"Dear {request.user.username}, \nYour booking of property under title: {property_obj.title} was successful",
+                "from_email": None,
+                "recipient_list": [customer_email],
+            }
+        )
+        t2.start()
+
         from django.urls import reverse
 
         first_month = booking.start_date.strftime('%B')
