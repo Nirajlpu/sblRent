@@ -262,6 +262,11 @@
         padding-top: 0.5rem;
       }
     }
+    .nav-link-premium.text-danger:hover {
+      background-color: #f8d7da; /* light red background */
+      color: #842029 !important; /* dark red text */
+      transform: translateY(-1px);
+    }
     </style>
   </head>
   <body>
@@ -326,6 +331,9 @@
                             {% endif %}
                         </div>
                     </div>
+                    <!-- <a href="/logout" class="nav-item nav-link nav-link-premium text-danger">
+                      <i class="fas fa-sign-out-alt me-1"></i> Logout
+                    </a> -->
                 {% else %}
                     <!-- Auth buttons for Unauthenticated Users -->
                     <a href="/login" class="nav-item nav-link nav-link-premium">
