@@ -90,10 +90,6 @@
       transform: translateY(-1px);
     }
 
-    .nav-link-premium:hover i {
-      transform: scale(1.1);
-    }
-
     .nav-link-premium.active::after {
       content: '';
       position: absolute;
@@ -258,89 +254,99 @@
       .nav-link-premium.active::after {
         display: none;
       }
-    }
-
-    /* Animation for navbar on scroll */
-    window.addEventListener('scroll', function() {
-      const navbar = document.querySelector('.navbar-premium');
-      if (window.scrollY > 20) {
-        navbar.classList.add('scrolled');
-      } else {
-        navbar.classList.remove('scrolled');
+      .navbar-nav {
+        padding-top: 1rem;
+        align-items: flex-start !important;
       }
-    });
+      .user-controls-wrapper {
+        padding-top: 0.5rem;
+      }
+    }
     </style>
   </head>
   <body>
     <!-- Premium Navbar -->
-    <nav class="navbar navbar-expand-lg navbar-premium sticky-top">
+    <nav class="navbar navbar-expand-lg navbar-light bg-light navbar-premium sticky-top">
       <div class="container-fluid">
         <a class="navbar-brand-premium" href="/">
           <img src="{% static 'images/logo-icon.png' %}" alt="SBLRent">
           SBLRent
         </a>
-        <button class="navbar-toggler"
-                type="button"
-                data-bs-toggle="collapse"
-                data-bs-target="#navbarPremium">
-          <span class="navbar-toggler-icon"></span>
+
+        <!-- Toggler button -->
+        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarMainCollapse" aria-controls="navbarMainCollapse" aria-expanded="false" aria-label="Toggle navigation">
+            <span class="navbar-toggler-icon"></span>
         </button>
-        <div class="user-controls">
-          {% if user.is_authenticated %}
-            <a href="#" class="notification-btn position-relative">
-              <i class="fas fa-bell"></i>
-              <span class="notification-badge">3</span>
-            </a>
-            <div class="user-avatar"
-                 data-bs-toggle="offcanvas"
-                 data-bs-target="#userSidebarPremium">
-              {% if pic.profile_picture %}
-                <img src="{{ pic.profile_picture.url }}"
-                     alt="Profile"
-                     class="img-fluid rounded-circle"
-                     style="width: 100%;
-                            height: 100%;
-                            object-fit: cover">
-              {% else %}
-                {{ request.user.username|slice:":1"|upper }}
-              {% endif %}
+
+        <!-- Collapsible content: All nav items are now inside this single container -->
+        <div class="collapse navbar-collapse" id="navbarMainCollapse">
+            <div class="navbar-nav ms-auto align-items-center">
+                {% if user.is_authenticated %}
+                    <!-- Main Nav for Authenticated Users -->
+                    <a href="/dashboard" class="nav-item nav-link nav-link-premium active">Home</a>
+                    {% if user.profile.role == 'vendor' %}
+                        <a href="/properties" class="nav-item nav-link nav-link-premium">My Properties</a>
+                        <a href="/my-bookings" class="nav-item nav-link nav-link-premium">Reservations</a>
+                    {% else %}
+                        <a href="/my-bookings" class="nav-item nav-link nav-link-premium">My Bookings</a>
+                        <a href="/properties?view=wishlist" class="nav-item nav-link nav-link-premium">Wishlist</a>
+                    {% endif %}
+
+                    <!-- User controls integrated into the main nav flow -->
+                    <div class="user-controls-wrapper d-flex align-items-center ps-lg-3">
+                        <a href="#" class="notification-btn position-relative">
+                            <i class="fas fa-bell"></i>
+                            <span class="notification-badge">3</span>
+                        </a>
+                        <div class="user-avatar"
+                             data-bs-toggle="offcanvas"
+                             data-bs-target="#userSidebarPremium">
+                            {% if pic.profile_picture %}
+                            <img src="{{ pic.profile_picture.url }}"
+                                 alt="Profile"
+                                 class="img-fluid rounded-circle"
+                                 style="width: 100%; height: 100%; object-fit: cover">
+                            {% else %}
+                            {{ request.user.username|slice:":1"|upper }}
+                            {% endif %}
+                        </div>
+                    </div>
+                {% else %}
+                    <!-- Auth buttons for Unauthenticated Users -->
+                    <a href="/login" class="nav-item nav-link nav-link-premium">
+                      <i class="fas fa-sign-in-alt me-1"></i> Sign In
+                    </a>
+                    <a href="/register" class="nav-item nav-link nav-link-premium">
+                      <i class="fas fa-user-plus me-1"></i> Register
+                    </a>
+                {% endif %}
             </div>
-          {% else %}
-            <a href="/login" class="btn btn-sm btn-outline-primary me-2">
-              <i class="fas fa-sign-in-alt me-1"></i> Sign In
-            </a>
-            <a href="/register" class="btn btn-sm btn-primary">
-              <i class="fas fa-user-plus me-1"></i> Register
-            </a>
-          {% endif %}
         </div>
       </div>
-    </div>
   </nav>
-  <!-- Premium User Sidebar -->
+
+  <!-- Premium User Sidebar (Offcanvas) -->
   <div class="offcanvas offcanvas-end offcanvas-premium"
        tabindex="-1"
        id="userSidebarPremium">
     <div class="offcanvas-header-premium">
       <div class="user-profile-header">
-        <div class="user-avatar"
-             data-bs-toggle="offcanvas"
-             data-bs-target="#userSidebarPremium">
+        <div class="user-avatar-large">
           {% if pic.profile_picture %}
             <img src="{{ pic.profile_picture.url }}"
                  alt="Profile"
                  class="img-fluid rounded-circle"
-                 style="width: 100%;
-                        height: 100%;
-                        object-fit: cover">
+                 style="width: 100%; height: 100%; object-fit: cover">
           {% else %}
             {{ request.user.username|slice:":1"|upper }}
           {% endif %}
         </div>
         <div class="user-info">
-          <h5>{{ request.user.get_full_name }}</h5>
+          <h5>{{ request.user.get_full_name|default:request.user.username }}</h5>
           <p>{{ request.user.email }}</p>
-          <span class="badge bg-primary">{{ request.user.profile.get_role_display }}</span>
+          {% if request.user.profile.get_role_display %}
+            <span class="badge bg-primary">{{ request.user.profile.get_role_display }}</span>
+          {% endif %}
         </div>
       </div>
       <button type="button"
@@ -368,8 +374,8 @@
               <i class="fas fa-calendar-check"></i> Bookings
             </a>
            <a href="/properties?view=wishlist" class="user-menu-item">
-    <i class="fas fa-heart"></i> Wishlist
-</a>
+              <i class="fas fa-heart"></i> Wishlist
+            </a>
             <a href="/reviews" class="user-menu-item">
               <i class="fas fa-comment-alt"></i> Reviews
             </a>
@@ -415,6 +421,7 @@
       const navLinks = document.querySelectorAll('.nav-link-premium');
       
       navLinks.forEach(link => {
+        link.classList.remove('active');
         if (link.getAttribute('href') === currentPath) {
           link.classList.add('active');
         }
