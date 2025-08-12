@@ -25,7 +25,7 @@
 
     /* Premium Navbar Styles */
     .navbar-premium {
-      background: linear-gradient(135deg, rgba(255,255,255,0.98) 0%, rgba(248,249,250,0.98) 100%) !important;
+      background: linear-gradient(135deg, rgb(255, 255, 255) 0%, rgba(248,249,250,0.98) 100%) !important;
       backdrop-filter: blur(10px);
       box-shadow: 0 4px 30px rgba(0, 0, 0, 0.08);
       border-bottom: 1px solid rgba(0, 0, 0, 0.05);
@@ -283,15 +283,30 @@
             <div class="navbar-nav ms-auto align-items-center">
                 {% if user.is_authenticated %}
                     <!-- Main Nav for Authenticated Users -->
-                    <a href="/dashboard" class="nav-item nav-link nav-link-premium active">Home</a>
-                    {% if user.profile.role == 'vendor' %}
-                        <a href="/properties" class="nav-item nav-link nav-link-premium">My Properties</a>
-                        <a href="/my-bookings" class="nav-item nav-link nav-link-premium">Reservations</a>
-                    {% else %}
-                        <a href="/my-bookings" class="nav-item nav-link nav-link-premium">My Bookings</a>
-                        <a href="/properties?view=wishlist" class="nav-item nav-link nav-link-premium">Wishlist</a>
-                    {% endif %}
+                    <a href="/dashboard" 
+                       class="nav-item nav-link nav-link-premium {% if request.path|slice:":10" == '/dashboard' %}active{% endif %}">
+                       Home
+                    </a>
 
+                    {% if user.profile.role == 'vendor' %}
+                        <a href="/properties" 
+                           class="nav-item nav-link nav-link-premium {% if request.path|slice:":11" == '/properties' %}active{% endif %}">
+                           My Properties
+                        </a>
+                        <a href="/my-bookings" 
+                           class="nav-item nav-link nav-link-premium {% if request.path == '/my-bookings' or request.path == '/my-bookings/' %}active{% endif %}">
+                           Reservations
+                        </a>
+                    {% else %}
+                        <a href="/my-bookings" 
+                           class="nav-item nav-link nav-link-premium {% if request.path == '/my-bookings' or request.path == '/my-bookings/' %}active{% endif %}">
+                           My Bookings
+                        </a>
+                        <a href="/properties?view=wishlist" 
+                           class="nav-item nav-link nav-link-premium {% if 'view=wishlist' in request.get_full_path %}active{% endif %}">
+                           Wishlist
+                        </a>
+                    {% endif %}
                     <!-- User controls integrated into the main nav flow -->
                     <div class="user-controls-wrapper d-flex align-items-center ps-lg-3">
                         <a href="#" class="notification-btn position-relative">
@@ -415,18 +430,6 @@
       }
     });
 
-    // Active link highlighting
-    document.addEventListener('DOMContentLoaded', function() {
-      const currentPath = window.location.pathname;
-      const navLinks = document.querySelectorAll('.nav-link-premium');
-      
-      navLinks.forEach(link => {
-        link.classList.remove('active');
-        if (link.getAttribute('href') === currentPath) {
-          link.classList.add('active');
-        }
-      });
-    });
 
     // Tooltip initialization
     var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
