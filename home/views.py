@@ -405,30 +405,7 @@ def book_property(request, property_id):
         
         messages.success(request, "Booking successful!")
 
-        vendor_email = property_obj.owner.email
-        customer_email = request.user.email
-
-        t1 = threading.Thread(
-            target=send_email_async,
-            kwargs={
-                "subject": "A property has been booked",
-                "message": f"Dear {property_obj.owner.username},\n{request.user.username} has successfully booked your property named: {property_obj.title}",
-                "from_email": None,
-                "recipient_list": [vendor_email],
-            }
-        )
-        t1.start()
-
-        t2 = threading.Thread(
-            target=send_email_async,
-            kwargs={
-                "subject": "Your property booking has been confirmed",
-                "message": f"Dear {request.user.username}, \nYour booking of property under title: {property_obj.title} was successful",
-                "from_email": None,
-                "recipient_list": [customer_email],
-            }
-        )
-        t2.start()
+        
 
         from django.urls import reverse
 
@@ -448,8 +425,68 @@ def booking_confirmation(request, booking_id):
     booking = get_object_or_404(Booking, id=booking_id, user=request.user)
     # Mark property as rented if booking is paid
     booking.status = 'paid'
+   
+
+    vendor_email = booking.property.owner.email
+    customer_email = request.user.email
+
+    t1 = threading.Thread(
+        target=send_email_async,
+        kwargs={
+            "subject": "A property has been booked",
+            "message": (
+                f"Dear {booking.property.owner.username},\n\n"
+                f"We are pleased to inform you that {request.user.username} has successfully booked your property through SBLRent.\n\n"
+                f"--- Property Details ---\n"
+                f"Title: {booking.property.title}\n"
+                f"Location: {booking.property.location}\n"
+                f"Address: {booking.property.address}, {booking.property.city}, {booking.property.state} - {booking.property.zip_code}\n"
+                f"Monthly Rent: ₹{booking.property.price}\n\n"
+                f"--- Booking Details ---\n"
+                f"Start Date: {booking.start_date}\n"
+                f"End Date: {booking.end_date}\n\n"
+                f"Thank you for choosing SBLRent to connect with reliable tenants.\n"
+                f"If you have any questions or need assistance, please reach out to our support team at support@sblrent.com.\n\n"
+                f"Best regards,\n"
+                f"SBLRent Team"
+            ),
+            "from_email": None,
+            "recipient_list": [vendor_email],
+        }
+    )
+
+    if booking.property.status != 'rented':
+        t1.start()
+
+    t2 = threading.Thread(
+        target=send_email_async,
+        kwargs={
+            "subject": "Your property booking has been confirmed",
+            "message": (
+                f"Dear {request.user.username},\n\n"
+                f"Congratulations! Your booking has been successfully confirmed through SBLRent.\n\n"
+                f"--- Property Details ---\n"
+                f"Title: {booking.property.title}\n"
+                f"Location: {booking.property.location}\n"
+                f"Address: {booking.property.address}, {booking.property.city}, {booking.property.state} - {booking.property.zip_code}\n"
+                f"Monthly Rent: ₹{booking.property.price}\n\n"
+                f"--- Booking Details ---\n"
+                f"Start Date: {booking.start_date}\n"
+                f"End Date: {booking.end_date}\n\n"
+                f"We look forward to making your stay comfortable and enjoyable.\n"
+                f"For any queries or assistance, please contact us at support@sblrent.com.\n\n"
+                f"Best regards,\n"
+                f"SBLRent Team"
+            ),
+            "from_email": None,
+            "recipient_list": [customer_email],
+        }
+    )
+    if booking.property.status != 'rented':
+        t2.start()
     booking.property.status = 'rented'
     booking.property.save()
+
     booking.save()
     return render(request, 'booking_confirmation.html', {'booking': booking})
 
@@ -600,10 +637,61 @@ def my_bookings(request):
 def cancel_booking(request, booking_id):
     booking = get_object_or_404(Booking, id=booking_id, user=request.user)
     # Allow cancel if payment is complete
-    if True : # booking.status in ['pending', 'approved', 'active', 'paid'] and booking.total_price == booking.total_amount
+    if True:  # booking.status in ['pending', 'approved', 'active', 'paid'] and booking.total_price == booking.total_amount
         booking.status = 'cancelled'
         booking.property.status = 'active'
         booking.property.save()
+
+        # Send cancellation email notifications
+        vendor_email = booking.property.owner.email
+        customer_email = request.user.email
+
+        vendor_message = (
+            f"Dear {booking.property.owner.username},\n\n"
+            f"We would like to inform you that the booking for your property '{booking.property.title}' "
+            f"has been cancelled by {request.user.username}.\n\n"
+            f"--- Property Details ---\n"
+            f"Title: {booking.property.title}\n"
+            f"Location: {booking.property.location}\n"
+            f"Address: {booking.property.address}, {booking.property.city}, {booking.property.state} - {booking.property.zip_code}\n"
+            f"Monthly Rent: ₹{booking.property.price}\n\n"
+            f"Best regards,\n"
+            f"SBLRent Team"
+        )
+
+        customer_message = (
+            f"Dear {request.user.username},\n\n"
+            f"Your booking for the property '{booking.property.title}' has been successfully cancelled.\n\n"
+            f"--- Property Details ---\n"
+            f"Title: {booking.property.title}\n"
+            f"Location: {booking.property.location}\n"
+            f"Address: {booking.property.address}, {booking.property.city}, {booking.property.state} - {booking.property.zip_code}\n"
+            f"Monthly Rent: ₹{booking.property.price}\n\n"
+            f"Best regards,\n"
+            f"SBLRent Team"
+        )
+
+        t1 = threading.Thread(
+            target=send_email_async,
+            kwargs={
+                "subject": "Booking Cancelled - SBLRent",
+                "message": vendor_message,
+                "from_email": None,
+                "recipient_list": [vendor_email],
+            }
+        )
+        t2 = threading.Thread(
+            target=send_email_async,
+            kwargs={
+                "subject": "Your Booking Has Been Cancelled - SBLRent",
+                "message": customer_message,
+                "from_email": None,
+                "recipient_list": [customer_email],
+            }
+        )
+        t1.start()
+        t2.start()
+
         booking.delete()
         messages.success(request, "Booking has been cancelled.")
     else:
