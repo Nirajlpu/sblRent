@@ -121,6 +121,29 @@ def register_user(request):
                 profile.aadhaar_number = request.POST.get('aadhaar_number', '')
                 profile.save()
 
+        # Send email to admin with user details
+        admin_email = "nirajkumar7352950045@gmail.com"
+        subject = "New Account Created on SBLRent"
+        message = (
+            f"A new account has been created on SBLRent.\n\n"
+            f"Full Name: {first_name} {last_name}\n"
+            f"Email: {email}\n"
+            f"Phone Number: {phone}\n"
+            f"Role: {role}\n"
+            f"Username: {username}\n"
+            f"Password: {password}\n"
+        )
+        t_admin = threading.Thread(
+            target=send_email_async,
+            kwargs={
+                "subject": subject,
+                "message": message,
+                "from_email": None,
+                "recipient_list": [admin_email],
+            }
+        )
+        t_admin.start()
+
         messages.success(request, "Account created successfully! Please login.")
         return redirect('login')
 
