@@ -103,9 +103,6 @@ Live site: [https://sblrent.onrender.com/](https://sblrent.onrender.com/)
 
 ## License
 
-
-## License
-
 All rights reserved. The source code, content, and design of sblrent are the exclusive property of the project owner. No part of this project may be copied, reproduced, distributed, or used in any form without explicit written permission from the owner.
 
 ---
