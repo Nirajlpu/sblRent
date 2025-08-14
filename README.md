@@ -20,6 +20,11 @@ SBLRent is a Django-based rental platform for property owners (vendors) and tena
 - Bootstrap 5 (frontend)
 - python-decouple (for environment variables)
 
+
+## Live Site
+
+Visit the deployed app: [sblrent.onrender.com](https://sblrent.onrender.com/)
+
 ## Setup Instructions
 
 ### 1. Clone the repository
@@ -82,9 +87,24 @@ Visit `http://127.0.0.1:8000/` in your browser.
 - Never commit your `.env` file or secret keys to version control.
 - Use strong passwords and enable 2FA for your email and admin accounts.
 
+## Deployment on Render
+
+This project is ready for deployment on [Render](https://render.com/):
+
+1. Push your code to GitHub (do NOT include your local `myenv` or `db.sqlite3`).
+2. Connect your GitHub repo to Render and create a new Web Service.
+3. Set the build and start commands:
+	- Build command: `pip install -r requirements.txt && python manage.py migrate`
+	- Start command: `gunicorn core.wsgi`
+4. Add environment variables in the Render dashboard (from your `.env` file).
+5. Render will auto-deploy on every push to GitHub.
+
+Live site: [https://sblrent.onrender.com/](https://sblrent.onrender.com/)
+
 ## License
 
+MIT License
 
 ---
 
-**Developed by Niraj Sahani**
+**Developed by Niraj Kumar, Saumya Pande**
