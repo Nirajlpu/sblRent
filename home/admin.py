@@ -6,7 +6,8 @@ from .models import (
     PropertyImage,
     Booking,
     Review,
-    Wishlist
+    Wishlist,
+    PaymentLog
 )
 
 # Register models
@@ -17,3 +18,4 @@ admin.site.register(PropertyImage)
 admin.site.register(Booking)
 admin.site.register(Review)
 admin.site.register(Wishlist)
+admin.site.register(PaymentLog)

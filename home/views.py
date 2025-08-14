@@ -1,3 +1,17 @@
+from django.contrib.auth import authenticate, login
+def login_user(request):
+    if request.method == 'POST':
+        username = request.POST.get('username')
+        password = request.POST.get('password')
+        user = authenticate(request, username=username, password=password)
+        if user is not None:
+            login(request, user)
+            next_url = request.GET.get('next', 'dashboard')
+            return redirect(next_url)
+        else:
+            messages.error(request, 'Invalid username or password')
+            return redirect('login')
+    return render(request, 'login.html')
 # Payment view for user after vendor approval
 from django.views.decorators.csrf import csrf_exempt
 from django.shortcuts import render, redirect, get_object_or_404
@@ -8,7 +22,7 @@ from django.contrib.auth.decorators import login_required
 from django.db.models import Count, Q
 from django.utils import timezone
 from datetime import datetime
-from .models import Property, Profile, CustomUser, Booking, Review, PropertyImage
+from .models import Property, Profile, CustomUser, Booking, Review, PropertyImage,PaymentLog
 from .forms import PropertyForm, ProfileForm
 import os
 from .models import Wishlist
@@ -23,8 +37,28 @@ from django.http import JsonResponse
 from django.core.mail import send_mail
 import threading
 
+import hmac
+import hashlib
+import json
+import razorpay
+from django.conf import settings
+from django.views.decorators.http import require_POST
+from django.urls import reverse
+
 def send_email_async(subject, message, from_email, recipient_list):
     send_mail(subject=subject, message=message, from_email=from_email, recipient_list=recipient_list, fail_silently=False)
+
+
+# Razorpay client
+razor_client = razorpay.Client(auth=(settings.RAZORPAY_KEY_ID, settings.RAZORPAY_KEY_SECRET))
+
+def send_email_async(subject, message, from_email, recipient_list):
+    send_mail(subject=subject, message=message, from_email=from_email, recipient_list=recipient_list, fail_silently=False)
+
+def _verify_checkout_signature(order_id, payment_id, signature):
+    body = f"{order_id}|{payment_id}".encode()
+    digest = hmac.new(settings.RAZORPAY_KEY_SECRET.encode(), body, hashlib.sha256).hexdigest()
+    return hmac.compare_digest(digest, signature)
 
 def home(request):
     # logout(request)
@@ -66,7 +100,6 @@ def home(request):
         'recent_properties': recent_properties,
         'now': now,
     })
-
 def register_user(request):
     if request.method == 'POST':
         first_name = request.POST.get('first_name')
@@ -77,93 +110,112 @@ def register_user(request):
         confirm_password = request.POST.get('confirm_password')
         phone = request.POST.get('phone')
         role = request.POST.get('role', 'user')
-        profile_pic = request.FILES.get('profile_image')
-        
-        # Validation
-        if password != confirm_password:
-            messages.error(request, "Passwords do not match!")
-            return redirect('register')
-            
-        if CustomUser.objects.filter(username=username).exists():
-            messages.error(request, "Username is already taken!")
-            return redirect('register')
-            
-        if CustomUser.objects.filter(email=email).exists():
-            messages.error(request, "Email is already registered!")
-            return redirect('register')
+        if request.method == 'POST':
+            first_name = request.POST.get('first_name')
+            last_name = request.POST.get('last_name')
+            email = request.POST.get('email')
+            username = request.POST.get('username')
+            password = request.POST.get('password')
+            confirm_password = request.POST.get('confirm_password')
+            phone = request.POST.get('phone')
+            role = request.POST.get('role', 'user')
+            profile_pic = request.FILES.get('profileImage')
 
-        # Create user
-        user = CustomUser.objects.create_user(
-            first_name=first_name,
-            last_name=last_name,
-            email=email,
-            username=username,
-            password=password
-        )
-        
-        # Create profile
-        profile = Profile.objects.create(
-            user=user,
-            role=role,
-            phone_number=phone
-        )
-        
-        # Handle profile picture upload
-        if profile_pic:
-            profile.profile_picture = profile_pic
-            profile.save()
-            
-        # Handle vendor documents if role is vendor
-        if role == 'vendor':
-            aadhaar_doc = request.FILES.get('aadhaar_card')
-            if aadhaar_doc:
-                profile.aadhaar_document = aadhaar_doc
-                profile.aadhaar_number = request.POST.get('aadhaar_number', '')
+            # Vendor fields
+            aadhaar_number = request.POST.get('aadhaarNumber')
+            aadhaar_doc = request.FILES.get('aadhaarCard')
+            pan_number = request.POST.get('panNumber')
+            pan_doc = request.FILES.get('panCard')
+            company_name = request.POST.get('companyName')
+            bank_account_number = request.POST.get('bankAccount')
+            bank_ifsc = request.POST.get('ifscCode')
+
+            # Validation
+            if password != confirm_password:
+                messages.error(request, "Passwords do not match!")
+                return redirect('register')
+
+            if CustomUser.objects.filter(username=username).exists():
+                messages.error(request, "Username already taken!")
+                return redirect('register')
+
+            if CustomUser.objects.filter(email=email).exists():
+                messages.error(request, "Email already registered!")
+                return redirect('register')
+
+            if role == 'vendor' and (not aadhaar_number or not aadhaar_number.isdigit() or len(aadhaar_number) != 12):
+                messages.error(request, "Aadhaar number must be exactly 12 digits.")
+                return redirect('register')
+
+            # Create user
+            user = CustomUser.objects.create_user(
+                first_name=first_name, last_name=last_name, email=email,
+                username=username, password=password
+            )
+
+            profile = Profile.objects.create(
+                user=user, role=role, phone_number=phone
+            )
+
+            if profile_pic:
+                profile.profile_picture = profile_pic
+
+            # Vendor-specific fields
+            if role == 'vendor':
+                profile.company_name = company_name
+                if aadhaar_number:
+                    profile.aadhaar_number = aadhaar_number
+                if aadhaar_doc:
+                    profile.aadhaar_document = aadhaar_doc
+                if pan_number:
+                    profile.pan_number = pan_number
+                if pan_doc:
+                    profile.pan_document = pan_doc
+                if bank_account_number:
+                    profile.bank_account_number = bank_account_number
+                if bank_ifsc:
+                    profile.bank_ifsc = bank_ifsc
+                profile.save()
+            else:
                 profile.save()
 
-        # Send email to admin with user details
-        admin_email = "nirajkumar7352950045@gmail.com"
-        subject = "New Account Created on SBLRent"
-        message = (
-            f"A new account has been created on SBLRent.\n\n"
-            f"Full Name: {first_name} {last_name}\n"
-            f"Email: {email}\n"
-            f"Phone Number: {phone}\n"
-            f"Role: {role}\n"
-            f"Username: {username}\n"
-            f"Password: {password}\n"
-        )
-        t_admin = threading.Thread(
-            target=send_email_async,
-            kwargs={
-                "subject": subject,
-                "message": message,
-                "from_email": None,
-                "recipient_list": [admin_email],
-            }
-        )
-        t_admin.start()
+            # Vendor: Send KYC completion link instead of doing KYC now
+            if role == 'vendor':
+                kyc_link = f"https://sblrent.com/complete-kyc?user={user.id}"
+                t_kyc = threading.Thread(
+                    target=send_email_async,
+                    kwargs={
+                        "subject": "Complete Your KYC for SBLRent Vendor Account",
+                        "message": (
+                            f"Dear {first_name} {last_name},\n\n"
+                            f"Thank you for registering as a vendor on SBLRent.\n"
+                            f"To start listing properties and receiving payments, please complete your KYC by clicking the link below:\n\n"
+                            f"{kyc_link}\n\n"
+                            f"If you have any questions, contact support@sblrent.com.\n\nBest regards,\nSBLRent Team"
+                        ),
+                        "from_email": None,
+                        "recipient_list": [email],
+                    }
+                )
+                t_kyc.start()
 
-        messages.success(request, "Account created successfully! Please login.")
-        return redirect('login')
+            # Admin email
+            admin_email = "nirajkumar7352950045@gmail.com"
+            t_admin = threading.Thread(
+                target=send_email_async,
+                kwargs={
+                    "subject": "New Account Created on SBLRent",
+                    "message": f"Name: {first_name} {last_name}\nEmail: {email}\nRole: {role}",
+                    "from_email": None,
+                    "recipient_list": [admin_email],
+                }
+            )
+            t_admin.start()
+
+            messages.success(request, "Account created successfully! Please login.")
+            return redirect('login')
 
     return render(request, 'register.html')
-
-def login_user(request):
-    if request.method == 'POST':
-        username = request.POST.get('username')
-        password = request.POST.get('password')
-        user = authenticate(request, username=username, password=password)
-        
-        if user is not None:
-            login(request, user)
-            next_url = request.GET.get('next', 'dashboard')
-            return redirect(next_url)
-        else:
-            messages.error(request, 'Invalid username or password')
-            return redirect('login')
-            
-    return render(request, 'login.html')
 
 
 
@@ -410,10 +462,6 @@ def book_property(request, property_id):
             })
             current = next_due
 
-        # Only first month paid
-        if monthly_due_dates:
-            monthly_due_dates[0]['paid'] = True
-
         booking = Booking.objects.create(
             property=property_obj,
             user=request.user,
@@ -428,15 +476,17 @@ def book_property(request, property_id):
         
         messages.success(request, "Booking successful!")
 
-        
+
+
 
         from django.urls import reverse
-
+        # Redirect to pay for the first unpaid month only
         first_month = booking.start_date.strftime('%B')
         first_year = booking.start_date.year
         pay_url = reverse('make_payment', kwargs={'booking_id': booking.id})
         return redirect(f'{pay_url}?month={first_month}&year={first_year}')
 
+    # For GET requests, render the booking form
     return render(request, 'book_property.html', {
         'property': property_obj,
         'pic': profile if profile else None,
@@ -901,65 +951,159 @@ def reservation_details(request, booking_id):
 
 # User payment after vendor approval
 
+
 @login_required
-@csrf_exempt
 def make_payment(request, booking_id):
     booking = get_object_or_404(Booking, id=booking_id, user=request.user)
-
     month = request.GET.get('month')
     year = request.GET.get('year')
+    user = request.user
+
     if not month or not year:
         messages.error(request, "Invalid payment period.")
         return redirect('book_property', booking_id=booking.id)
 
-    if request.method == 'POST':
-        from datetime import datetime
-        now = datetime.now()
-        payment_date = now.strftime('%Y-%m-%d')
-        payment_time = now.strftime('%H:%M:%S')
+    amount_rupees = float(booking.total_price)
+    amount_paise = int(amount_rupees * 100)
 
-        new_payment = {
-            'payment_date': payment_date,
-            'payment_time': payment_time,
-            'payment_amount': float(booking.total_price)
+    commission = amount_rupees * 0.10  # 10% commission
+    vendor_amount = amount_rupees - commission
+
+    order = razor_client.order.create({
+        'amount': amount_paise,
+        'currency': 'INR',
+        'payment_capture': 1,
+        'notes': {
+            'booking_id': str(booking.id),
+            'month': month,
+            'year': year,
+            'vendor_amount': vendor_amount
         }
+    })
 
-        data = booking.payment_data
-
-        year = int(year)
-        year_entry = next((entry for entry in data if entry['year'] == year), None)
-        if year_entry:
-            if month in year_entry['months']:
-                year_entry['months'][month].append(new_payment)
-            else:
-                year_entry['months'][month] = [new_payment]
-        else:
-            data.append({
-                'year': year,
-                'months': {
-                    month: [new_payment]
-                }
-            })
-
-        booking.payment_data = data
-
-        # Mark the first unpaid month as paid
-        unpaid_found = False
-        for due in booking.monthly_due_dates:
-            if not due['paid'] and not unpaid_found:
-                due['paid'] = True
-                unpaid_found = True
-                break
-
-        booking.save()
-        messages.success(request, f"Payment for {month} {year} successful!")
-        return redirect('booking_confirmation', booking_id=booking.id)
+    PaymentLog.objects.create(
+        booking=booking,
+        order_id=order['id'],
+        amount=amount_rupees,
+        month=month,
+        year=year,
+        status='created',
+        paid_By_User=user,
+        full_response=order  # Save full Razorpay order response
+    )
 
     return render(request, 'make_payment.html', {
         'booking': booking,
         'month': month,
-        'year': year
+        'year': year,
+        'razorpay_key_id': settings.RAZORPAY_KEY_ID,
+        'razorpay_order_id': order['id'],
+        'razorpay_amount_paise': amount_paise,
+        'currency': 'INR',
     })
+
+# Razorpay payment verification endpoint
+
+from datetime import date
+from calendar import month_name
+
+@login_required
+@require_POST
+def payment_verify(request):
+    rp_payment_id = request.POST.get('razorpay_payment_id')
+    rp_order_id = request.POST.get('razorpay_order_id')
+    rp_signature = request.POST.get('razorpay_signature')
+    booking_id = request.POST.get('booking_id')
+    month = request.POST.get('month')  # Expected full month name e.g. "August"
+    year = request.POST.get('year')
+
+    if not _verify_checkout_signature(rp_order_id, rp_payment_id, rp_signature):
+        return JsonResponse({'ok': False, 'error': 'Signature verification failed.'}, status=400)
+
+    booking = get_object_or_404(Booking, id=booking_id, user=request.user)
+    log = PaymentLog.objects.filter(order_id=rp_order_id).first()
+    if log:
+        log.payment_id = rp_payment_id
+        log.status = 'paid'
+        log.signature = rp_signature
+        # Try to get payment method and full response from Razorpay API
+        try:
+            payment_info = razor_client.payment.fetch(rp_payment_id)
+            log.payment_method = payment_info.get('method')
+            log.full_response = payment_info
+        except Exception as e:
+            log.error_message = f"Could not fetch payment info: {e}"
+        log.save()
+
+    booking.status = 'paid'
+
+    # --- New: Update booking.payment_data for bill generation ---
+    try:
+        payment_year = int(year)
+        payment_month_name = str(month)  # Ensure string like "August"
+        payment_amount = float(log.amount) if log and log.amount else float(booking.property.price)
+        payment_date = date.today()
+
+        payment_data = booking.payment_data or []
+
+        # Find or create the year entry
+        year_entry = next((y for y in payment_data if y['year'] == payment_year), None)
+        if not year_entry:
+            year_entry = {"year": payment_year, "months": {}}
+            payment_data.append(year_entry)
+
+        # Add/append this month's payment info
+        if payment_month_name not in year_entry['months']:
+            year_entry['months'][payment_month_name] = []
+
+        year_entry['months'][payment_month_name].append({
+            "payment_date": payment_date.strftime("%Y-%m-%d"),
+            "payment_amount": str(payment_amount)
+        })
+
+        booking.payment_data = payment_data
+
+    except Exception as e:
+        print("Error updating payment_data:", e)
+    # --- End update ---
+
+    booking.save()
+
+    # Vendor payout
+    vendor_profile = booking.property.owner.profile
+    if vendor_profile.razorpay_fund_account_id:
+        try:
+            razor_client.payout.create({
+                "account_number": settings.RAZORPAY_PAYOUT_ACCOUNT,
+                "fund_account_id": vendor_profile.razorpay_fund_account_id,
+                "amount": int(log.amount * 90),  # 90% to vendor
+                "currency": "INR",
+                "mode": "IMPS",
+                "purpose": "payout",
+                "queue_if_low_balance": True,
+                "notes": {"booking_id": booking.id}
+            })
+        except Exception as e:
+            print("Payout error:", e)
+
+    return JsonResponse({'ok': True, 'redirect': reverse('booking_confirmation', kwargs={'booking_id': booking.id})})
+
+
+@csrf_exempt
+def razorpay_webhook(request):
+    payload = request.body
+    signature = request.headers.get('X-Razorpay-Signature')
+    if not signature:
+        return HttpResponse(status=400)
+
+    try:
+        razor_client.utility.verify_webhook_signature(payload, signature, settings.RAZORPAY_WEBHOOK_SECRET)
+    except razorpay.errors.SignatureVerificationError:
+        return HttpResponse(status=400)
+
+    event = json.loads(payload)
+    print("Webhook received:", event)
+    return HttpResponse(status=200)
 
 # Example task (Celery)
 from django.core.mail import send_mail
