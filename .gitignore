@@ -5,5 +5,5 @@ __pycache__/
 .env
 *.env
 myenv
-.DS_Storedb.sqlite3
-myenv/.DS_Store
+
+
