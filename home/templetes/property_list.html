@@ -248,6 +248,27 @@ function getCookie(name) {
 }
 
 document.addEventListener("DOMContentLoaded", attachSaveListeners);
+
+document.addEventListener("DOMContentLoaded", function() {
+      // Only run if location is not already in the URL
+      const urlParams = new URLSearchParams(window.location.search);
+      if (!urlParams.has('user_lat') && !urlParams.has('user_lng')) {
+        if (navigator.geolocation) {
+          navigator.geolocation.getCurrentPosition(function(position) {
+            const lat = position.coords.latitude;
+            const lng = position.coords.longitude;
+            // Add location to URL and reload
+            urlParams.set('user_lat', lat);
+            urlParams.set('user_lng', lng);
+            urlParams.set('radius', 20); // default radius
+            window.location.search = urlParams.toString();
+          }, function(error) {
+            // If denied or unavailable, just show the page without location
+            console.log("Location access denied or unavailable.");
+          });
+        }
+      }
+    });
 </script>
 </body>
 </html>

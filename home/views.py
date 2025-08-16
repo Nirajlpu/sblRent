@@ -1,50 +1,33 @@
-from django.contrib.auth import authenticate, login
-def login_user(request):
-    if request.method == 'POST':
-        username = request.POST.get('username')
-        password = request.POST.get('password')
-        user = authenticate(request, username=username, password=password)
-        if user is not None:
-            login(request, user)
-            next_url = request.GET.get('next', 'dashboard')
-            return redirect(next_url)
-        else:
-            messages.error(request, 'Invalid username or password')
-            return redirect('login')
-    return render(request, 'login.html')
-# Payment view for user after vendor approval
+from django.contrib.auth import authenticate, login, logout
 from django.views.decorators.csrf import csrf_exempt
 from django.shortcuts import render, redirect, get_object_or_404
-from django.http import HttpResponse, JsonResponse 
-from django.contrib.auth import authenticate, login, logout
+from django.http import HttpResponse, JsonResponse
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.db.models import Count, Q
 from django.utils import timezone
-from datetime import datetime
-from .models import Property, Profile, CustomUser, Booking, Review, PropertyImage,PaymentLog
+from datetime import datetime, date
+from django.db import models
+from .models import Property, Profile, CustomUser, Booking, Review, PropertyImage, PaymentLog, Wishlist
 from .forms import PropertyForm, ProfileForm
-import os
-from .models import Wishlist
-from dateutil.relativedelta import relativedelta
-
-from django.core.paginator import Paginator
-from django.template.loader import render_to_string
-
-from django.utils import timezone
-from django.template.loader import render_to_string
-from django.http import JsonResponse
+from django.urls import reverse
 from django.core.mail import send_mail
+from calendar import month_name
+from dateutil.relativedelta import relativedelta
+from django.utils.dateparse import parse_date
+from django.core.paginator import Paginator
+from math import radians, cos, sin, asin, sqrt
+from django.template.loader import render_to_string
 import threading
-
 import hmac
 import hashlib
 import json
 import razorpay
 from django.conf import settings
 from django.views.decorators.http import require_POST
-from django.urls import reverse
 
+
+# ----------------------------------------Function---------------------------------------------
 def send_email_async(subject, message, from_email, recipient_list):
     send_mail(subject=subject, message=message, from_email=from_email, recipient_list=recipient_list, fail_silently=False)
 
@@ -61,11 +44,36 @@ def _verify_checkout_signature(order_id, payment_id, signature):
     return hmac.compare_digest(digest, signature)
 
 def home(request):
-    # logout(request)
     user = request.user
     profile = user.profile if user.is_authenticated else None
+
+    # Get user location from GET params (sent by JS)
+    user_lat = request.GET.get('user_lat')
+    user_lng = request.GET.get('user_lng')
+    radius_km = float(request.GET.get('radius', 20))
+    print(f"User Location Niraj: {user_lat}, {user_lng}, Radius: {radius_km} km")
+
+
+
     featured_list = Property.objects.filter(status='active', is_featured=True)
     recent_list = Property.objects.filter(status='active').order_by('-date_added')
+
+    # Filter featured properties by location if available
+    if user_lat and user_lng:
+        try:
+            user_lat = float(user_lat)
+            user_lng = float(user_lng)
+            filtered_featured = [
+                prop for prop in featured_list
+                if prop.latitude and prop.longitude and
+                haversine(user_lat, user_lng, float(prop.latitude), float(prop.longitude)) <= radius_km
+            ]
+            if filtered_featured:
+                featured_list = filtered_featured
+            else:
+                featured_list = featured_list.order_by('?')[:6]
+        except Exception:
+            pass
 
     featured_paginator = Paginator(featured_list, 6)
     recent_paginator = Paginator(recent_list, 6)
@@ -100,6 +108,8 @@ def home(request):
         'recent_properties': recent_properties,
         'now': now,
     })
+
+
 def register_user(request):
     if request.method == 'POST':
         first_name = request.POST.get('first_name')
@@ -217,16 +227,20 @@ def register_user(request):
 
     return render(request, 'register.html')
 
+def login_user(request):
+    if request.method == 'POST':
+        username = request.POST.get('username')
+        password = request.POST.get('password')
+        user = authenticate(request, username=username, password=password)
+        if user is not None:
+            login(request, user)
+            next_url = request.GET.get('next', 'dashboard')
+            return redirect(next_url)
+        else:
+            messages.error(request, 'Invalid username or password')
+            return redirect('login')
+    return render(request, 'login.html')
 
-
-
-
-from django.contrib.auth.decorators import login_required
-from django.shortcuts import render
-from django.core.paginator import Paginator
-from django.http import JsonResponse
-from django.template.loader import render_to_string
-from .models import Property, Booking
 
 
 
@@ -265,18 +279,44 @@ def dashboard(request):
         })
 
     else:
-        # User-specific view
-        all_properties = Property.objects.filter(status='active').order_by('-date_added')
+        # User-specific view with location-based filtering
+        user_lat = request.GET.get('user_lat')
+        user_lng = request.GET.get('user_lng')
+        radius_km = float(request.GET.get('radius', 20))
+
+        all_properties = Property.objects.filter(status='active')
+
+        if user_lat and user_lng:
+            try:
+                user_lat = float(user_lat)
+                user_lng = float(user_lng)
+                filtered_properties = [
+                    prop for prop in all_properties
+                    if prop.latitude and prop.longitude and
+                    haversine(user_lat, user_lng, float(prop.latitude), float(prop.longitude)) <= radius_km
+                ]
+                if filtered_properties:
+                    print("Filtered properties found:", filtered_properties)
+                    all_properties = filtered_properties
+                else:
+                    print("No filtered properties found, showing random properties.")
+                    all_properties = all_properties.order_by('?')[:6]
+            except Exception:
+                all_properties = all_properties.order_by('-date_added')
+        else:
+            print("No user location provided, showing all properties.")
+            all_properties = all_properties.order_by('-date_added')
+
         paginator = Paginator(all_properties, 6)
         page_obj = paginator.get_page(page_number)
 
-        bookings = Booking.objects.filter(user=user).select_related('property')
+        # bookings = Booking.objects.filter(user=user).select_related('property')
 
         return render(request, 'user_dashboard.html', {
             'properties': page_obj,
             'pic': profile,
-            'bookings': bookings,
-            'wishlist': all_properties.filter(wishlist__user=user)[:4]
+            # 'bookings': bookings,
+            'wishlist': Property.objects.filter(wishlist__user=user)[:4]
         })
 
 def property_detail(request, property_id):
@@ -303,11 +343,7 @@ def property_detail(request, property_id):
         'reviews': Review.objects.filter(property=property).select_related('user')
     })
 
-from django.contrib.auth.decorators import login_required
-from django.shortcuts import render, get_object_or_404, redirect
-from django.contrib import messages
-from .models import Property, PropertyImage
-import json
+
 
 @login_required
 def manage_property(request, property_id=None):
@@ -479,7 +515,7 @@ def book_property(request, property_id):
 
 
 
-        from django.urls import reverse
+       
         # Redirect to pay for the first unpaid month only
         first_month = booking.start_date.strftime('%B')
         first_year = booking.start_date.year
@@ -580,12 +616,7 @@ def manage_profile(request):
     
     return render(request, 'manage_profile.html', {'form': form})
 
-from django.shortcuts import get_object_or_404, redirect
-from django.contrib.auth.decorators import login_required
-from django.http import JsonResponse
-from .models import Property, Wishlist
-
-@login_required(login_url='/login/')
+@login_required
 def toggle_wishlist(request, property_id):
     property_obj = get_object_or_404(Property, id=property_id)
 
@@ -613,31 +644,26 @@ def get_available_dates(property):
     # This could check against existing bookings
     return []
 
-from django.contrib.auth.decorators import login_required
-from django.core.paginator import Paginator
-from django.shortcuts import render
-from .models import Property
 
-from django.core.paginator import Paginator
-from django.contrib.auth.decorators import login_required
-from .models import Property, Wishlist
-from django.shortcuts import render
+def haversine(lat1, lon1, lat2, lon2):
+    R = 6371  # Earth radius in kilometers
+    dlat = radians(lat2 - lat1)
+    dlon = radians(lon2 - lon1)
+    a = sin(dlat/2)**2 + cos(radians(lat1)) * cos(radians(lat2)) * sin(dlon/2)**2
+    c = 2 * asin(sqrt(a))
+    return R * c
 
-from django.core.paginator import Paginator
-from .models import Property, Wishlist
 
 def property_list(request):
     user = request.user
     profile = user.profile if user.is_authenticated else None
+
     # Determine initial queryset
     if request.user.is_authenticated and hasattr(request.user, 'profile') and request.user.profile.role == 'vendor':
-        # Vendor: show only their properties
         queryset = Property.objects.filter(owner=request.user)
     elif request.GET.get('view') == 'wishlist' and request.user.is_authenticated:
-        # Wishlist view
         queryset = Property.objects.filter(wishlist__user=request.user)
     else:
-        # Default: active properties
         queryset = Property.objects.filter(status='active')
 
     # Apply filters for all cases
@@ -659,8 +685,35 @@ def property_list(request):
         elif price_range == "Over ₹30,000":
             queryset = queryset.filter(price__gt=30000)
 
-    # Order newest first
-    queryset = queryset.order_by('-date_added')
+    # --- Filter by user location within radius ---
+    user_lat = request.GET.get('user_lat')
+    user_lng = request.GET.get('user_lng')
+    radius_km = float(request.GET.get('radius', 500))
+
+    is_vendor = (
+        request.user.is_authenticated and
+        hasattr(request.user, 'profile') and
+        request.user.profile.role == 'vendor'
+    )
+
+    if not is_vendor and not request.GET.get('view') == 'wishlist' and request.user.is_authenticated and user_lat and user_lng:
+        try:
+            # Filter properties within the specified radius
+            user_lat = float(user_lat)
+            user_lng = float(user_lng)
+            filtered_properties = [
+                prop for prop in queryset
+                if prop.latitude and prop.longitude and
+                haversine(user_lat, user_lng, float(prop.latitude), float(prop.longitude)) <= radius_km
+            ]
+            if not filtered_properties:
+                queryset = queryset.order_by('?')[:6]
+            else:
+                queryset = filtered_properties
+        except Exception:
+            queryset = queryset.order_by('-date_added')
+    else:
+        queryset = queryset.order_by('-date_added')
 
     # Add wishlist status for heart icon
     if request.user.is_authenticated:
@@ -678,6 +731,13 @@ def property_list(request):
     page = request.GET.get('page')
     properties = paginator.get_page(page)
 
+    # AJAX support for partial rendering
+    if request.headers.get('x-requested-with') == 'XMLHttpRequest':
+        html = render_to_string('partials/_featured_properties.html', {
+            'featured_properties': properties,
+        }, request=request)
+        return HttpResponse(html)
+
     return render(request, 'property_list.html', {
         'properties': properties,
         'pic': profile if profile else None,
@@ -685,9 +745,6 @@ def property_list(request):
         'is_vendor': request.user.is_authenticated and hasattr(request.user, 'profile') and request.user.profile.role == 'vendor'
     })
 
-from django.contrib.auth.decorators import login_required
-from django.shortcuts import render
-from .models import Booking  # Assuming you have a Booking model
 
 @login_required
 def my_bookings(request):
@@ -775,9 +832,7 @@ def cancel_booking(request, booking_id):
         messages.error(request, "This booking cannot be cancelled.")
     return redirect('my_bookings')
 
-from django.contrib.auth.decorators import login_required
-from django.shortcuts import render
-from .models import Wishlist
+
 
 @login_required
 def my_wishlist(request):
@@ -809,24 +864,12 @@ def my_wishlist(request):
 # Reservation details view
 
 # Reservation details view
-from django.db import models
-from .models import Review 
-from django.utils.dateparse import parse_date
-from django.contrib import messages
-from django.utils.timezone import now  # Optional, for date comparison
 
-from calendar import month_name
-from django.utils import timezone
-from datetime import timedelta, date
-from dateutil.relativedelta import relativedelta
 
 
 @login_required
 def reservation_details(request, booking_id):
-    from calendar import month_name
-    from dateutil.relativedelta import relativedelta
-    from django.utils.dateparse import parse_date
-    from datetime import datetime
+   
 
     user = request.user
     profile = user.profile if user.is_authenticated else None
@@ -910,7 +953,7 @@ def reservation_details(request, booking_id):
         current = period_end
 
     # Filter out past periods: only show from today onwards
-    from django.utils.timezone import localdate
+   
     # Use Django's timezone utilities to get IST (Asia/Kolkata) date
     # today = timezone.localtime(timezone.now(), timezone.get_fixed_timezone(330)).date()
 
@@ -1004,8 +1047,7 @@ def make_payment(request, booking_id):
 
 # Razorpay payment verification endpoint
 
-from datetime import date
-from calendar import month_name
+    
 
 @login_required
 @require_POST
@@ -1095,7 +1137,7 @@ def razorpay_webhook(request):
     signature = request.headers.get('X-Razorpay-Signature')
     if not signature:
         return HttpResponse(status=400)
-
+ 
     try:
         razor_client.utility.verify_webhook_signature(payload, signature, settings.RAZORPAY_WEBHOOK_SECRET)
     except razorpay.errors.SignatureVerificationError:
@@ -1105,10 +1147,6 @@ def razorpay_webhook(request):
     print("Webhook received:", event)
     return HttpResponse(status=200)
 
-# Example task (Celery)
-from django.core.mail import send_mail
-from django.utils import timezone
-from .models import Booking
 
 def send_payment_reminders():
     today = timezone.now().date()
