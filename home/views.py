@@ -59,6 +59,7 @@ def home(request):
     recent_list = Property.objects.filter(status='active').order_by('-date_added')
 
     # Filter featured properties by location if available
+    print("user_lat:", user_lat, "user_lng:", user_lng)
     if user_lat and user_lng:
         try:
             user_lat = float(user_lat)
@@ -70,10 +71,14 @@ def home(request):
             ]
             if filtered_featured:
                 featured_list = filtered_featured
+                print(f"Filtered Featured Properties: {len(featured_list)}")
             else:
-                featured_list = featured_list.order_by('?')[:6]
-        except Exception:
-            pass
+                featured_list = featured_list.order_by('?')
+                print(f"Filtered Featured Properties 66666: {len(featured_list)}")
+        except Exception as e:
+            print("Location filter error:", e)
+
+    print(f"Filtered Featured Properties  out side :66666: {len(featured_list)}")
 
     # Set in_wishlist for each property
     wishlist_ids = set()
@@ -84,8 +89,8 @@ def home(request):
     for prop in recent_list:
         prop.in_wishlist = prop.id in wishlist_ids
 
-    featured_paginator = Paginator(featured_list, 6)
-    recent_paginator = Paginator(recent_list, 6)
+    featured_paginator = Paginator(featured_list, 3)
+    recent_paginator = Paginator(recent_list, 3)
 
     page_featured = request.GET.get('page_featured')
     page_recent = request.GET.get('page_recent')
@@ -110,6 +115,14 @@ def home(request):
             'now': now
         })
         return JsonResponse({'html': html})
+
+    # AJAX response for featured (pagination or location)
+    if request.headers.get('x-requested-with') == 'XMLHttpRequest':
+        html = render_to_string('partials/_featured_properties.html', {
+            'featured_properties': featured_properties,
+            'now': now
+        })
+        return HttpResponse(html)
 
     return render(request, 'index.html', {
         'featured_properties': featured_properties,
@@ -681,11 +694,38 @@ def property_list(request):
     location = request.GET.get('location')
     property_type = request.GET.get('property_type')
     price_range = request.GET.get('price_range')
+    user_lat = request.GET.get('user_lat')
+    user_lng = request.GET.get('user_lng')
+    radius_km = float(request.GET.get('radius', 20))  # Default to 20km
+
+    #print all parameter to cheek its relevance
+    print("Filter Parameters:")
+    print(f"Location: {location}")
+    print(f"Property Type: {property_type}")
+    print(f"Price Range: {price_range}")
+    print(f"User Latitude: {user_lat}")
+    print(f"User Longitude: {user_lng}")
+    print(f"Radius: {radius_km}")
+
+    # Track if any filter/search is applied
+    filter_applied = any([
+        location,
+        property_type and property_type != "Any Type",
+        price_range,
+        user_lat and user_lng
+    ])
 
     if location:
-        queryset = queryset.filter(location__icontains=location)
-    if property_type and property_type != "Any Type":
+        queryset = queryset.filter(
+            Q(location__icontains=location) |
+            Q(city__icontains=location) |
+            Q(address__icontains=location) |
+            Q(state__icontains=location) 
+        )
+    if property_type:
+        print(f"Filtering by property type: {property_type}")
         queryset = queryset.filter(property_type=property_type)
+        
     if price_range:
         if price_range == "Under ₹10,000":
             queryset = queryset.filter(price__lt=10000)
@@ -696,20 +736,9 @@ def property_list(request):
         elif price_range == "Over ₹30,000":
             queryset = queryset.filter(price__gt=30000)
 
-    # --- Filter by user location within radius ---
-    user_lat = request.GET.get('user_lat')
-    user_lng = request.GET.get('user_lng')
-    radius_km = float(request.GET.get('radius', 500))
-
-    is_vendor = (
-        request.user.is_authenticated and
-        hasattr(request.user, 'profile') and
-        request.user.profile.role == 'vendor'
-    )
-
-    if not is_vendor and not request.GET.get('view') == 'wishlist' and request.user.is_authenticated and user_lat and user_lng:
+    # --- Only filter by user location if both lat/lng are present ---
+    if user_lat and user_lng:
         try:
-            # Filter properties within the specified radius
             user_lat = float(user_lat)
             user_lng = float(user_lng)
             filtered_properties = [
@@ -717,10 +746,7 @@ def property_list(request):
                 if prop.latitude and prop.longitude and
                 haversine(user_lat, user_lng, float(prop.latitude), float(prop.longitude)) <= radius_km
             ]
-            if not filtered_properties:
-                queryset = queryset.order_by('?')[:6]
-            else:
-                queryset = filtered_properties
+            queryset = filtered_properties if filtered_properties else []
         except Exception:
             queryset = queryset.order_by('-date_added')
     else:
@@ -742,10 +768,14 @@ def property_list(request):
     page = request.GET.get('page')
     properties = paginator.get_page(page)
 
+    # Check if no properties found after search/filter
+    no_results = filter_applied and properties.paginator.count == 0
+
     # AJAX support for partial rendering
     if request.headers.get('x-requested-with') == 'XMLHttpRequest':
         html = render_to_string('partials/_featured_properties.html', {
             'featured_properties': properties,
+            'no_results': no_results,
         }, request=request)
         return HttpResponse(html)
 
@@ -753,7 +783,8 @@ def property_list(request):
         'properties': properties,
         'pic': profile if profile else None,
         'showing_wishlist': request.GET.get('view') == 'wishlist',
-        'is_vendor': request.user.is_authenticated and hasattr(request.user, 'profile') and request.user.profile.role == 'vendor'
+        'is_vendor': request.user.is_authenticated and hasattr(request.user, 'profile') and request.user.profile.role == 'vendor',
+        'no_results': no_results,
     })
 
 
