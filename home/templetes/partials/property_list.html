@@ -11,14 +11,12 @@
         <div class="d-flex justify-content-between align-items-center position-absolute w-100 px-2 pt-1" style="top: 0; left: 0; height: 32px;">
           <span class="badge bg-success">Featured</span>
           <button 
-            class="btn {% if property.in_wishlist %}btn-danger{% else %}btn-outline-danger{% endif %} btn-sm"
-            data-id="{{ property.id }}"
-            onclick="toggleSave(event, {{ property.id }})"
-          >
+            class="btn wishlist-btn btn-sm {% if property.in_wishlist %}btn-danger{% else %}btn-outline-danger{% endif %}"
+            data-property-id="{{ property.id }}">
             {% if property.in_wishlist %}
-              <i class="fas fa-heart"></i> Wishlist
+              <i class="fas fa-heart"></i>
             {% else %}
-              <i class="far fa-heart"></i> Wishlist
+              <i class="far fa-heart"></i>
             {% endif %}
           </button>
         </div>
@@ -91,3 +89,58 @@
     <h4 class="mb-3">No Properties Found</h4>
   </div>
 {% endif %}
+
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+  document.body.addEventListener("click", function (e) {
+    const btn = e.target.closest(".wishlist-btn");
+    if (btn) {
+      e.preventDefault();
+      const icon = btn.querySelector("i");
+      const propertyId = btn.getAttribute("data-property-id");
+
+      fetch(`/wishlist/toggle/${propertyId}/`, {
+        method: "POST",
+        headers: {
+          "X-CSRFToken": getCookie("csrftoken"),
+          "Content-Type": "application/json",
+          "X-Requested-With": "XMLHttpRequest"
+        },
+        body: JSON.stringify({}),
+      })
+        .then((res) => res.json())
+        .then((data) => {
+          if (data.status === "added") {
+            btn.classList.remove("btn-outline-danger");
+            btn.classList.add("btn-danger");
+            icon.classList.remove("far");
+            icon.classList.add("fas");
+          } else if (data.status === "removed") {
+            btn.classList.remove("btn-danger");
+            btn.classList.add("btn-outline-danger");
+            icon.classList.remove("fas");
+            icon.classList.add("far");
+          }
+        })
+        .catch((error) => {
+          console.error("Error toggling wishlist:", error);
+        });
+    }
+  });
+
+  function getCookie(name) {
+    let cookieValue = null;
+    if (document.cookie && document.cookie !== "") {
+      const cookies = document.cookie.split(";");
+      for (let i = 0; i < cookies.length; i++) {
+        const cookie = cookies[i].trim();
+        if (cookie.substring(0, name.length + 1) === name + "=") {
+          cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+          break;
+        }
+      }
+    }
+    return cookieValue;
+  }
+});
+</script>
