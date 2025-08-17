@@ -95,14 +95,14 @@
 
                     <!-- Wishlist Button -->
                     <button 
-                        class="btn {% if property.in_wishlist %}btn-danger{% else %}btn-outline-secondary{% endif %} btn-sm position-absolute top-0 end-0 m-2 wishlist-btn"
-                        data-property-id="{{ property.id }}">
-                        {% if property.in_wishlist %}
-                            <i class="fas fa-heart"></i>
-                        {% else %}
-                            <i class="far fa-heart"></i>
-                        {% endif %}
-                    </button>
+  class="btn wishlist-btn btn-sm position-absolute top-0 end-0 m-2 {% if property.in_wishlist %}btn-danger{% else %}btn-outline-secondary{% endif %}"
+  data-property-id="{{ property.id }}">
+  {% if property.in_wishlist %}
+    <i class="fas fa-heart"></i>
+  {% else %}
+    <i class="far fa-heart"></i>
+  {% endif %}
+</button>
 
                     <span class="price-tag">₹{{ property.price }}</span>
                 </div>
@@ -184,91 +184,55 @@
 <!-- Bootstrap & JS -->
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 <script>
-function attachSaveListeners() {
-    const saveButtons = document.querySelectorAll(".wishlist-btn");
-    saveButtons.forEach((button) => {
-        button.removeEventListener("click", toggleSave);
-        button.addEventListener("click", toggleSave);
-    });
-}
-
-function toggleSave(e) {
+document.addEventListener("DOMContentLoaded", function () {
+  document.body.addEventListener("click", function (e) {
+    const btn = e.target.closest(".wishlist-btn");
+    if (!btn) return;
     e.preventDefault();
-    const btn = this;
+    const icon = btn.querySelector("i");
     const propertyId = btn.getAttribute("data-property-id");
 
-    // Instant UI feedback
-    if (btn.classList.contains("btn-outline-secondary")) {
-        btn.classList.remove("btn-outline-secondary");
-        btn.classList.add("btn-danger");
-        btn.innerHTML = '<i class="fas fa-heart"></i>';
-    } else {
-        btn.classList.remove("btn-danger");
-        btn.classList.add("btn-outline-secondary");
-        btn.innerHTML = '<i class="far fa-heart"></i>';
-    }
-
     fetch(`/wishlist/toggle/${propertyId}/`, {
-        method: "POST",
-        headers: {
-            "X-CSRFToken": getCookie("csrftoken"),
-            "X-Requested-With": "XMLHttpRequest",
-        }
+      method: "POST",
+      headers: {
+        "X-CSRFToken": getCookie("csrftoken"),
+        "X-Requested-With": "XMLHttpRequest"
+      }
     })
     .then(res => res.json())
     .then(data => {
-        if (data.status === "added") {
-            btn.classList.remove("btn-outline-secondary");
-            btn.classList.add("btn-danger");
-            btn.innerHTML = '<i class="fas fa-heart"></i>';
-        } else if (data.status === "removed") {
-            btn.classList.remove("btn-danger");
-            btn.classList.add("btn-outline-secondary");
-            btn.innerHTML = '<i class="far fa-heart"></i>';
-        }
+      if (data.status === "added") {
+        btn.classList.remove("btn-outline-secondary");
+        btn.classList.add("btn-danger");
+        icon.classList.remove("far");
+        icon.classList.add("fas");
+      } else if (data.status === "removed") {
+        btn.classList.remove("btn-danger");
+        btn.classList.add("btn-outline-secondary");
+        icon.classList.remove("fas");
+        icon.classList.add("far");
+      }
     })
     .catch(error => {
-        console.error('Error toggling wishlist:', error);
+      console.error('Error toggling wishlist:', error);
     });
-}
+  });
 
-function getCookie(name) {
+  function getCookie(name) {
     let cookieValue = null;
     if (document.cookie && document.cookie !== '') {
-        const cookies = document.cookie.split(';');
-        for (let i = 0; i < cookies.length; i++) {
-            const cookie = cookies[i].trim();
-            if (cookie.substring(0, name.length + 1) === (name + '=')) {
-                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
-                break;
-            }
-        }
-    }
-    return cookieValue;
-}
-
-document.addEventListener("DOMContentLoaded", attachSaveListeners);
-
-document.addEventListener("DOMContentLoaded", function() {
-      // Only run if location is not already in the URL
-      const urlParams = new URLSearchParams(window.location.search);
-      if (!urlParams.has('user_lat') && !urlParams.has('user_lng')) {
-        if (navigator.geolocation) {
-          navigator.geolocation.getCurrentPosition(function(position) {
-            const lat = position.coords.latitude;
-            const lng = position.coords.longitude;
-            // Add location to URL and reload
-            urlParams.set('user_lat', lat);
-            urlParams.set('user_lng', lng);
-            urlParams.set('radius', 20); // default radius
-            window.location.search = urlParams.toString();
-          }, function(error) {
-            // If denied or unavailable, just show the page without location
-            console.log("Location access denied or unavailable.");
-          });
+      const cookies = document.cookie.split(';');
+      for (let i = 0; i < cookies.length; i++) {
+        const cookie = cookies[i].trim();
+        if (cookie.substring(0, name.length + 1) === (name + '=')) {
+          cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+          break;
         }
       }
-    });
+    }
+    return cookieValue;
+  }
+});
 </script>
 </body>
 </html>

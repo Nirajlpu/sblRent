@@ -61,22 +61,30 @@
       box-shadow: 0 10px 20px rgba(0, 0, 0, 0.1);
     }
 
-    /* .badge-featured {
-        position: absolute;
-        top: 10px;
-        right: 10px;
-        background-color: var(--accent-color);
-      } */
+    /* Featured badge: top left */
+    .badge-featured {
+      position: absolute;
+      top: 10px;
+      left: 10px;
+      z-index: 2;
+      font-size: 0.95rem;
+      padding: 0.5em 1em;
+      border-radius: 0.5em;
+    }
 
+    /* Price tag: bottom left */
     .price-tag {
       position: absolute;
       bottom: 10px;
       left: 10px;
-      background-color: var(--primary-color);
+      background-color: var(--primary-color, #4361ee);
       color: white;
-      padding: 5px 10px;
-      border-radius: 5px;
+      padding: 5px 12px;
+      border-radius: 0.5em;
       font-weight: bold;
+      z-index: 2;
+      font-size: 1rem;
+      box-shadow: 0 2px 8px rgba(67, 97, 238, 0.08);
     }
 
     .property-meta {
@@ -92,6 +100,16 @@
       padding: 1.5rem;
       border-radius: 10px;
       margin-bottom: 2rem;
+    }
+
+    .wishlist-btn {
+      border-radius: 50%;
+      width: 36px;
+      height: 36px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 0;
     }
   </style>
 </head>
@@ -184,7 +202,7 @@
         <a href="#" class="btn btn-sm btn-outline-primary">View All</a>
       </div>
       <div id="property-container">
-        <div class="row">{% include 'partials/property_list.html' %}</div>
+        <div class="row">{% include 'partials/_featured_properties.html' with featured_properties=properties %}</div>
 
       </div>
     </section>
@@ -336,56 +354,54 @@
         });
       }
     });
-    function getCookie(name) {
-      let cookieValue = null;
-      if (document.cookie && document.cookie !== "") {
-        const cookies = document.cookie.split(";");
-        for (let i = 0; i < cookies.length; i++) {
-          const cookie = cookies[i].trim();
-          if (cookie.substring(0, name.length + 1) === name + "=") {
-            cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
-            break;
-          }
-        }
-      }
-      return cookieValue;
-    }
-
     document.addEventListener("DOMContentLoaded", function () {
-      const saveButtons = document.querySelectorAll(".btn-outline-danger, .btn-danger");
+      document.body.addEventListener("click", function (e) {
+        const btn = e.target.closest(".wishlist-btn");
+        if (!btn) return;
+        e.preventDefault();
+        const icon = btn.querySelector("i");
+        const propertyId = btn.getAttribute("data-property-id");
 
-      saveButtons.forEach((button) => {
-        button.addEventListener("click", function (e) {
-          e.preventDefault();
-
-          const propertyId = this.getAttribute("data-id");
-          const btn = this;
-
-          fetch(`/wishlist/toggle/${propertyId}/`, {
-            method: "POST",
-            headers: {
-              "X-CSRFToken": getCookie("csrftoken"),
-              "Content-Type": "application/json",
-            },
-            body: JSON.stringify({}),
-          })
-            .then((res) => res.json())
-            .then((data) => {
-              if (data.status === "added") {
-                btn.classList.remove("btn-outline-danger");
-                btn.classList.add("btn-danger");
-                btn.innerHTML = '<i class="fas fa-heart me-1"></i> Wishlist';
-              } else if (data.status === "removed") {
-                btn.classList.remove("btn-danger");
-                btn.classList.add("btn-outline-danger");
-                btn.innerHTML = '<i class="far fa-heart"></i> Wishlist';
-              }
-            })
-            .catch((error) => {
-              console.error("Error toggling wishlist:", error);
-            });
+        fetch(`/wishlist/toggle/${propertyId}/`, {
+          method: "POST",
+          headers: {
+            "X-CSRFToken": getCookie("csrftoken"),
+            "X-Requested-With": "XMLHttpRequest"
+          }
+        })
+        .then(res => res.json())
+        .then(data => {
+          if (data.status === "added") {
+            btn.classList.remove("btn-outline-secondary");
+            btn.classList.add("btn-danger");
+            icon.classList.remove("far");
+            icon.classList.add("fas");
+          } else if (data.status === "removed") {
+            btn.classList.remove("btn-danger");
+            btn.classList.add("btn-outline-secondary");
+            icon.classList.remove("fas");
+            icon.classList.add("far");
+          }
+        })
+        .catch(error => {
+          console.error('Error toggling wishlist:', error);
         });
       });
+
+      function getCookie(name) {
+        let cookieValue = null;
+        if (document.cookie && document.cookie !== '') {
+          const cookies = document.cookie.split(';');
+          for (let i = 0; i < cookies.length; i++) {
+            const cookie = cookies[i].trim();
+            if (cookie.substring(0, name.length + 1) === (name + '=')) {
+              cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+              break;
+            }
+          }
+        }
+        return cookieValue;
+      }
     });
 
     document.addEventListener("DOMContentLoaded", function () {

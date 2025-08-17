@@ -75,6 +75,15 @@ def home(request):
         except Exception:
             pass
 
+    # Set in_wishlist for each property
+    wishlist_ids = set()
+    if request.user.is_authenticated:
+        wishlist_ids = set(Wishlist.objects.filter(user=request.user).values_list('property_id', flat=True))
+    for prop in featured_list:
+        prop.in_wishlist = prop.id in wishlist_ids
+    for prop in recent_list:
+        prop.in_wishlist = prop.id in wishlist_ids
+
     featured_paginator = Paginator(featured_list, 6)
     recent_paginator = Paginator(recent_list, 6)
 
@@ -296,26 +305,28 @@ def dashboard(request):
                     haversine(user_lat, user_lng, float(prop.latitude), float(prop.longitude)) <= radius_km
                 ]
                 if filtered_properties:
-                    print("Filtered properties found:", filtered_properties)
                     all_properties = filtered_properties
                 else:
-                    print("No filtered properties found, showing random properties.")
                     all_properties = all_properties.order_by('?')[:6]
             except Exception:
                 all_properties = all_properties.order_by('-date_added')
         else:
-            print("No user location provided, showing all properties.")
             all_properties = all_properties.order_by('-date_added')
+
+        # --- ADD THIS BLOCK ---
+        wishlist_ids = set()
+        if request.user.is_authenticated:
+            wishlist_ids = set(Wishlist.objects.filter(user=request.user).values_list('property_id', flat=True))
+        for prop in all_properties:
+            prop.in_wishlist = prop.id in wishlist_ids
+        # --- END BLOCK ---
 
         paginator = Paginator(all_properties, 6)
         page_obj = paginator.get_page(page_number)
 
-        # bookings = Booking.objects.filter(user=user).select_related('property')
-
         return render(request, 'user_dashboard.html', {
             'properties': page_obj,
             'pic': profile,
-            # 'bookings': bookings,
             'wishlist': Property.objects.filter(wishlist__user=user)[:4]
         })
 
