@@ -8,6 +8,7 @@ from django.db.models import Count, Q
 from django.utils import timezone
 from datetime import datetime, date
 from django.db import models
+from .models import Property 
 from .models import Property, Profile, CustomUser, Booking, Review, PropertyImage, PaymentLog, Wishlist
 from .forms import PropertyForm, ProfileForm
 from django.urls import reverse
@@ -20,6 +21,7 @@ from math import radians, cos, sin, asin, sqrt
 from django.template.loader import render_to_string
 import threading
 import hmac
+from decimal import Decimal
 import hashlib
 import json
 import razorpay
@@ -697,6 +699,7 @@ def property_list(request):
     user_lat = request.GET.get('user_lat')
     user_lng = request.GET.get('user_lng')
     radius_km = float(request.GET.get('radius', 20))  # Default to 20km
+    zip_code = request.GET.get('zip_code')
 
     #print all parameter to cheek its relevance
     print("Filter Parameters:")
@@ -706,15 +709,19 @@ def property_list(request):
     print(f"User Latitude: {user_lat}")
     print(f"User Longitude: {user_lng}")
     print(f"Radius: {radius_km}")
+    print(f"Zip Code: {zip_code}")
 
     # Track if any filter/search is applied
     filter_applied = any([
         location,
         property_type and property_type != "Any Type",
         price_range,
-        user_lat and user_lng
+        user_lat and user_lng,
+        zip_code
     ])
 
+
+   
     if location:
         queryset = queryset.filter(
             Q(location__icontains=location) |
@@ -722,21 +729,29 @@ def property_list(request):
             Q(address__icontains=location) |
             Q(state__icontains=location) 
         )
+    
+    if zip_code:
+        print(f"Filtering by zip code: {zip_code}")
+        queryset = queryset.filter(zip_code=zip_code)
+
     if property_type:
         print(f"Filtering by property type: {property_type}")
-        queryset = queryset.filter(property_type=property_type)
-        
+        queryset = queryset.filter(property_type__icontains=property_type)
+        print(f"Filtered queryset count: {queryset.count()}")
+
+    
+
     if price_range:
         if price_range == "Under ₹10,000":
-            queryset = queryset.filter(price__lt=10000)
+            queryset = queryset.filter(price__lt=Decimal('10000'))
         elif price_range == "₹10,000-₹20,000":
-            queryset = queryset.filter(price__gte=10000, price__lte=20000)
+            queryset = queryset.filter(price__gte=Decimal('10000'), price__lte=Decimal('20000'))
         elif price_range == "₹20,000-₹30,000":
-            queryset = queryset.filter(price__gte=20000, price__lte=30000)
+            queryset = queryset.filter(price__gte=Decimal('20000'), price__lte=Decimal('30000'))
         elif price_range == "Over ₹30,000":
-            queryset = queryset.filter(price__gt=30000)
+            queryset = queryset.filter(price__gt=Decimal('30000'))
 
-    # --- Only filter by user location if both lat/lng are present ---
+         # --- Only filter by user location if both lat/lng are present ---
     if user_lat and user_lng:
         try:
             user_lat = float(user_lat)
@@ -751,6 +766,8 @@ def property_list(request):
             queryset = queryset.order_by('-date_added')
     else:
         queryset = queryset.order_by('-date_added')
+
+
 
     # Add wishlist status for heart icon
     if request.user.is_authenticated:

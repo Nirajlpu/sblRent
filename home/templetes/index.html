@@ -586,9 +586,13 @@
         <div class="col-lg-8">
           <div class="search-bar p-4 bg-white rounded-lg shadow-sm">
             <form class="row g-3" method="get" action="{% url 'property_list' %}">
-              <div class="col-md-5">
+              <div class="col-md-4">
                 <label for="location" class="form-label">Location</label>
                 <input type="text" class="form-control" id="location" name="location" placeholder="City, Neighborhood or Address" />
+              </div>
+              <div class="col-md-2">
+                <label for="zip_code" class="form-label">Zip Code</label>
+                <input type="text" class="form-control" id="zip_code" name="zip_code" placeholder="Zip Code" />
               </div>
               <div class="col-md-3">
                 <label for="property-type" class="form-label">Property Type</label>
@@ -615,7 +619,7 @@
               <!-- Hidden fields for lat/lng -->
               <input type="hidden" id="lat" name="user_lat" />
               <input type="hidden" id="lng" name="user_lng" />
-              <div class="col-md-2 d-flex align-items-end">
+              <div class="col-md-1 d-flex align-items-end">
                 <button type="button" class="btn btn-outline-primary w-100 me-2" onclick="openMapModal()">Pick on Map</button>
                 <button type="submit" class="btn btn-primary w-100">
                   <i class="fas fa-search me-2"></i>Search
