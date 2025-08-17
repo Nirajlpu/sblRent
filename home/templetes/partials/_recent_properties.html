@@ -14,7 +14,7 @@
         <!-- Wishlist Button -->
         <button 
           class="btn {% if property.in_wishlist %}btn-danger{% else %}btn-outline-secondary{% endif %} 
-                 btn-sm position-absolute top-0 end-0 m-2 save-button"
+                 btn-sm position-absolute top-0 end-0 m-2 wishlist-btn"
           data-id="{{ property.id }}">
           {% if property.in_wishlist %}
             <i class="fas fa-heart"></i>
@@ -96,7 +96,7 @@
 <!-- Wishlist Toggle Script -->
 <script>
 document.addEventListener("DOMContentLoaded", function () {
-  document.querySelectorAll(".save-button").forEach(button => {
+  document.querySelectorAll(".wishlist-btn").forEach(button => {
     button.addEventListener("click", function () {
       const propertyId = this.dataset.id;
       const btn = this;
