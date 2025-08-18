@@ -92,7 +92,7 @@ def home(request):
         prop.in_wishlist = prop.id in wishlist_ids
 
     featured_paginator = Paginator(featured_list, 3)
-    recent_paginator = Paginator(recent_list, 3)
+    recent_paginator = Paginator(recent_list, 6)
 
     page_featured = request.GET.get('page_featured')
     page_recent = request.GET.get('page_recent')
@@ -788,6 +788,7 @@ def property_list(request):
     # Check if no properties found after search/filter
     no_results = filter_applied and properties.paginator.count == 0
 
+  
     # AJAX support for partial rendering
     if request.headers.get('x-requested-with') == 'XMLHttpRequest':
         html = render_to_string('partials/_featured_properties.html', {

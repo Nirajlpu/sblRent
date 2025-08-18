@@ -581,52 +581,53 @@
     <div class="container py-5">
       <h2 class="text-center mb-5 section-title">Featured Properties</h2>
 
-      <!-- Property Search -->
+      <!-- Improved Property Search UI -->
       <div class="row justify-content-center mb-5">
-        <div class="col-lg-8">
-          <div class="search-bar p-4 bg-white rounded-lg shadow-sm">
-            <form class="row g-3" method="get" action="{% url 'property_list' %}">
-              <div class="col-md-4">
-                <label for="location" class="form-label">Location</label>
-                <input type="text" class="form-control" id="location" name="location" placeholder="City, Neighborhood or Address" />
-              </div>
-              <div class="col-md-2">
-                <label for="zip_code" class="form-label">Zip Code</label>
-                <input type="text" class="form-control" id="zip_code" name="zip_code" placeholder="Zip Code" />
-              </div>
-              <div class="col-md-3">
-                <label for="property-type" class="form-label">Property Type</label>
-                <select id="property-type" name="property_type" class="form-select">
-                  <option value="">Any Type</option>
-                  <option value="Apartment">Apartment</option>
-                  <option value="House">House</option>
-                  <option value="Villa">Villa</option>
-                  <option value="Condo">Condo</option>
-                  <option value="Land">Land</option>
-                  <option value="Commercial">Commercial</option>
-                </select>
-              </div>
-              <div class="col-md-2">
-                <label for="price-range" class="form-label">Price Range</label>
-                <select id="price-range" name="price_range" class="form-select">
-                  <option value="">Any Price</option>
-                  <option value="Under ₹10,000">Under ₹10,000</option>
-                  <option value="₹10,000-₹20,000">₹10,000-₹20,000</option>
-                  <option value="₹20,000-₹30,000">₹20,000-₹30,000</option>
-                  <option value="Over ₹30,000">Over ₹30,000</option>
-                </select>
-              </div>
-              <!-- Hidden fields for lat/lng -->
-              <input type="hidden" id="lat" name="user_lat" value="{{ request.GET.user_lat }}">
-              <input type="hidden" id="lng" name="user_lng" value="{{ request.GET.user_lng }}">
-              <div class="col-md-1 d-flex align-items-end">
-                <button type="button" class="btn btn-outline-primary w-100 me-2" onclick="openMapModal()">Pick on Map</button>
-                <button type="submit" class="btn btn-primary w-100">
-                  <i class="fas fa-search me-2"></i>Search
-                </button>
-              </div>
-            </form>
-          </div>
+        <div class="col-lg-10">
+          <form class="row align-items-end g-2 p-3 bg-white rounded-4 shadow-sm" method="get" action="{% url 'property_list' %}">
+            <div class="col-lg-3 col-md-4 col-12">
+              <label for="location" class="form-label mb-1"><i class="fas fa-map-marker-alt me-1"></i>Location</label>
+              <input type="text" class="form-control" id="location" name="location" placeholder="City, Neighborhood or Address" />
+            </div>
+            <div class="col-lg-2 col-md-2 col-6">
+              <label for="zip_code" class="form-label mb-1"><i class="fas fa-mail-bulk me-1"></i>Zip</label>
+              <input type="text" class="form-control" id="zip_code" name="zip_code" placeholder="Zip Code" />
+            </div>
+            <div class="col-lg-2 col-md-2 col-6">
+              <label for="property-type" class="form-label mb-1"><i class="fas fa-home me-1"></i>Type</label>
+              <select id="property-type" name="property_type" class="form-select">
+                <option value="">All</option>
+                <option value="Apartment">Apartment</option>
+                <option value="House">House</option>
+                <option value="Villa">Villa</option>
+                <option value="Condo">Condo</option>
+                <option value="Land">Land</option>
+                <option value="Commercial">Commercial</option>
+              </select>
+            </div>
+            <div class="col-lg-2 col-md-2 col-6">
+              <label for="price-range" class="form-label mb-1"><i class="fas fa-rupee-sign me-1"></i>Price</label>
+              <select id="price-range" name="price_range" class="form-select">
+                <option value="">Any</option>
+                <option value="Under ₹10,000">Under ₹10,000</option>
+                <option value="₹10,000-₹20,000">₹10,000-₹20,000</option>
+                <option value="₹20,000-₹30,000">₹20,000-₹30,000</option>
+                <option value="Over ₹30,000">Over ₹30,000</option>
+              </select>
+            </div>
+            <!-- Hidden fields for lat/lng -->
+            <input type="hidden" id="lat" name="user_lat" value="{{ request.GET.user_lat }}">
+            <input type="hidden" id="lng" name="user_lng" value="{{ request.GET.user_lng }}">
+            <div class="col-lg-3 col-md-4 col-12 d-flex gap-2">
+              <button type="button" class="btn btn-outline-primary flex-shrink-0" onclick="openMapModal()" title="Pick on Map">
+                <i class="fas fa-map"></i>
+              </button>
+              <button type="submit" class="btn btn-primary w-100">
+                <i class="fas fa-search me-1"></i>Search
+              </button>
+              
+            </div>
+          </form>
         </div>
       </div>
 
@@ -822,6 +823,30 @@
       </div>
     </div>
   </footer>
+
+  <!-- Map Modal -->
+  <div class="modal fade" id="mapModal" tabindex="-1" aria-labelledby="mapModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="mapModalLabel">Select Location</h5>
+          <button type="button" class="btn btn-outline-primary btn-sm ms-2" onclick="locateMeOnMap()">
+            <i class="fas fa-crosshairs"></i> Locate Me
+          </button>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body" style="height: 400px; position: relative;">
+          <input type="text" id="map-search" class="form-control mb-2" placeholder="Search for a location..." autocomplete="off">
+          <ul id="map-suggestions" class="list-group position-absolute bg-white border rounded shadow"
+              style="top: 45px; left: 0; right: 0; z-index: 9999; max-height: 250px; overflow-y: auto; display: none;">
+          </ul>
+          <div id="map" style="height: 100%; width: 100%;"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</body>
+
 
   <!-- Bootstrap JS CDN -->
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
@@ -1070,10 +1095,10 @@
           document.getElementById('lat').value = lat.toFixed(6);
           document.getElementById('lng').value = lng.toFixed(6);
         }, function (error) {
-          alert("Unable to retrieve your location.");
+          alert("Unable to retrieve your location. Please give permission. Please contact developer Niraj Sahani.");
         });
       } else {
-        alert("Geolocation is not supported by your browser.");
+        alert("Geolocation is not supported by your browser. Please contact developer Niraj Sahani.");
       }
     }
 
@@ -1127,27 +1152,5 @@
     });
   </script>
 
-  <!-- Map Modal -->
-  <div class="modal fade" id="mapModal" tabindex="-1" aria-labelledby="mapModalLabel" aria-hidden="true">
-    <div class="modal-dialog modal-lg modal-dialog-centered">
-      <div class="modal-content">
-        <div class="modal-header">
-          <h5 class="modal-title" id="mapModalLabel">Select Location</h5>
-          <button type="button" class="btn btn-outline-primary btn-sm ms-2" onclick="locateMeOnMap()">
-            <i class="fas fa-crosshairs"></i> Locate Me
-          </button>
-          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-        </div>
-        <div class="modal-body" style="height: 400px; position: relative;">
-          <input type="text" id="map-search" class="form-control mb-2" placeholder="Search for a location..." autocomplete="off">
-          <ul id="map-suggestions" class="list-group position-absolute bg-white border rounded shadow"
-              style="top: 45px; left: 0; right: 0; z-index: 9999; max-height: 250px; overflow-y: auto; display: none;">
-          </ul>
-          <div id="map" style="height: 100%; width: 100%;"></div>
-        </div>
-      </div>
-    </div>
-  </div>
-</body>
 
 </html>
