@@ -1,29 +1,72 @@
 # SBLRent
 
-SBLRent is a Django-based rental platform for property owners (vendors) and tenants. It features secure registration, property listing, booking, payment integration (Razorpay), and robust user/vendor onboarding with document verification.
+SBLRent is a modern Django-based rental platform for property owners (vendors) and tenants. It features secure registration, property listing, booking, payment integration (Razorpay), and robust user/vendor onboarding with document verification.
 
-## Features
-- User and Vendor registration with Aadhaar upload (required for all)
-- Vendor KYC via email link (deferred KYC)
-- Property listing and management
-- Property booking and payment (Razorpay integration)
-- Monthly payment logic for bookings
-- Secure credential management using python-decouple and `.env`
-- Email notifications for registration, KYC, and admin alerts
-- Responsive Bootstrap UI
+---
+
+## 🚀 Standout Features
+
+- **Advanced Search & Filtering:**  
+  Users can search and filter properties by location, zip code, property type, price range, and using Map.  
+  - **Interactive Map Search:** Pick your desired location directly on a map (Leaflet.js integration) for geo-based property results.
+  - **Radius-based Search:** Find properties within a specific distance from your chosen point.
+  - **Live Filtering:** All filters are seamlessly integrated and redirect to a unified property listing page for a smooth user experience.
+
+- **Wishlist (Save Property):**  
+  Users can save/favorite properties with a single click (AJAX-powered heart icon), making it easy to revisit and compare listings.
+
+- **User & Vendor Onboarding:**  
+  - Aadhaar upload required for all users.
+  - Deferred KYC for vendors via secure email link.
+  - Profile management with document verification.
+
+- **Booking & Payment:**  
+  - Book properties instantly.
+  - Integrated Razorpay payment gateway for secure transactions.
+  - Monthly payment logic for ongoing bookings.
+  - **Automated rent payment notifications:** Users receive reminders if rent is due or unpaid.
+
+- **Notifications:**  
+  - Email alerts for registration, KYC, bookings, and admin actions.
+
+- **Responsive, Modern UI:**  
+  - Built with Bootstrap 5 for a professional, mobile-friendly experience.
+  - Clean dashboard for both users and vendors.
+
+- **Security & Best Practices:**  
+  - Credentials managed via python-decouple and `.env`.
+  - CSRF protection, secure authentication, and robust permission checks.
+
+---
+
+## 💡 Why SBLRent Stands Out
+
+- **Real-world Usability:**  
+  The platform is designed to solve real rental market problems—location-based search, verified listings, and seamless booking/payment.
+- **Investor-Ready:**  
+  The codebase is modular, scalable, and ready for cloud deployment (Render, AWS, etc.).
+- **Recruiter Appeal:**  
+  Demonstrates advanced Django skills, RESTful design, AJAX, payment integration, and modern frontend practices.
+
+---
 
 ## Tech Stack
+
 - Python 3.12
 - Django 5.2.3
-- SQLite (default, easy to switch to PostgreSQL/MySQL)
+- SQLite (easy to switch to PostgreSQL/MySQL)
 - Razorpay (payment gateway)
 - Bootstrap 5 (frontend)
+- Leaflet.js (interactive maps)
 - python-decouple (for environment variables)
 
+---
 
 ## Live Site
 
 Visit the deployed app: [sblrent.onrender.com](https://sblrent.onrender.com/)
+
+---
 
 ## Setup Instructions
 
@@ -71,21 +114,32 @@ python manage.py runserver
 
 Visit `http://127.0.0.1:8000/` in your browser.
 
+---
+
 ## Folder Structure
+
 - `core/` - Django project settings
 - `home/` - Main app (models, views, templates)
 - `accounts/` - User account management
 - `media/` - Uploaded files (profile pics, Aadhaar, etc.)
 - `static/` - Static files (CSS, JS, images)
 
+---
+
 ## Key Files
+
 - `requirements.txt` - Python dependencies
 - `manage.py` - Django management script
 - `.env` - Environment variables (not committed)
 
+---
+
 ## Security Notes
+
 - Never commit your `.env` file or secret keys to version control.
 - Use strong passwords and enable 2FA for your email and admin accounts.
+
+---
 
 ## Deployment on Render
 
@@ -94,12 +148,14 @@ This project is ready for deployment on [Render](https://render.com/):
 1. Push your code to GitHub (do NOT include your local `myenv` or `db.sqlite3`).
 2. Connect your GitHub repo to Render and create a new Web Service.
 3. Set the build and start commands:
-	- Build command: `pip install -r requirements.txt && python manage.py migrate`
-	- Start command: `gunicorn core.wsgi`
+    - Build command: `pip install -r requirements.txt && python manage.py migrate`
+    - Start command: `gunicorn core.wsgi`
 4. Add environment variables in the Render dashboard (from your `.env` file).
 5. Render will auto-deploy on every push to GitHub.
 
 Live site: [https://sblrent.onrender.com/](https://sblrent.onrender.com/)
+
+---
 
 ## License
 
