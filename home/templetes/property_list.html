@@ -285,7 +285,13 @@
           </button>
           <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
         </div>
-        <div class="modal-body" style="height: 400px;">
+        <div class="modal-body" style="height: 400px; position: relative;">
+          <input type="text" id="map-search" class="form-control mb-2" placeholder="Search for a location..."
+            autocomplete="off">
+          <ul id="map-suggestions"
+            class="list-group position-absolute bg-white border rounded shadow"
+            style="top: 45px; left: 0; right: 0; z-index: 9999; max-height: 250px; overflow-y: auto; display: none;">
+          </ul>
           <div id="map" style="height: 100%; width: 100%;"></div>
         </div>
       </div>
@@ -350,6 +356,55 @@
           document.getElementById('lng').value = '';
         }
       });
+    });
+  </script>
+
+  <script>
+    // Location search suggestions for map modal
+    document.addEventListener('DOMContentLoaded', function () {
+      const searchInput = document.getElementById('map-search');
+      const suggestionsBox = document.getElementById('map-suggestions');
+
+      if (searchInput && suggestionsBox) {
+        searchInput.addEventListener('input', function () {
+          const query = this.value.trim();
+          if (query.length < 3) {
+            suggestionsBox.style.display = 'none';
+            return;
+          }
+
+          fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}`)
+            .then(res => res.json())
+            .then(data => {
+              suggestionsBox.innerHTML = '';
+              data.slice(0, 5).forEach(place => {
+                const item = document.createElement('li');
+                item.className = 'list-group-item list-group-item-action';
+                item.textContent = place.display_name;
+                item.addEventListener('click', () => {
+                  const lat = parseFloat(place.lat);
+                  const lon = parseFloat(place.lon);
+                  if (window._map && window._marker) {
+                    window._map.setView([lat, lon], 16);
+                    window._marker.setLatLng([lat, lon]);
+                  }
+                  document.getElementById('lat').value = lat.toFixed(6);
+                  document.getElementById('lng').value = lon.toFixed(6);
+                  searchInput.value = place.display_name;
+                  suggestionsBox.style.display = 'none';
+                });
+                suggestionsBox.appendChild(item);
+              });
+              suggestionsBox.style.display = data.length ? 'block' : 'none';
+            });
+        });
+
+        document.addEventListener('click', (e) => {
+          if (!suggestionsBox.contains(e.target) && e.target !== searchInput) {
+            suggestionsBox.style.display = 'none';
+          }
+        });
+      }
     });
   </script>
 </body>
