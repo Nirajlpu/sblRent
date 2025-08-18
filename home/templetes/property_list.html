@@ -39,27 +39,13 @@
       padding: 5px 10px;
       font-size: 0.8rem;
     }
-    .status-rented {
-      background: #e6f7ff;
-      color: #1890ff;
-    }
-    .status-active {
-      background: #f6ffed;
-      color: #52c41a;
-    }
-    .status-pending {
-      background: #fff7e6;
-      color: #faad14;
-    }
-    .status-inactive {
-      background: #f5f5f5;
-      color: #d80d0d;
-    }
+
+   
 
     .property-meta div {
       text-align: center;
     }
-   
+
 
     #map {
       transition: box-shadow 0.3s;
@@ -69,6 +55,16 @@
     #map:hover {
       box-shadow: 0 0 0 2px #198754;
     }
+
+    .status-rented {
+      background: #1890ff !important;
+      color: white !important;
+    }
+    .status-active {
+      background: #28a745 !important;
+      color: white !important;
+    }
+
   </style>
 
   <!-- Leaflet CSS/JS -->
@@ -158,12 +154,12 @@
         <select name="property_type" id="property_type" class="form-select">
           <option value="">All</option>
           <option value="House" {% if request.GET.property_type == "House" %}selected{% endif %}>House</option>
-          <option value="Apartment" {% if request.GET.property_type == "Apartment" %}selected{% endif %}>Apartment
+          <option value="Apartment" {% if request.GET.property_type ==  "Apartment" %}selected{% endif %}>Apartment
           </option>
           <option value="Villa" {% if request.GET.property_type == "Villa" %}selected{% endif %}>Villa</option>
           <option value="Condo" {% if request.GET.property_type == "Condo" %}selected{% endif %}>Condo</option>
           <option value="Land" {% if request.GET.property_type == "Land" %}selected{% endif %}>Land</option>
-          <option value="Commercial" {% if request.GET.property_type == "Commercial" %}selected{% endif %}>Commercial
+          <option value="Commercial" {% if request.GET.property_type ==  "Commercial" %}selected{% endif %}>Commercial
           </option>
         </select>
       </div>
@@ -175,7 +171,7 @@
             ₹10,000</option>
           <option value="₹10,000-₹20,000" {% if request.GET.price_range == "₹10,000-₹20,000" %}selected{% endif %}>
             ₹10,000-₹20,000</option>
-          <option value="₹20,000-₹30,000" {% if request.GET.price_range == "₹20,000-₹30,000" %}selected{% endif %}>
+          <option value="₹20,000-₹30,000" {% if request.GET.price_range ==  "₹20,000-₹30,000" %}selected{% endif %}>
             ₹20,000-₹30,000</option>
           <option value="Over ₹30,000" {% if request.GET.price_range == "Over ₹30,000" %}selected{% endif %}>Over
             ₹30,000</option>
@@ -185,7 +181,8 @@
       <input type="hidden" id="lat" name="user_lat" value="{{ request.GET.user_lat }}">
       <input type="hidden" id="lng" name="user_lng" value="{{ request.GET.user_lng }}">
       <div class="col-lg-3 col-md-4 col-12 d-flex gap-2">
-        <button type="button" class="btn btn-outline-primary flex-shrink-0" onclick="openMapModal()" title="Pick on Map">
+        <button type="button" class="btn btn-outline-primary flex-shrink-0" onclick="openMapModal()"
+          title="Pick on Map">
           <i class="fas fa-map"></i>
         </button>
         <button type="submit" class="btn btn-primary w-100">
@@ -217,7 +214,9 @@
             <img
               src="{{ property.image_url|default:'https://images.unsplash.com/photo-1564013799919-ab600027ffc6?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=600&q=600' }}"
               style="width: 100%; height: 220px; object-fit: cover;">
-            <span class="badge bg-success badge-featured {% if property.status == 'active' %}status-active{% elif property.status == 'Rented' %}status-rented{% elif property.status == 'pending' %}status-pending{% elif property.status == 'inactive' %}status-inactive{% endif %}">{{ property.status }}</span>
+            <span class="badge badge-featured {% if property.status == 'active' %}status-active{% elif property.status == 'rented' %}status-rented{% elif property.status == 'pending' %}status-pending{% elif property.status == 'inactive' %}status-inactive{% endif %}">
+                    {{ property.status|title }}
+            </span>
 
             <!-- Wishlist Button -->
             <button
@@ -230,10 +229,14 @@
               {% endif %}
             </button>
 
-            <span class="price-tag">₹{{ property.price }}</span>
+            <span class="price-tag">₹{{ property.price }}/month
+
+            </span>
           </div>
           <div class="card-body">
+
             <h5 class="card-title">{{ property.title }}</h5>
+
             <p class="card-text text-muted">{{ property.description|truncatewords:15 }}</p>
             <div class="property-meta mb-3 d-flex justify-content-between">
               <div>
@@ -323,8 +326,7 @@
         <div class="modal-body" style="height: 400px; position: relative;">
           <input type="text" id="map-search" class="form-control mb-2" placeholder="Search for a location..."
             autocomplete="off">
-          <ul id="map-suggestions"
-            class="list-group position-absolute bg-white border rounded shadow"
+          <ul id="map-suggestions" class="list-group position-absolute bg-white border rounded shadow"
             style="top: 45px; left: 0; right: 0; z-index: 9999; max-height: 250px; overflow-y: auto; display: none;">
           </ul>
           <div id="map" style="height: 100%; width: 100%;"></div>
@@ -336,62 +338,62 @@
   <!-- Bootstrap & JS -->
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
   <script>
-  function getCookie(name) {
-    let cookieValue = null;
-    if (document.cookie && document.cookie !== '') {
-      const cookies = document.cookie.split(';');
-      for (let i = 0; i < cookies.length; i++) {
-        const cookie = cookies[i].trim();
-        if (cookie.substring(0, name.length + 1) === (name + '=')) {
-          cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
-          break;
+    function getCookie(name) {
+      let cookieValue = null;
+      if (document.cookie && document.cookie !== '') {
+        const cookies = document.cookie.split(';');
+        for (let i = 0; i < cookies.length; i++) {
+          const cookie = cookies[i].trim();
+          if (cookie.substring(0, name.length + 1) === (name + '=')) {
+            cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+            break;
+          }
         }
       }
+      return cookieValue;
     }
-    return cookieValue;
-  }
 
-  document.addEventListener("DOMContentLoaded", function () {
-    // Wishlist toggle logic
-    document.body.addEventListener("click", function (e) {
-      const btn = e.target.closest(".wishlist-btn");
-      if (!btn) return;
-      e.preventDefault();
-      const icon = btn.querySelector("i");
-      const propertyId = btn.getAttribute("data-property-id");
+    document.addEventListener("DOMContentLoaded", function () {
+      // Wishlist toggle logic
+      document.body.addEventListener("click", function (e) {
+        const btn = e.target.closest(".wishlist-btn");
+        if (!btn) return;
+        e.preventDefault();
+        const icon = btn.querySelector("i");
+        const propertyId = btn.getAttribute("data-property-id");
 
-      fetch(`/wishlist/toggle/${propertyId}/`, {
-        method: "POST",
-        headers: {
-          "X-Requested-With": "XMLHttpRequest",
-          "X-CSRFToken": getCookie("csrftoken")
-        }
-      })
-        .then(res => res.json())
-        .then(data => {
-          if (data.status === "added") {
-            btn.classList.remove("btn-outline-secondary");
-            btn.classList.add("btn-danger");
-            icon.classList.remove("far");
-            icon.classList.add("fas");
-          } else if (data.status === "removed") {
-            btn.classList.remove("btn-danger");
-            btn.classList.add("btn-outline-secondary");
-            icon.classList.remove("fas");
-            icon.classList.add("far");
+        fetch(`/wishlist/toggle/${propertyId}/`, {
+          method: "POST",
+          headers: {
+            "X-Requested-With": "XMLHttpRequest",
+            "X-CSRFToken": getCookie("csrftoken")
           }
         })
-        .catch(error => {
-          console.error('Error toggling wishlist:', error);
-        });
+          .then(res => res.json())
+          .then(data => {
+            if (data.status === "added") {
+              btn.classList.remove("btn-outline-secondary");
+              btn.classList.add("btn-danger");
+              icon.classList.remove("far");
+              icon.classList.add("fas");
+            } else if (data.status === "removed") {
+              btn.classList.remove("btn-danger");
+              btn.classList.add("btn-outline-secondary");
+              icon.classList.remove("fas");
+              icon.classList.add("far");
+            }
+          })
+          .catch(error => {
+            console.error('Error toggling wishlist:', error);
+          });
 
-      // If the page was loaded with a location filter, clear the fields for the next search
-      if (window.location.search.includes("user_lat") || window.location.search.includes("user_lng")) {
-        document.getElementById('lat').value = '';
-        document.getElementById('lng').value = '';
-      }
+        // If the page was loaded with a location filter, clear the fields for the next search
+        if (window.location.search.includes("user_lat") || window.location.search.includes("user_lng")) {
+          document.getElementById('lat').value = '';
+          document.getElementById('lng').value = '';
+        }
+      });
     });
-  });
   </script>
 
   <script>
