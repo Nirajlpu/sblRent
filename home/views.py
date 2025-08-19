@@ -9,6 +9,7 @@ from django.utils import timezone
 from datetime import datetime, date
 from django.db import models
 from .models import Property 
+from datetime import date
 from .models import Property, Profile, CustomUser, Booking, Review, PropertyImage, PaymentLog, Wishlist
 from .forms import PropertyForm, ProfileForm
 from django.urls import reverse
@@ -467,8 +468,11 @@ def manage_property(request, property_id=None):
 @login_required
 def delete_property(request, property_id):
     property_obj = get_object_or_404(Property, id=property_id, owner=request.user)
-    property_obj.delete()
-    messages.success(request, "Property deleted successfully!")
+    if property_obj.status == 'rented':
+        messages.error(request, "You cannot delete a rented property. Please cancel the booking first.")
+    else:
+        property_obj.delete()
+        messages.success(request, "Property deleted successfully!")
     return redirect('dashboard')
 
 @login_required(login_url='/login/')
@@ -828,8 +832,35 @@ def my_bookings(request):
 @login_required
 def cancel_booking(request, booking_id):
     booking = get_object_or_404(Booking, id=booking_id, user=request.user)
+
+   # Check user payment till current month
+    start_date = booking.start_date
+    current_date = timezone.now().date()
+    # fixed_date = datetime(2026, 1, 28).date()  # Use a fixed date for testing
+    # current_date = fixed_date
+    paid_amount = booking.paid_amount
+
+#------------------#need to fix it -----------------
+
+
+# Calculate completed months
+    calculated_months = (current_date.year - start_date.year) * 12 + (current_date.month - start_date.month)
+    print(f"Calculated Months: {calculated_months}, Paid Amount: {paid_amount}")
+
+    # Adjust if current day < start day (not a full month yet)
+    start = start_date.day + 5
+    if start < current_date.day:
+        calculated_months += 1
+
+    print(f"Calculated Months: {calculated_months}, Paid Amount: {paid_amount}")
+
+# Assuming booking.total_price is per month rent
+    total_outstanding = (Decimal(calculated_months) * booking.total_price) - paid_amount
+
+    print(f"Total Outstanding: {total_outstanding}")
+
     # Allow cancel if payment is complete
-    if True:  # booking.status in ['pending', 'approved', 'active', 'paid'] and booking.total_price == booking.total_amount
+    if total_outstanding <= 0:  # booking.status in ['pending', 'approved', 'active', 'paid'] and booking.total_price == booking.total_amount
         booking.status = 'cancelled'
         booking.property.status = 'active'
         booking.property.save()
@@ -889,7 +920,7 @@ def cancel_booking(request, booking_id):
         booking.delete()
         messages.success(request, "Booking has been cancelled.")
     else:
-        messages.error(request, "This booking cannot be cancelled.")
+        messages.error(request, f"This booking cannot be cancelled. Please ensure all payments are settled before cancelling. Remaining amount is ₹{total_outstanding}")
     return redirect('my_bookings')
 
 
@@ -1138,6 +1169,8 @@ def payment_verify(request):
         log.save()
 
     booking.status = 'paid'
+    booking.paid_amount += booking.total_price
+    booking.save()
 
     # --- New: Update booking.payment_data for bill generation ---
     try:
