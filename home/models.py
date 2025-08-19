@@ -1,14 +1,8 @@
 from django.db import models
 from django.contrib.auth.models import AbstractUser
 from django.utils import timezone
-from django.core.validators import MinValueValidator, MaxValueValidator
-import os
-from django.core.validators import FileExtensionValidator
-
-from django.db import models
-from django.contrib.auth.models import AbstractUser
-from django.utils import timezone
 from django.core.validators import MinValueValidator, MaxValueValidator, FileExtensionValidator
+from django.conf import settings
 import os
 
 def user_profile_pic_path(instance, filename):
@@ -19,6 +13,7 @@ def vendor_document_path(instance, filename):
 
 def property_image_path(instance, filename):
     return f'property_{instance.id}/images/{filename}'
+
 class CustomUser(AbstractUser):
     is_email_verified = models.BooleanField(default=False)
     phone_number = models.CharField(max_length=15, blank=True, null=True)
@@ -60,14 +55,7 @@ class Profile(models.Model):
     def __str__(self):
         return f"{self.user.username} - {self.role}"
 
-    def delete(self, *args, **kwargs):
-        if self.profile_picture and os.path.isfile(self.profile_picture.path):
-            os.remove(self.profile_picture.path)
-        if self.aadhaar_document and os.path.isfile(self.aadhaar_document.path):
-            os.remove(self.aadhaar_document.path)
-        if self.pan_document and os.path.isfile(self.pan_document.path):
-            os.remove(self.pan_document.path)
-        super().delete(*args, **kwargs)
+    # Remove the old delete method, signals will handle file deletion
 
 class Property(models.Model):
     STATUS_CHOICES = (
@@ -134,12 +122,7 @@ class PropertyImage(models.Model):
     def __str__(self):
         return f"Image for {self.property.title}"
     
-    def delete(self, *args, **kwargs):
-        # Delete the file from filesystem when the model is deleted
-        if os.path.isfile(self.image.path):
-            os.remove(self.image.path)
-        super().delete(*args, **kwargs)
-
+    # Remove the old delete method, signals will handle file deletion
 
 class Booking(models.Model):
     STATUS_CHOICES = (
@@ -169,10 +152,7 @@ class Booking(models.Model):
     def __str__(self):
         return f"Booking #{self.id} - {self.property.title}"
 
-
-# NEW Payment tracking model
 class PaymentLog(models.Model):
-
     booking = models.ForeignKey(Booking, on_delete=models.CASCADE)
     order_id = models.CharField(max_length=50)
     payment_id = models.CharField(max_length=50, blank=True, null=True)
@@ -183,7 +163,6 @@ class PaymentLog(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
     paid_By_User = models.ForeignKey(CustomUser, on_delete=models.SET_NULL, null=True, blank=True)
-    # New fields for robust tracking
     signature = models.CharField(max_length=255, blank=True, null=True, help_text="Razorpay payment signature for verification.")
     payment_method = models.CharField(max_length=50, blank=True, null=True, help_text="Payment method/type (e.g., card, upi, netbanking)")
     error_message = models.TextField(blank=True, null=True, help_text="Error or failure reason, if any.")
@@ -207,11 +186,6 @@ class Review(models.Model):
 
     def __str__(self):
         return f"Review by {self.user.username} for {self.property.title}"
-    
-
-from django.db import models
-from django.conf import settings
-from .models import Property  # if not already present
 
 class Wishlist(models.Model):
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
@@ -223,5 +197,67 @@ class Wishlist(models.Model):
 
     def __str__(self):
         return f"{self.user.username} - {self.property.title}"
-    
-from django.db import models
+
+# --- SIGNALS FOR FILE DELETION ON UPDATE OR DELETE ---
+from django.db.models.signals import pre_save, post_delete
+from django.dispatch import receiver
+
+@receiver(pre_save, sender=Profile)
+def delete_old_profile_files_on_change(sender, instance, **kwargs):
+    if not instance.pk:
+        return
+    try:
+        old = Profile.objects.get(pk=instance.pk)
+    except Profile.DoesNotExist:
+        return
+    if old.profile_picture and old.profile_picture != instance.profile_picture:
+        old.profile_picture.delete(save=False)
+    if old.aadhaar_document and old.aadhaar_document != instance.aadhaar_document:
+        old.aadhaar_document.delete(save=False)
+    if old.pan_document and old.pan_document != instance.pan_document:
+        old.pan_document.delete(save=False)
+
+@receiver(post_delete, sender=Profile)
+def delete_profile_files_on_delete(sender, instance, **kwargs):
+    if instance.profile_picture:
+        instance.profile_picture.delete(save=False)
+    if instance.aadhaar_document:
+        instance.aadhaar_document.delete(save=False)
+    if instance.pan_document:
+        instance.pan_document.delete(save=False)
+
+@receiver(pre_save, sender=Property)
+def delete_old_property_files_on_change(sender, instance, **kwargs):
+    if not instance.pk:
+        return
+    try:
+        old = Property.objects.get(pk=instance.pk)
+    except Property.DoesNotExist:
+        return
+    if old.image and old.image != instance.image:
+        old.image.delete(save=False)
+    if old.video and old.video != instance.video:
+        old.video.delete(save=False)
+
+@receiver(post_delete, sender=Property)
+def delete_property_files_on_delete(sender, instance, **kwargs):
+    if instance.image:
+        instance.image.delete(save=False)
+    if instance.video:
+        instance.video.delete(save=False)
+
+@receiver(pre_save, sender=PropertyImage)
+def delete_old_propertyimage_on_change(sender, instance, **kwargs):
+    if not instance.pk:
+        return
+    try:
+        old = PropertyImage.objects.get(pk=instance.pk)
+    except PropertyImage.DoesNotExist:
+        return
+    if old.image and old.image != instance.image:
+        old.image.delete(save=False)
+
+@receiver(post_delete, sender=PropertyImage)
+def delete_propertyimage_on_delete(sender, instance, **kwargs):
+    if instance.image:
+        instance.image.delete(save=False)
