@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>My Property Bookings</title>
+      <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet" />
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
         /* Base Styles */
@@ -280,11 +281,56 @@
                 width: 60px;
                 height: 45px;
             }
+
         }
+    .custom-alert {
+    position: relative;
+    border-radius: 8px;
+    font-size: 1.05rem;
+    box-shadow: 0 2px 12px rgba(67, 97, 238, 0.10);
+    padding: 1rem 1.5rem;
+    margin-bottom: 1rem;
+    border-width: 2px;
+    letter-spacing: 0.01em;
+    font-family: inherit;
+    transition: box-shadow 0.2s;
+  }
+  .custom-alert.alert-success {
+    border-color: #28a745;
+    background: #eafaf1;
+    color: #218838;
+  }
+  .custom-alert.alert-danger,
+.custom-alert.alert-error {
+    border-color: #e63946;
+    background: #fff0f1;
+    color: #b71c1c;
+}
+  .custom-alert.alert-warning {
+    border-color: #ffc107;
+    background: #fffbe6;
+    color: #856404;
+  }
+  .custom-alert.alert-info {
+    border-color: #4361ee;
+    background: #f0f4ff;
+    color: #4361ee;
+  }
+  
     </style>
 </head>
 <body>
     {% include 'navbar.html' %}
+{% if messages %}
+  <div class="container mt-3">
+    {% for message in messages %}
+    <div class="alert alert-{{ message.tags }} alert-dismissible fade show custom-alert" role="alert">
+      {{ message }}
+      <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
+    {% endfor %}
+  </div>
+{% endif %}
     
     <div class="container">
         <div class="bookings-container">
@@ -419,6 +465,8 @@
         </div>
     </div>
 
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script>
         document.addEventListener('DOMContentLoaded', function() {
             // Search functionality
