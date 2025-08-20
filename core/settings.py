@@ -164,15 +164,30 @@ LOGIN_REDIRECT_URL = '/'
 # MEDIA_URL = '/media/'
 # MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
 
-# --- Azure Storage for Media Files ---
+# --- Azure Storage for Media Files (Django 4.2+) ---
 INSTALLED_APPS += ['storages']
 
 AZURE_ACCOUNT_NAME = config('AZURE_ACCOUNT_NAME')
 AZURE_ACCOUNT_KEY = config('AZURE_ACCOUNT_KEY')
 AZURE_CONTAINER = config('AZURE_CONTAINER', default='media')
 
-DEFAULT_FILE_STORAGE = 'storages.backends.azure_storage.AzureStorage'
+STORAGES = {
+    "default": {
+        "BACKEND": "storages.backends.azure_storage.AzureStorage",
+        "OPTIONS": {
+            "account_name": AZURE_ACCOUNT_NAME,
+            "account_key": AZURE_ACCOUNT_KEY,
+            "azure_container": AZURE_CONTAINER,
+        },
+    },
+    "staticfiles": {
+        "BACKEND": "django.contrib.staticfiles.storage.StaticFilesStorage",
+    },
+}
+
 MEDIA_URL = f'https://{AZURE_ACCOUNT_NAME}.blob.core.windows.net/{AZURE_CONTAINER}/'
+
+# DEFAULT_FILE_STORAGE = 'storages.backends.azure_storage.AzureStorage'
 
 #email automation service setup
 EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
@@ -183,4 +198,7 @@ EMAIL_USE_TLS  = True
 EMAIL_HOST_USER = config('EMAIL_HOST_USER')
 EMAIL_HOST_PASSWORD = config('EMAIL_HOST_PASSWORD')
 DEFAULT_FROM_EMAIL = EMAIL_HOST_USER
- 
+
+print("AZURE_ACCOUNT_NAME:", AZURE_ACCOUNT_NAME)
+print("MEDIA_ROOT:", globals().get("MEDIA_ROOT", None))
+print("MEDIA_URL:", MEDIA_URL)

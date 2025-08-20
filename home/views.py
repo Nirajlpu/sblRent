@@ -178,9 +178,10 @@ def register_user(request):
                 messages.error(request, "Email already registered!")
                 return redirect('register')
 
-            if role == 'vendor' and (not aadhaar_number or not aadhaar_number.isdigit() or len(aadhaar_number) != 12):
-                messages.error(request, "Aadhaar number must be exactly 12 digits.")
-                return redirect('register')
+            # if role == 'vendor' and (not aadhaar_number or not aadhaar_number.isdigit() ):
+
+            #     messages.error(request, "Aadhaar number must be exactly 12 digits.")
+            #     return redirect('register')
 
             # Create user
             user = CustomUser.objects.create_user(
