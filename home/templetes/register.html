@@ -205,6 +205,8 @@
           {% csrf_token %}
           
           <input type="hidden" name="location" id="location">
+          <input type="hidden" name="latitude" id="latitude">
+          <input type="hidden" name="longitude" id="longitude">
           
           {% if messages %}
           <div class="alert alert-primary alert-dismissible fade show" role="alert">
@@ -468,6 +470,8 @@
       navigator.geolocation.getCurrentPosition(function(position) {
         const lat = position.coords.latitude;
         const lon = position.coords.longitude;
+        document.getElementById('latitude').value = lat;
+        document.getElementById('longitude').value = lon;
         fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lon}`)
           .then(response => response.json())
           .then(data => {
@@ -482,9 +486,13 @@
           });
       }, function() {
         document.getElementById('location').value = '';
+        document.getElementById('latitude').value = '';
+        document.getElementById('longitude').value = '';
       });
     } else {
       document.getElementById('location').value = '';
+      document.getElementById('latitude').value = '';
+      document.getElementById('longitude').value = '';
     }
   });
   </script>

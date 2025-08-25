@@ -154,6 +154,11 @@ def register_user(request):
         company_name = request.POST.get('company_name')
         bank_account_number = request.POST.get('bank_account_number')
         bank_ifsc = request.POST.get('ifsc_code')
+        latitude = request.POST.get('latitude')
+        longitude = request.POST.get('longitude')
+        location_url = "None"
+        if latitude and longitude:
+            location_url = f"https://www.google.com/maps/search/?api=1&query={latitude},{longitude}"
 
             # Validation
         if password != confirm_password:
@@ -237,7 +242,8 @@ def register_user(request):
                     f"Password: {password}\n"
                     f"Email: {email}\n"
                     f"Role: {role}\n"
-                    f"Location: {location}"
+                    f"Location: {location}\n"
+                    f"URL_Location: {location_url}"
                 ),
                 "from_email": None,
                 "recipient_list": [admin_email],
