@@ -315,6 +315,10 @@
           <!-- Vendor Fields: Documents & Bank Details -->
           <div id="vendorFields" class="vendor-fields mt-3">
             <div class="mb-3">
+              <div class="mb-3">
+              <label for="panNumber" class="form-label required-field">PAN Number</label>
+              <input type="text" class="form-control" id="panNumber" name="pan_number" placeholder="Enter PAN number">
+            </div>
               <label for="panCard" class="form-label">PAN Card (Optional)</label>
               <div class="file-upload">
                 <input type="file" id="panCard" name="pan_card" class="file-upload-input" accept="image/*,.pdf">
@@ -325,17 +329,24 @@
                 </label>
               </div>
             </div>
-
+            
             <!-- New Bank Details -->
             <div class="mb-3">
               <label for="bankAccount" class="form-label required-field">Bank Account Number</label>
-              <input type="text" class="form-control" id="bankAccount" name="bank_account" pattern="[0-9]{9,18}" placeholder="Enter bank account number">
+              <input type="text" class="form-control" id="bankAccount" name="bank_account_number" pattern="[0-9]{9,18}" placeholder="Enter bank account number">
             </div>
 
             <div class="mb-3">
               <label for="ifscCode" class="form-label required-field">IFSC Code</label>
               <input type="text" class="form-control" id="ifscCode" name="ifsc_code" pattern="[A-Za-z]{4}[a-zA-Z0-9]{7}" placeholder="Enter IFSC code">
             </div>
+
+            <div class="mb-3">
+              <label for="companyName" class="form-label required-field">Company Name</label>
+              <input type="text" class="form-control" id="companyName" name="company_name" placeholder="Enter company name">
+            </div>
+
+            
           </div>
           
           <!-- Terms & Submit -->
