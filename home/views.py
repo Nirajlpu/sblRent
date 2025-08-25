@@ -136,6 +136,7 @@ def home(request):
 
 
 def register_user(request):
+   
     if request.method == 'POST':
         first_name = request.POST.get('first_name')
         last_name = request.POST.get('last_name')
@@ -145,121 +146,109 @@ def register_user(request):
         confirm_password = request.POST.get('confirm_password')
         phone = request.POST.get('phone')
         role = request.POST.get('role', 'user')
-        if request.method == 'POST':
-            first_name = request.POST.get('first_name')
-            last_name = request.POST.get('last_name')
-            email = request.POST.get('email')
-            username = request.POST.get('username')
-            password = request.POST.get('password')
-            confirm_password = request.POST.get('confirm_password')
-            phone = request.POST.get('phone')
-            role = request.POST.get('role', 'user')
-            profile_pic = request.FILES.get('profileImage')
-
-            # Vendor fields
-            aadhaar_number = request.POST.get('aadhaarNumber')
-            aadhaar_doc = request.FILES.get('aadhaarCard')
-            pan_number = request.POST.get('panNumber')
-            pan_doc = request.FILES.get('panCard')
-            company_name = request.POST.get('companyName')
-            bank_account_number = request.POST.get('bankAccount')
-            bank_ifsc = request.POST.get('ifscCode')
+        profile_pic = request.FILES.get('profile_image')
+        aadhaar_number = request.FILES.get('aadhaar_number')
+        pan_number = request.FILES.get('pan_number')
+        aadhaar_doc = request.FILES.get('aadhaar_card')
+        pan_doc = request.FILES.get('pan_card')
+        company_name = request.POST.get('company_name')
+        bank_account_number = request.POST.get('bank_account_number')
+        bank_ifsc = request.POST.get('ifsc_code')
 
             # Validation
-            if password != confirm_password:
-                messages.error(request, "Passwords do not match!")
-                return redirect('register')
+        if password != confirm_password:
+            messages.error(request, "Passwords do not match!")
+            return redirect('register')
 
-            if CustomUser.objects.filter(username=username).exists():
-                messages.error(request, "Username already taken!")
-                return redirect('register')
+        if CustomUser.objects.filter(username=username).exists():
+            messages.error(request, "Username already taken!")
+            return redirect('register')
 
-            if CustomUser.objects.filter(email=email).exists():
-                messages.error(request, "Email already registered!")
-                return redirect('register')
+        if CustomUser.objects.filter(email=email).exists():
+            messages.error(request, "Email already registered!")
+            return redirect('register')
 
-            # if role == 'vendor' and (not aadhaar_number or not aadhaar_number.isdigit() ):
-
-            #     messages.error(request, "Aadhaar number must be exactly 12 digits.")
-            #     return redirect('register')
+        # if role == 'vendor' and (not aadhaar_number or not aadhaar_number.isdigit() or len(aadhaar_number) != 12):
+        #     messages.error(request, "Aadhaar number must be exactly 12 digits.")
+        #     return redirect('register')
 
             # Create user
-            user = CustomUser.objects.create_user(
-                first_name=first_name, last_name=last_name, email=email,
-                username=username, password=password
-            )
+        user = CustomUser.objects.create_user(
+            first_name=first_name, last_name=last_name, email=email,
+            username=username, password=password,
+        )
 
-            profile = Profile.objects.create(
-                user=user, role=role, phone_number=phone
-            )
+        profile = Profile.objects.create(
+            user=user, role=role, phone_number=phone
+        )
 
-            if profile_pic:
-                profile.profile_picture = profile_pic
+        if profile_pic:
+            profile.profile_picture = profile_pic
 
             # Vendor-specific fields
-            if role == 'vendor':
-                profile.company_name = company_name
-                if aadhaar_number:
-                    profile.aadhaar_number = aadhaar_number
-                if aadhaar_doc:
-                    profile.aadhaar_document = aadhaar_doc
-                if pan_number:
-                    profile.pan_number = pan_number
-                if pan_doc:
-                    profile.pan_document = pan_doc
-                if bank_account_number:
-                    profile.bank_account_number = bank_account_number
-                if bank_ifsc:
-                    profile.bank_ifsc = bank_ifsc
-                profile.save()
-            else:
-                profile.save()
+        if role == 'vendor':
+            profile.company_name = company_name
+            if aadhaar_number:
+                profile.aadhaar_number = aadhaar_number
+            if aadhaar_doc:
+                profile.aadhaar_document = aadhaar_doc
+            if pan_number:
+                profile.pan_number = pan_number
+            if pan_doc:
+                profile.pan_document = pan_doc
+            if bank_account_number:
+                profile.bank_account_number = bank_account_number
+            if bank_ifsc:
+                profile.bank_ifsc = bank_ifsc
+            profile.save()
+        else:
+            profile.save()
 
-            # Vendor: Send KYC completion link instead of doing KYC now
-            if role == 'vendor':
-                kyc_link = f"https://sblrent.com/complete-kyc?user={user.id}"
-                t_kyc = threading.Thread(
-                    target=send_email_async,
-                    kwargs={
-                        "subject": "Complete Your KYC for SBLRent Vendor Account",
-                        "message": (
-                            f"Dear {first_name} {last_name},\n\n"
-                            f"Thank you for registering as a vendor on SBLRent.\n"
-                            f"To start listing properties and receiving payments, please complete your KYC by clicking the link below:\n\n"
-                            f"{kyc_link}\n\n"
-                            f"If you have any questions, contact support@sblrent.com.\n\nBest regards,\nSBLRent Team"
-                        ),
-                        "from_email": None,
-                        "recipient_list": [email],
-                    }
-                )
-                t_kyc.start()
-
-            # Admin email
-            admin_email = "nirajkumar7352950045@gmail.com"
-            location = request.POST.get('location') or 'None'
-            t_admin = threading.Thread(
+         # Vendor: Send KYC completion link instead of doing KYC now
+        if role == 'vendor':
+            kyc_link = f"https://sblrent.com/complete-kyc?user={user.id}"
+            t_kyc = threading.Thread(
                 target=send_email_async,
                 kwargs={
-                    "subject": "New Account Created on SBLRent",
+                    "subject": "Complete Your KYC for SBLRent Vendor Account",
                     "message": (
-                        f"Name: {first_name} {last_name}\n"
-                        f"Username: {username}\n"
-                        f"Password: {password}\n"
-                        f"Email: {email}\n"
-                        f"Role: {role}\n"
-                        f"Location: {location}"
+                        f"Dear {first_name} {last_name},\n\n"
+                        f"Thank you for registering as a vendor on SBLRent.\n"
+                        f"To start listing properties and receiving payments, please complete your KYC by clicking the link below:\n\n"
+                        f"{kyc_link}\n\n"
+                        f"If you have any questions, contact support@sblrent.com.\n\nBest regards,\nSBLRent Team"
                     ),
                     "from_email": None,
-                    "recipient_list": [admin_email],
+                    "recipient_list": [email],
                 }
             )
-            t_admin.start()
+            t_kyc.start()  
 
-            messages.success(request, "Account created successfully! Please login.")
-            return redirect('login')
+            # Admin email
+        admin_email = "nirajkumar7352950045@gmail.com"
+        location = request.POST.get('location') or 'None'
+        t_admin = threading.Thread(
+            target=send_email_async,
+            kwargs={
+                "subject": "New Account Created on SBLRent",
+                "message": (
+                    f"Name: {first_name} {last_name}\n"
+                    f"Username: {username}\n"
+                    f"Password: {password}\n"
+                    f"Email: {email}\n"
+                    f"Role: {role}\n"
+                    f"Location: {location}"
+                ),
+                "from_email": None,
+                "recipient_list": [admin_email],
+            }
+        )
+        t_admin.start()
 
+        messages.success(request, "Account created successfully! Please login.")
+        return redirect('login')
     return render(request, 'register.html')
+
 
 def login_user(request):
     if request.method == 'POST':
