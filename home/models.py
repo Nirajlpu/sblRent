@@ -3,7 +3,7 @@ from django.contrib.auth.models import AbstractUser
 from django.utils import timezone
 from django.core.validators import MinValueValidator, MaxValueValidator, FileExtensionValidator
 from django.conf import settings
-import os
+
 
 def user_profile_pic_path(instance, filename):
     return f'user_{instance.user.id}/profile_pics/{filename}'
