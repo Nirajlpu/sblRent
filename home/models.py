@@ -40,8 +40,8 @@ class Profile(models.Model):
 
     # Vendor-specific
     company_name = models.CharField(max_length=100, blank=True, null=True)
-    aadhaar_number = models.CharField(max_length=12, blank=True, null=True)
-    pan_number = models.CharField(max_length=10, blank=True, null=True)
+    aadhaar_number = models.CharField(max_length=20, blank=True, null=True)
+    pan_number = models.CharField(max_length=20, blank=True, null=True)
     aadhaar_document = models.FileField(upload_to=vendor_document_path, blank=True, null=True)
     pan_document = models.FileField(upload_to=vendor_document_path, blank=True, null=True)
     is_verified = models.BooleanField(default=False)
