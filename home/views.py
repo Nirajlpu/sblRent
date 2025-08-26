@@ -89,8 +89,9 @@ def home(request):
         prop.in_wishlist = prop.id in wishlist_ids
     for prop in recent_list:
         prop.in_wishlist = prop.id in wishlist_ids
-
+    featured_list = featured_list or []
     featured_paginator = Paginator(featured_list, 3)
+    recent_list = recent_list or []
     recent_paginator = Paginator(recent_list, 6)
 
     page_featured = request.GET.get('page_featured')
