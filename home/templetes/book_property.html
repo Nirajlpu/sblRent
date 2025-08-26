@@ -222,7 +222,7 @@
       <div class="row g-0">
         <div class="col-md-6">
           <div class="property-gallery p-3">
-            <img src="{{ property.images.all.0.image.url|default:'https://images.unsplash.com/photo-1564013799919-ab600027ffc6?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=400&q=80' }}" 
+            <img src="{{ property.image_url|default:'https://images.unsplash.com/photo-1564013799919-ab600027ffc6?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=400&q=80' }}" 
                  class="gallery-main" 
                  alt="{{ property.title }}"
                  id="mainImage">
@@ -234,7 +234,7 @@
                      alt="Property image {{ forloop.counter }}"
                      onclick="document.getElementById('mainImage').src = this.src">
               {% empty %}
-                <img src="https://images.unsplash.com/photo-1564013799919-ab600027ffc6?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=400&q=80" 
+                <img src="{{ property.image_url|default:'https://images.unsplash.com/photo-1564013799919-ab600027ffc6?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=400&q=80' }}"
                      class="thumbnail" 
                      alt="Default property image">
               {% endfor %}
