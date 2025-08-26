@@ -46,6 +46,7 @@ def _verify_checkout_signature(order_id, payment_id, signature):
     digest = hmac.new(settings.RAZORPAY_KEY_SECRET.encode(), body, hashlib.sha256).hexdigest()
     return hmac.compare_digest(digest, signature)
 
+
 def home(request):
     user = request.user
     profile = user.profile if user.is_authenticated else None
@@ -54,9 +55,6 @@ def home(request):
     user_lat = request.GET.get('user_lat')
     user_lng = request.GET.get('user_lng')
     radius_km = float(request.GET.get('radius', 20))
-   
-
-
 
     featured_list = Property.objects.filter(status='active', is_featured=True)
     recent_list = Property.objects.filter(status='active').order_by('-date_added')
