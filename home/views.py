@@ -54,7 +54,7 @@ def home(request):
     user_lat = request.GET.get('user_lat')
     user_lng = request.GET.get('user_lng')
     radius_km = float(request.GET.get('radius', 20))
-    print(f"User Location Niraj: {user_lat}, {user_lng}, Radius: {radius_km} km")
+   
 
 
 
@@ -62,7 +62,7 @@ def home(request):
     recent_list = Property.objects.filter(status='active').order_by('-date_added')
 
     # Filter featured properties by location if available
-    print("user_lat:", user_lat, "user_lng:", user_lng)
+   
     if user_lat and user_lng:
         try:
             user_lat = float(user_lat)
@@ -74,15 +74,13 @@ def home(request):
             ]
             if filtered_featured:
                 featured_list = filtered_featured
-                print(f"Filtered Featured Properties: {len(featured_list)}")
             else:
                 featured_list = featured_list.order_by('?')
-                print(f"Filtered Featured Properties 66666: {len(featured_list)}")
+               
         except Exception as e:
             print("Location filter error:", e)
 
-    print(f"Filtered Featured Properties  out side :66666: {len(featured_list)}")
-
+   
     # Set in_wishlist for each property
     wishlist_ids = set()
     if request.user.is_authenticated:
@@ -156,6 +154,8 @@ def register_user(request):
         bank_ifsc = request.POST.get('ifsc_code')
         latitude = request.POST.get('latitude')
         longitude = request.POST.get('longitude')
+        razorpay_contact_id = request.POST.get('razorpay_contact_id')
+        razorpay_fund_account_id = request.POST.get('razorpay_fund_account_id')
         location_url = "None"
         if latitude and longitude:
             location_url = f"https://www.google.com/maps/search/?api=1&query={latitude},{longitude}"
@@ -173,14 +173,14 @@ def register_user(request):
             messages.error(request, "Email already registered!")
             return redirect('register')
 
-        # if role == 'vendor' and (not aadhaar_number or not aadhaar_number.isdigit() or len(aadhaar_number) != 12):
+        # if (not aadhaar_number or not aadhaar_number.isdigit() or len(aadhaar_number) != 12):
         #     messages.error(request, "Aadhaar number must be exactly 12 digits.")
         #     return redirect('register')
 
             # Create user
         user = CustomUser.objects.create_user(
             first_name=first_name, last_name=last_name, email=email,
-            username=username, password=password,
+            username=username, password=password,phone_number=phone
         )
 
         profile = Profile.objects.create(
@@ -192,11 +192,8 @@ def register_user(request):
 
             # Vendor-specific fields
         if role == 'vendor':
-            profile.company_name = company_name
-            if aadhaar_number:
-                profile.aadhaar_number = aadhaar_number
-            if aadhaar_doc:
-                profile.aadhaar_document = aadhaar_doc
+            if company_name:
+                profile.company_name = company_name
             if pan_number:
                 profile.pan_number = pan_number
             if pan_doc:
@@ -205,29 +202,36 @@ def register_user(request):
                 profile.bank_account_number = bank_account_number
             if bank_ifsc:
                 profile.bank_ifsc = bank_ifsc
-            profile.save()
-        else:
-            profile.save()
+            if razorpay_contact_id:
+                profile.razorpay_contact_id = razorpay_contact_id
+            if razorpay_fund_account_id:
+                profile.razorpay_fund_account_id = razorpay_fund_account_id
+        if aadhaar_number:
+            profile.aadhaar_number = aadhaar_number
+        if aadhaar_doc:
+            profile.aadhaar_document = aadhaar_doc
+        
+        profile.save()
 
-         # Vendor: Send KYC completion link instead of doing KYC now
-        if role == 'vendor':
-            kyc_link = f"https://sblrent.com/complete-kyc?user={user.id}"
-            t_kyc = threading.Thread(
-                target=send_email_async,
-                kwargs={
-                    "subject": "Complete Your KYC for SBLRent Vendor Account",
-                    "message": (
-                        f"Dear {first_name} {last_name},\n\n"
-                        f"Thank you for registering as a vendor on SBLRent.\n"
-                        f"To start listing properties and receiving payments, please complete your KYC by clicking the link below:\n\n"
-                        f"{kyc_link}\n\n"
-                        f"If you have any questions, contact support@sblrent.com.\n\nBest regards,\nSBLRent Team"
-                    ),
-                    "from_email": None,
-                    "recipient_list": [email],
-                }
-            )
-            t_kyc.start()  
+        # Vendor: Send KYC completion link instead of doing KYC now
+        # if role == 'vendor':
+        #     kyc_link = f"https://sblrent.com/complete-kyc?user={user.id}"
+        #     t_kyc = threading.Thread(
+        #         target=send_email_async,
+        #         kwargs={
+        #             "subject": "Complete Your KYC for SBLRent Vendor Account",
+        #             "message": (
+        #                 f"Dear {first_name} {last_name},\n\n"
+        #                 f"Thank you for registering as a vendor on SBLRent.\n"
+        #                 f"To start listing properties and receiving payments, please complete your KYC by clicking the link below:\n\n"
+        #                 f"{kyc_link}\n\n"
+        #                 f"If you have any questions, contact support@sblrent.com.\n\nBest regards,\nSBLRent Team"
+        #             ),
+        #             "from_email": None,
+        #             "recipient_list": [email],
+        #         }
+        #     )
+        #     t_kyc.start()  
 
             # Admin email
         admin_email = "nirajkumar7352950045@gmail.com"
@@ -709,15 +713,8 @@ def property_list(request):
     radius_km = float(request.GET.get('radius', 20))  # Default to 20km
     zip_code = request.GET.get('zip_code')
 
-    #print all parameter to cheek its relevance
-    print("Filter Parameters:")
-    print(f"Location: {location}")
-    print(f"Property Type: {property_type}")
-    print(f"Price Range: {price_range}")
-    print(f"User Latitude: {user_lat}")
-    print(f"User Longitude: {user_lng}")
-    print(f"Radius: {radius_km}")
-    print(f"Zip Code: {zip_code}")
+  
+
 
     # Track if any filter/search is applied
     filter_applied = any([
@@ -739,13 +736,10 @@ def property_list(request):
         )
     
     if zip_code:
-        print(f"Filtering by zip code: {zip_code}")
         queryset = queryset.filter(zip_code=zip_code)
 
     if property_type:
-        print(f"Filtering by property type: {property_type}")
         queryset = queryset.filter(property_type__icontains=property_type)
-        print(f"Filtered queryset count: {queryset.count()}")
 
     
 
@@ -849,19 +843,19 @@ def cancel_booking(request, booking_id):
 
 # Calculate completed months
     calculated_months = (current_date.year - start_date.year) * 12 + (current_date.month - start_date.month)
-    print(f"Calculated Months: {calculated_months}, Paid Amount: {paid_amount}")
+   
 
     # Adjust if current day < start day (not a full month yet)
     start = start_date.day + 5
     if start < current_date.day:
         calculated_months += 1
 
-    print(f"Calculated Months: {calculated_months}, Paid Amount: {paid_amount}")
+   
 
 # Assuming booking.total_price is per month rent
     total_outstanding = (Decimal(calculated_months) * booking.total_price) - paid_amount
 
-    print(f"Total Outstanding: {total_outstanding}")
+   
 
     # Allow cancel if payment is complete
     if total_outstanding <= 0:  # booking.status in ['pending', 'approved', 'active', 'paid'] and booking.total_price == booking.total_amount
@@ -1053,7 +1047,7 @@ def reservation_details(request, booking_id):
     # today = timezone.localtime(timezone.now(), timezone.get_fixed_timezone(330)).date()
 
     today = date(2028, 12, 1)  # Year, Month, Day
-    print("Today Niraj:", today)
+    print("Today :", today)
 
     monthly_payments = [p for p in monthly_payments if p["date"] <= today]
     # Filter by selected year if provided
