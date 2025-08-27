@@ -61,25 +61,26 @@ def home(request):
 
     # Filter featured properties by location if available
    
-    if user_lat and user_lng:
-        try:
-            user_lat = float(user_lat)
-            user_lng = float(user_lng)
-            filtered_featured = [
-                prop for prop in featured_list
-                if prop.latitude and prop.longitude and
-                haversine(user_lat, user_lng, float(prop.latitude), float(prop.longitude)) <= radius_km
-            ]
-            if filtered_featured:
-                featured_list = filtered_featured
-            else:
-                featured_list = featured_list.order_by('?')
+    # if user_lat and user_lng:
+    #     try:
+    #         user_lat = float(user_lat)
+    #         user_lng = float(user_lng)
+    #         filtered_featured = [
+    #             prop for prop in featured_list
+    #             if prop.latitude and prop.longitude and
+    #             haversine(user_lat, user_lng, float(prop.latitude), float(prop.longitude)) <= radius_km
+    #         ]
+    #         if filtered_featured:
+    #             featured_list = filtered_featured
+    #         else:
+    #             featured_list = featured_list.order_by('?')
                
-        except Exception as e:
-            print("Location filter error:", e)
+    #     except Exception as e:
+    #         print("Location filter error:", e)
 
    
     # Set in_wishlist for each property
+    
     wishlist_ids = set()
     if request.user.is_authenticated:
         wishlist_ids = set(Wishlist.objects.filter(user=request.user).values_list('property_id', flat=True))
@@ -653,7 +654,7 @@ def manage_profile(request):
     
     return render(request, 'manage_profile.html', {'form': form})
 
-@login_required
+@login_required(login_url='/login/')
 def toggle_wishlist(request, property_id):
     property_obj = get_object_or_404(Property, id=property_id)
 
