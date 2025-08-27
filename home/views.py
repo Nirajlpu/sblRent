@@ -61,22 +61,22 @@ def home(request):
 
     # Filter featured properties by location if available
    
-    # if user_lat and user_lng:
-    #     try:
-    #         user_lat = float(user_lat)
-    #         user_lng = float(user_lng)
-    #         filtered_featured = [
-    #             prop for prop in featured_list
-    #             if prop.latitude and prop.longitude and
-    #             haversine(user_lat, user_lng, float(prop.latitude), float(prop.longitude)) <= radius_km
-    #         ]
-    #         if filtered_featured:
-    #             featured_list = filtered_featured
-    #         else:
-    #             featured_list = featured_list.order_by('?')
+    if user_lat and user_lng:
+        try:
+            user_lat = float(user_lat)
+            user_lng = float(user_lng)
+            filtered_featured = [
+                prop for prop in featured_list
+                if prop.latitude and prop.longitude and
+                haversine(user_lat, user_lng, float(prop.latitude), float(prop.longitude)) <= radius_km
+            ]
+            if filtered_featured:
+                featured_list = filtered_featured
+            else:
+                featured_list = featured_list.order_by('?')
                
-    #     except Exception as e:
-    #         print("Location filter error:", e)
+        except Exception as e:
+            print("Location filter error:", e)
 
    
     # Set in_wishlist for each property
@@ -214,24 +214,24 @@ def register_user(request):
         profile.save()
 
         # Vendor: Send KYC completion link instead of doing KYC now
-        # if role == 'vendor':
-        #     kyc_link = f"https://sblrent.com/complete-kyc?user={user.id}"
-        #     t_kyc = threading.Thread(
-        #         target=send_email_async,
-        #         kwargs={
-        #             "subject": "Complete Your KYC for SBLRent Vendor Account",
-        #             "message": (
-        #                 f"Dear {first_name} {last_name},\n\n"
-        #                 f"Thank you for registering as a vendor on SBLRent.\n"
-        #                 f"To start listing properties and receiving payments, please complete your KYC by clicking the link below:\n\n"
-        #                 f"{kyc_link}\n\n"
-        #                 f"If you have any questions, contact support@sblrent.com.\n\nBest regards,\nSBLRent Team"
-        #             ),
-        #             "from_email": None,
-        #             "recipient_list": [email],
-        #         }
-        #     )
-        #     t_kyc.start()  
+        if role == 'vendor':
+            kyc_link = f"https://sblrent.com/complete-kyc?user={user.id}"
+            t_kyc = threading.Thread(
+                target=send_email_async,
+                kwargs={
+                    "subject": "Complete Your KYC for SBLRent Vendor Account",
+                    "message": (
+                        f"Dear {first_name} {last_name},\n\n"
+                        f"Thank you for registering as a vendor on SBLRent.\n"
+                        f"To start listing properties and receiving payments, please complete your KYC by clicking the link below:\n\n"
+                        f"{kyc_link}\n\n"
+                        f"If you have any questions, contact support@sblrent.com.\n\nBest regards,\nSBLRent Team"
+                    ),
+                    "from_email": None,
+                    "recipient_list": [email],
+                }
+            )
+            t_kyc.start()  
 
             # Admin email
         admin_email = "nirajkumar7352950045@gmail.com"

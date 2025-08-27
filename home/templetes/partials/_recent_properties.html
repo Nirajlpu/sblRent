@@ -54,7 +54,9 @@
       <div class="card-footer bg-white border-0">
         <small class="text-muted">
           <i class="fas fa-map-marker-alt me-1"></i>
-          {{ property.location }}
+          {% if property.location %}{{ property.location }}{% if property.city or property.state %}, {% endif %}{% endif %}
+{% if property.city %}{{ property.city }}{% if property.state %}, {% endif %}{% endif %}
+{% if property.state %}{{ property.state }}{% endif %}
         </small>
       </div>
     </div>
