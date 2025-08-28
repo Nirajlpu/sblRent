@@ -728,12 +728,16 @@ def property_list(request):
 
    
     if location:
-        queryset = queryset.filter(
-            Q(location__icontains=location) |
-            Q(city__icontains=location) |
-            Q(address__icontains=location) |
-            Q(state__icontains=location) 
-        )
+    # Split by comma and space, remove empty strings
+        import re
+        parts = [p.strip() for p in re.split(r'[,\s]+', location) if p.strip()]
+        for part in parts:
+            queryset = queryset.filter(
+                Q(location__icontains=part) |
+                Q(city__icontains=part) |
+                Q(address__icontains=part) |
+                Q(state__icontains=part)
+            )
     
     if zip_code:
         queryset = queryset.filter(zip_code=zip_code)
