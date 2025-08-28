@@ -490,6 +490,12 @@ def book_property(request, property_id):
     if profile and profile.role == 'vendor':
         messages.warning(request, "Vendors cannot book properties directly. Please create a tenant account to proceed.")
         return redirect('home')
+    
+    cheek = get_object_or_404(Property, id=property_id)
+    if cheek.status != 'active':
+        messages.error(request, "Property is not available for booking.")
+        return redirect('dashboard')
+
     property_obj = get_object_or_404(Property, id=property_id, status='active')
 
     if request.method == 'POST':
