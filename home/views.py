@@ -494,7 +494,7 @@ def book_property(request, property_id):
     cheek = get_object_or_404(Property, id=property_id)
     if cheek.status != 'active':
         messages.error(request, "Property is not available for booking.")
-        return redirect('/properties?view=wishlist')
+        return redirect('/properties?view=wishlist') # Redirect to wishlist or properties page
 
     property_obj = get_object_or_404(Property, id=property_id, status='active')
 
