@@ -503,12 +503,9 @@ def book_property(request, property_id):
         return redirect('home')
     
     cheek = get_object_or_404(Property, id=property_id)
-    if cheek.status != 'active': #need to fix it --------?
+    if cheek.status != 'active': 
         messages.error(request, "Property is not available for booking.")
-        print("view cheek :", request.GET.get('view'))
-        if request.GET.get('view') == 'dashboard':
-            return redirect('dashboard')
-        return redirect('/properties?view=wishlist') # Redirect to wishlist or properties page
+        return redirect('property_list')  #or redirect to a available properties page
 
     property_obj = get_object_or_404(Property, id=property_id, status='active')
 
@@ -721,6 +718,8 @@ def property_list(request):
         queryset = Property.objects.filter(owner=request.user)
     elif request.GET.get('view') == 'wishlist' and request.user.is_authenticated:
         queryset = Property.objects.filter(wishlist__user=request.user)
+    elif request.GET.get('view') == 'recent_viewed' and request.user.is_authenticated:
+       queryset = Property.objects.filter(recent_views__user=request.user)
     else:
         queryset = Property.objects.filter(status='active')
 
