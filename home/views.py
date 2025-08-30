@@ -396,11 +396,21 @@ def manage_property(request, property_id=None):
     user = request.user
     profile = user.profile
 
-    if profile.role == 'vendor':
+    if not profile:
+        messages.error(request, "You do not have permission to manage properties.")
+        return redirect('home')
+    
+    
 
-        property_obj = None
-        if property_id:
-            property_obj = get_object_or_404(Property, id=property_id, owner=user)
+    if profile.role == 'admin':
+        # Admins can manage all properties
+        properties = Property.objects.all()
+    elif profile.role == 'vendor':
+        # Vendors can only manage their own properties
+        properties = Property.objects.filter(owner=user)
+
+    if property_id:
+        property_obj = get_object_or_404(properties, id=property_id)
 
         if request.method == 'POST':
             title = request.POST.get('title')
@@ -486,7 +496,18 @@ def manage_property(request, property_id=None):
 
 @login_required
 def delete_property(request, property_id):
+    user = request.user
+    profile = user.profile if user.is_authenticated else None
+    if not profile:
+        messages.error(request, "You do not have permission to delete this property.")
+        return redirect('home')
+    if profile.role != 'admin':
+        messages.error(request, "You do not have permission to delete this property.")
+        return redirect('home')
+    
+
     property_obj = get_object_or_404(Property, id=property_id, owner=request.user)
+
     if property_obj.status == 'rented':
         messages.error(request, "You cannot delete a rented property. Please cancel the booking first.")
     else:
@@ -660,6 +681,7 @@ def booking_confirmation(request, booking_id):
 def manage_profile(request):
     profile = request.user.profile
     
+    
     if request.method == 'POST':
         form = ProfileForm(request.POST, request.FILES, instance=profile)
         if form.is_valid():
@@ -712,6 +734,7 @@ def haversine(lat1, lon1, lat2, lon2):
 def property_list(request):
     user = request.user
     profile = user.profile if user.is_authenticated else None
+    properties = Property.objects.none()  # Default empty queryset
 
     # Determine initial queryset
     if request.user.is_authenticated and hasattr(request.user, 'profile') and request.user.profile.role == 'vendor':
@@ -836,7 +859,10 @@ def my_bookings(request):
     user = request.user
     profile = user.profile if user.is_authenticated else None
 
-   
+    if not profile:
+        messages.error(request, "You do not have permission to view this reservation.")
+        return redirect('home')
+
     if profile.role == 'vendor':
         bookings = Booking.objects.filter(property__owner=user).select_related('user', 'property')
     else:
@@ -990,6 +1016,9 @@ def reservation_details(request, booking_id):
         Booking.objects.select_related('property', 'user__profile'),
         id=booking_id
     )
+    if booking.user != request.user and booking.property.owner != request.user:
+        messages.error(request, "You do not have permission to view this reservation.")
+        return redirect('home')
 
     # Handle extension form submission
     if request.method == 'POST':
