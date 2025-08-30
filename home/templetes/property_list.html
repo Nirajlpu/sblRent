@@ -63,7 +63,7 @@
       color: white !important;
     }
     .status-active {
-      background: #28a745 !important;
+      background: #198754 !important;
       color: white !important;
     }
 
@@ -140,12 +140,14 @@
       My Wishlist
       {% elif is_vendor %}
       My Listed Properties
+      {% elif request.GET.view == 'recent_viewed' and request.user.is_authenticated %}
+      My Recently Viewed Properties
       {% else %}
       Available Properties
       {% endif %}
     </h2>
 
-    {% if not showing_wishlist %}
+    {% if not showing_wishlist and request.GET.view != 'recent_viewed' %}
     <!-- Improved Filter Form: All fields in one row, compact, with icons -->
     <form method="GET" class="row align-items-end g-2 mb-4" id="property-filter-form"
       style="background:#fff; border-radius:12px; box-shadow:0 2px 8px rgba(0,0,0,0.05); padding:18px;">
@@ -266,9 +268,11 @@
               <a href="/property/{{ property.id }}" class="btn btn-outline-primary btn-sm flex-grow-1 me-2">
                 <i class="fas fa-eye me-1"></i> View Details
               </a>
+              {% if property.status == 'active' %}
               <a href="/book/{{ property.id }}" class="btn btn-outline-primary btn-sm flex-grow-1">
                 Book Now
               </a>
+              {% endif %}
             </div>
           </div>
           <div class="card-footer bg-white border-0">

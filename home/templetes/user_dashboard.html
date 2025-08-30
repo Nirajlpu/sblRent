@@ -129,15 +129,13 @@
     #map:hover {
       box-shadow: 0 0 0 2px #198754;
     }
-    .status-active {
-      background-color: #28a745;
-      /* Bootstrap green */
-      color: white;
-    }
     .status-rented {
-      background-color: #dc3545;
-      /* Bootstrap red */
-      color: white;
+      background: #1890ff !important;
+      color: white !important;
+    }
+    .status-active {
+      background: #198754 !important;
+      color: white !important;
     }
   </style>
   <!-- Leaflet CSS/JS (add in <head> if not already present) -->
@@ -253,7 +251,7 @@
     <section class="mb-5">
       <div class="d-flex justify-content-between align-items-center mb-4">
         <h2 class="h4 fw-bold">Recently Viewed</h2>
-        <a href="#" class="btn btn-sm btn-outline-primary">View All</a>
+        <a href="{% url 'property_list' %}?view=recent_viewed" class="btn btn-sm btn-outline-primary">View All</a>
       </div>
       <div class="row">
         {% if recently_viewed %}
@@ -301,9 +299,11 @@
                     <a href="/property/{{ property.id }}" class="btn btn-outline-primary btn-sm flex-grow-1 me-2">
                       <i class="fas fa-eye me-1"></i> View Details
                     </a>
+                    {% if property.status == 'active' %}
                     <a href="/book/{{ property.id }}?view=dashboard" class="btn btn-outline-primary btn-sm flex-grow-1">
                       Book Now
                     </a>
+                    {% endif %}
                   </div>
                 </div>
                 <div class="card-footer bg-white border-0">
