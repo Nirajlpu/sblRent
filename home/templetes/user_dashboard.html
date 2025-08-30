@@ -129,6 +129,16 @@
     #map:hover {
       box-shadow: 0 0 0 2px #198754;
     }
+    .status-active {
+      background-color: #28a745;
+      /* Bootstrap green */
+      color: white;
+    }
+    .status-rented {
+      background-color: #dc3545;
+      /* Bootstrap red */
+      color: white;
+    }
   </style>
   <!-- Leaflet CSS/JS (add in <head> if not already present) -->
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
@@ -184,7 +194,8 @@
       <form class="row align-items-end g-2" method="get" action="{% url 'property_list' %}">
         <div class="col-lg-3 col-md-4 col-12">
           <label for="location" class="form-label mb-1"><i class="fas fa-map-marker-alt me-1"></i>Location</label>
-          <input type="text" class="form-control" id="location" name="location" placeholder="City, Neighborhood or Address" />
+          <input type="text" class="form-control" id="location" name="location"
+            placeholder="City, Neighborhood or Address" />
         </div>
         <div class="col-lg-2 col-md-2 col-6">
           <label for="zip_code" class="form-label mb-1"><i class="fas fa-mail-bulk me-1"></i>Zip</label>
@@ -216,13 +227,14 @@
         <input type="hidden" id="lat" name="user_lat" />
         <input type="hidden" id="lng" name="user_lng" />
         <div class="col-lg-3 col-md-4 col-12 d-flex gap-2">
-          <button type="button" class="btn btn-outline-primary flex-shrink-0" onclick="openMapModal()" title="Pick on Map">
+          <button type="button" class="btn btn-outline-primary flex-shrink-0" onclick="openMapModal()"
+            title="Pick on Map">
             <i class="fas fa-map"></i>
           </button>
           <button type="submit" class="btn btn-primary w-100">
             <i class="fas fa-search me-1"></i>Search
           </button>
-          
+
         </div>
       </form>
     </div>
@@ -244,11 +256,103 @@
         <a href="#" class="btn btn-sm btn-outline-primary">View All</a>
       </div>
       <div class="row">
-        <!-- Recently viewed properties would go here -->
-        <div class="col-12 text-center py-4">
-          <p class="text-muted">Your recently viewed properties will appear here</p>
-        </div>
+        {% if recently_viewed %}
+          {% for property in recently_viewed %}
+            <div class="col-lg-4 col-md-6 mb-4">
+              <div class="card h-100 border-0 shadow-sm property-card">
+                <div class="position-relative">
+                  <img
+                    src="{{ property.image_url|default:'https://images.unsplash.com/photo-1564013799919-ab600027ffc6?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=600&q=600' }}"
+                    style="width: 100%; height: 220px; object-fit: cover;">
+                  <span
+                    class="badge badge-featured {% if property.status == 'active' %}status-active{% elif property.status == 'rented' %}status-rented{% elif property.status == 'pending' %}status-pending{% elif property.status == 'inactive' %}status-inactive{% endif %}">
+                    {{ property.status|title }}
+                  </span>
+                  <!-- Wishlist Button -->
+                  <button
+                    class="btn wishlist-btn btn-sm position-absolute top-0 end-0 m-2 {% if property.in_wishlist %}btn-danger{% else %}btn-outline-secondary{% endif %}"
+                    data-property-id="{{ property.id }}">
+                    {% if property.in_wishlist %}
+                    <i class="fas fa-heart"></i>
+                    {% else %}
+                    <i class="far fa-heart"></i>
+                    {% endif %}
+                  </button>
+                  <span class="price-tag">₹{{ property.price }}/month</span>
+                </div>
+                <div class="card-body">
+                  <h5 class="card-title">{{ property.title }}</h5>
+                  <p class="card-text text-muted">{{ property.description|truncatewords:15 }}</p>
+                  <div class="property-meta mb-3 d-flex justify-content-between">
+                    <div>
+                      <i class="fas fa-bed"></i>
+                      <small>{{ property.bedrooms }} Beds</small>
+                    </div>
+                    <div>
+                      <i class="fas fa-bath"></i>
+                      <small>{{ property.bathrooms }} Baths</small>
+                    </div>
+                    <div>
+                      <i class="fas fa-ruler-combined"></i>
+                      <small>{{ property.area }} Sqft</small>
+                    </div>
+                  </div>
+                  <div class="d-flex justify-content-between">
+                    <a href="/property/{{ property.id }}" class="btn btn-outline-primary btn-sm flex-grow-1 me-2">
+                      <i class="fas fa-eye me-1"></i> View Details
+                    </a>
+                    <a href="/book/{{ property.id }}?view=dashboard" class="btn btn-outline-primary btn-sm flex-grow-1">
+                      Book Now
+                    </a>
+                  </div>
+                </div>
+                <div class="card-footer bg-white border-0">
+                  <small class="text-muted">
+                    <i class="fas fa-map-marker-alt me-1"></i>
+                    {% if property.location %}{{ property.location }}{% if property.city or property.state %}, {% endif %}{% endif %}
+                    {% if property.city %}{{ property.city }}{% if property.state %}, {% endif %}{% endif %}
+                    {% if property.state %}{{ property.state }}{% endif %}
+                  </small>
+                </div>
+              </div>
+            </div>
+          {% endfor %}
+        {% else %}
+          <div class="col-12 text-center py-4">
+            <p class="text-muted">Your recently viewed properties will appear here</p>
+          </div>
+        {% endif %}
       </div>
+      <!-- Pagination Controls -->
+      {% if recently_viewed.has_other_pages %}
+      <nav>
+        <ul class="pagination justify-content-center">
+          {% if recently_viewed.has_previous %}
+            <li class="page-item">
+              <a class="page-link" href="?recently_page={{ recently_viewed.previous_page_number }}">Previous</a>
+            </li>
+          {% else %}
+            <li class="page-item disabled"><span class="page-link">Previous</span></li>
+          {% endif %}
+          {% for num in recently_viewed.paginator.page_range %}
+            {% if recently_viewed.number == num %}
+              <li class="page-item active"><span class="page-link">{{ num }}</span></li>
+            {% else %}
+              <li class="page-item">
+                <a class="page-link" href="?recently_page={{ num }}">{{ num }}</a>
+              </li>
+            {% endif %}
+          {% endfor %}
+          {% if recently_viewed.has_next %}
+            <li class="page-item">
+              <a class="page-link" href="?recently_page={{ recently_viewed.next_page_number }}">Next</a>
+            </li>
+          {% else %}
+            <li class="page-item disabled"><span class="page-link">Next</span></li>
+          {% endif %}
+        </ul>
+      </nav>
+      {% endif %}
     </section>
   </div>
   <!-- Footer -->
@@ -427,23 +531,23 @@
             "X-Requested-With": "XMLHttpRequest"
           }
         })
-        .then(res => res.json())
-        .then(data => {
-          if (data.status === "added") {
-            btn.classList.remove("btn-outline-secondary");
-            btn.classList.add("btn-danger");
-            icon.classList.remove("far");
-            icon.classList.add("fas");
-          } else if (data.status === "removed") {
-            btn.classList.remove("btn-danger");
-            btn.classList.add("btn-outline-secondary");
-            icon.classList.remove("fas");
-            icon.classList.add("far");
-          }
-        })
-        .catch(error => {
-          console.error('Error toggling wishlist:', error);
-        });
+          .then(res => res.json())
+          .then(data => {
+            if (data.status === "added") {
+              btn.classList.remove("btn-outline-secondary");
+              btn.classList.add("btn-danger");
+              icon.classList.remove("far");
+              icon.classList.add("fas");
+            } else if (data.status === "removed") {
+              btn.classList.remove("btn-danger");
+              btn.classList.add("btn-outline-secondary");
+              icon.classList.remove("fas");
+              icon.classList.add("far");
+            }
+          })
+          .catch(error => {
+            console.error('Error toggling wishlist:', error);
+          });
       });
 
       function getCookie(name) {
@@ -520,13 +624,13 @@
         }).addTo(mapInstance);
 
         markerInstance = L.marker([lat, lng], { draggable: true }).addTo(mapInstance);
-        markerInstance.on('dragend', function(e) {
+        markerInstance.on('dragend', function (e) {
           const { lat, lng } = markerInstance.getLatLng();
           document.getElementById('lat').value = lat.toFixed(6);
           document.getElementById('lng').value = lng.toFixed(6);
         });
 
-        mapInstance.on('click', function(e) {
+        mapInstance.on('click', function (e) {
           markerInstance.setLatLng(e.latlng);
           document.getElementById('lat').value = e.latlng.lat.toFixed(6);
           document.getElementById('lng').value = e.latlng.lng.toFixed(6);

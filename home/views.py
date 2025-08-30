@@ -10,10 +10,11 @@ from datetime import datetime, date
 from django.db import models
 from .models import Property 
 from datetime import date
-from .models import Property, Profile, CustomUser, Booking, Review, PropertyImage, PaymentLog, Wishlist
+from .models import Property, Profile, CustomUser, Booking, Review, PropertyImage, PaymentLog, Wishlist,RecentView
 from .forms import PropertyForm, ProfileForm
 from django.urls import reverse
 from django.core.mail import send_mail
+from django.core.paginator import Paginator
 from calendar import month_name
 from dateutil.relativedelta import relativedelta
 from django.utils.dateparse import parse_date
@@ -283,6 +284,8 @@ def dashboard(request):
     profile = user.profile
     page_number = request.GET.get('page')
 
+    
+
     if profile.role == 'vendor':
         # Vendor-specific properties and stats
         properties = Property.objects.filter(owner=user).order_by('-date_added')
@@ -319,6 +322,12 @@ def dashboard(request):
 
         all_properties = Property.objects.filter(status='active')
 
+        # Fetch recent views for the user
+        recently_viewed_qs = RecentView.objects.filter(user=request.user).select_related('property').order_by('-viewed_at')
+        paginator = Paginator([rv.property for rv in recently_viewed_qs], 3)  # 3 per page
+        page_number = request.GET.get('recently_page')
+        recently_viewed = paginator.get_page(page_number)
+
         if user_lat and user_lng:
             try:
                 user_lat = float(user_lat)
@@ -351,6 +360,7 @@ def dashboard(request):
         return render(request, 'user_dashboard.html', {
             'properties': page_obj,
             'pic': profile,
+            'recently_viewed': recently_viewed,
             'wishlist': Property.objects.filter(wishlist__user=user)[:4]
         })
 
@@ -368,6 +378,7 @@ def property_detail(request, property_id):
     if request.user.is_authenticated:
         property.views += 1
         property.save()
+        RecentView.objects.get_or_create(user=user, property=property)
         is_bookmarked = property.wishlist.filter(user=request.user).exists()
     
     return render(request, 'property_detail.html', {
@@ -492,8 +503,11 @@ def book_property(request, property_id):
         return redirect('home')
     
     cheek = get_object_or_404(Property, id=property_id)
-    if cheek.status != 'active':
+    if cheek.status != 'active': #need to fix it --------?
         messages.error(request, "Property is not available for booking.")
+        print("view cheek :", request.GET.get('view'))
+        if request.GET.get('view') == 'dashboard':
+            return redirect('dashboard')
         return redirect('/properties?view=wishlist') # Redirect to wishlist or properties page
 
     property_obj = get_object_or_404(Property, id=property_id, status='active')
@@ -1261,3 +1275,4 @@ def send_payment_reminders():
                     'noreply@sblrent.com',
                     [booking.user.email]
                 )
+
