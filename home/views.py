@@ -878,6 +878,9 @@ def my_bookings(request):
 # Allow users to cancel/delete their own bookings
 @login_required
 def cancel_booking(request, booking_id):
+
+    
+
     booking = get_object_or_404(Booking, id=booking_id, user=request.user)
 
    # Check user payment till current month
