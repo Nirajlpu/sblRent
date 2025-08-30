@@ -7,7 +7,8 @@ from .models import (
     Booking,
     Review,
     Wishlist,
-    PaymentLog
+    PaymentLog,
+    RecentView
 )
 
 # Register models
@@ -19,3 +20,4 @@ admin.site.register(Booking)
 admin.site.register(Review)
 admin.site.register(Wishlist)
 admin.site.register(PaymentLog)
+admin.site.register(RecentView)

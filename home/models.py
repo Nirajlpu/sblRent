@@ -198,6 +198,21 @@ class Wishlist(models.Model):
     def __str__(self):
         return f"{self.user.username} - {self.property.title}"
 
+
+from django.db import models
+from django.conf import settings
+
+class RecentView(models.Model):
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='recent_views')
+    property = models.ForeignKey('Property', on_delete=models.CASCADE, related_name='recent_views')
+    viewed_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        unique_together = ('user', 'property')
+        ordering = ['-viewed_at']
+
+    def __str__(self):
+        return f"{self.user.username} viewed {self.property.title} at {self.viewed_at}"
 # --- SIGNALS FOR FILE DELETION ON UPDATE OR DELETE ---
 from django.db.models.signals import pre_save, post_delete
 from django.dispatch import receiver
