@@ -699,10 +699,16 @@ def manage_profile(request):
     
     return render(request, 'manage_profile.html', {'form': form})
 
-@login_required(login_url='/login/')
-def toggle_wishlist(request, property_id):
-    property_obj = get_object_or_404(Property, id=property_id)
 
+def toggle_wishlist(request, property_id):
+    if not request.user.is_authenticated:
+        # AJAX: return JSON with login redirect
+        if request.headers.get("X-Requested-With") == "XMLHttpRequest":
+            return JsonResponse({"login_required": True, "login_url": "/login/?next=" + request.path}, status=401)
+        # Non-AJAX: redirect to login
+        return redirect(f"/login/?next={request.path}")
+
+    property_obj = get_object_or_404(Property, id=property_id)
     wishlist_item, created = Wishlist.objects.get_or_create(user=request.user, property=property_obj)
 
     if not created:
