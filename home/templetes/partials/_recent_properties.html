@@ -95,33 +95,3 @@
   </nav>
 </div>
 
-<!-- Wishlist Toggle Script -->
-<script>
-document.addEventListener("DOMContentLoaded", function () {
-  document.querySelectorAll(".wishlist-btn").forEach(button => {
-    button.addEventListener("click", function () {
-      const propertyId = this.dataset.id;
-      const btn = this;
-
-      fetch(`/wishlist/toggle/${propertyId}/`, {
-        method: "POST",
-        headers: {
-          "X-CSRFToken": "{{ csrf_token }}",
-        },
-      })
-      .then(response => response.json())
-      .then(data => {
-        if (data.status === "added") {
-          btn.classList.remove("btn-outline-secondary");
-          btn.classList.add("btn-danger");
-          btn.innerHTML = '<i class="fas fa-heart"></i>';
-        } else if (data.status === "removed") {
-          btn.classList.remove("btn-danger");
-          btn.classList.add("btn-outline-secondary");
-          btn.innerHTML = '<i class="far fa-heart"></i>';
-        }
-      });
-    });
-  });
-});
-</script>
