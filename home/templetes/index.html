@@ -866,30 +866,58 @@
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
   <script>
-    // Re-attach save button event listener after AJAX content is loaded
-    function attachSaveListeners() {
-      const saveButtons = document.querySelectorAll(
-        "#featured-properties-ajax .btn-outline-secondary, #featured-properties-ajax .btn-danger, #recent-properties-ajax .btn-outline-secondary, #recent-properties-ajax .btn-danger"
-      );
-      saveButtons.forEach((button) => {
-        button.removeEventListener("click", toggleSave); // Remove existing listener to avoid duplicates
-        button.addEventListener("click", toggleSave);
+
+    // Wishlist event delegation: only one handler for all .wishlist-btn
+    document.addEventListener("DOMContentLoaded", function () {
+      document.body.addEventListener("click", function (e) {
+        const btn = e.target.closest(".wishlist-btn");
+        if (!btn) return;
+        e.preventDefault();
+        const icon = btn.querySelector("i");
+        // Use data-property-id for consistency
+        const propertyId = btn.getAttribute("data-property-id") || btn.getAttribute("data-id");
+        if (!propertyId) return;
+
+        // Optimistic UI update
+        const isSaved = icon.classList.contains("fas");
+        if (isSaved) {
+          icon.classList.remove("fas");
+          icon.classList.add("far");
+          btn.classList.remove("btn-danger");
+          btn.classList.add("btn-outline-secondary");
+        } else {
+          icon.classList.remove("far");
+          icon.classList.add("fas");
+          btn.classList.remove("btn-outline-secondary");
+          btn.classList.add("btn-danger");
+        }
+
+        fetch(`/wishlist/toggle/${propertyId}/`, {
+          method: "POST",
+          headers: {
+            "X-CSRFToken": getCookie("csrftoken"),
+            "X-Requested-With": "XMLHttpRequest"
+          }
+        })
+          .then(res => res.json())
+          .then(data => {
+            if (data.status === "added") {
+              btn.classList.remove("btn-outline-secondary");
+              btn.classList.add("btn-danger");
+              icon.classList.remove("far");
+              icon.classList.add("fas");
+            } else if (data.status === "removed") {
+              btn.classList.remove("btn-danger");
+              btn.classList.add("btn-outline-secondary");
+              icon.classList.remove("fas");
+              icon.classList.add("far");
+            }
+          })
+          .catch(error => {
+            console.error('Error toggling wishlist:', error);
+          });
       });
-    }
-
-    function toggleSave() {
-      if (this.classList.contains("btn-outline-secondary")) {
-        this.classList.remove("btn-outline-secondary");
-        this.classList.add("btn-danger");
-        this.innerHTML = '<i class="fas fa-heart"></i>';
-      } else {
-        this.classList.remove("btn-danger");
-        this.classList.add("btn-outline-secondary");
-        this.innerHTML = '<i class="far fa-heart"></i>';
-      }
-    }
-
-    document.addEventListener("DOMContentLoaded", attachSaveListeners);
+    });
 
     // Initialize carousel
     const myCarousel = document.getElementById("heroCarousel");
@@ -898,11 +926,8 @@
       wrap: true,
     });
 
-    // Toggle save button state
+    // Add animation class when elements come into view
     document.addEventListener("DOMContentLoaded", function () {
-      // (save button logic moved to attachSaveListeners above)
-
-      // Add animation class when elements come into view
       const animateOnScroll = () => {
         const elements = document.querySelectorAll(
           ".feature-card, .property-card, .testimonial-card"
@@ -991,32 +1016,7 @@
           });
       }
     });
-    document.addEventListener("click", function (e) {
-      const btn = e.target.closest(".wishlist-btn");
-      if (!btn) return;
 
-      const propertyId = btn.dataset.id;
-
-      fetch(`/wishlist/toggle/${propertyId}/`, {
-        method: "POST",
-        headers: {
-          "X-CSRFToken": getCookie("csrftoken"),
-          "X-Requested-With": "XMLHttpRequest"
-        }
-      })
-        .then(res => res.json())
-        .then(data => {
-          if (data.status === "added") {
-            btn.classList.remove("btn-outline-secondary");
-            btn.classList.add("btn-danger");
-            btn.innerHTML = '<i class="fas fa-heart"></i>';
-          } else {
-            btn.classList.remove("btn-danger");
-            btn.classList.add("btn-outline-secondary");
-            btn.innerHTML = '<i class="far fa-heart"></i>';
-          }
-        });
-    });
 
     // Helper to get CSRF token
     function getCookie(name) {

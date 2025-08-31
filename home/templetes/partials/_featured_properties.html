@@ -16,8 +16,7 @@
           <button 
             class="btn {% if property.in_wishlist %}btn-danger{% else %}btn-outline-secondary{% endif %} 
                    btn-sm position-absolute top-0 end-0 m-2 wishlist-btn"
-            data-id="{{ property.id }}"
-            onclick="toggleSave(event, {{ property.id }})">
+            data-property-id="{{ property.id }}">
             {% if property.in_wishlist %}
               <i class="fas fa-heart"></i>
             {% else %}
@@ -103,104 +102,7 @@
   </div>
 </div>
 
-<script>
-// Function to toggle wishlist status
-function toggleSave(e, propertyId) {
-  e.preventDefault();
-  const button = e.currentTarget;
-  const icon = button.querySelector('i');
-  const isSaved = icon.classList.contains('fas');
 
-  // Toggle instantly for feedback
-  if (isSaved) {
-    icon.classList.remove('fas');
-    icon.classList.add('far');
-    button.classList.remove('btn-danger');
-    button.classList.add('btn-outline-secondary');
-  } else {
-    icon.classList.remove('far');
-    icon.classList.add('fas');
-    button.classList.remove('btn-outline-secondary');
-    button.classList.add('btn-danger');
-  }
-
-  fetch(`/wishlist/toggle/${propertyId}/`, {
-    method: 'POST',
-    headers: {
-      'X-CSRFToken': getCookie('csrftoken'),
-      'Content-Type': 'application/json',
-    },
-  })
-  .then(response => response.json())
-  .then(data => {
-    if (data.status === 'added') {
-      icon.classList.remove('far');
-      icon.classList.add('fas');
-      button.classList.remove('btn-outline-secondary');
-      button.classList.add('btn-danger');
-    } else if (data.status === 'removed') {
-      icon.classList.remove('fas');
-      icon.classList.add('far');
-      button.classList.remove('btn-danger');
-      button.classList.add('btn-outline-secondary');
-    }
-  })
-  .catch(error => {
-    console.error('Error toggling wishlist:', error);
-  });
-}
-
-function getCookie(name) {
-  let cookieValue = null;
-  if (document.cookie && document.cookie !== '') {
-    const cookies = document.cookie.split(';');
-    for (let i = 0; i < cookies.length; i++) {
-      const cookie = cookies[i].trim();
-      if (cookie.substring(0, name.length + 1) === (name + '=')) {
-        cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
-        break;
-      }
-    }
-  }
-  return cookieValue;
-}
-
-document.addEventListener("click", function (e) {
-  if (e.target.closest("#featured-properties-ajax .pagination a")) {
-    e.preventDefault();
-    const url = e.target.closest("a").getAttribute("href");
-
-    fetch(url, {
-      headers: {
-        "X-Requested-With": "XMLHttpRequest",
-      },
-    })
-      .then((response) => response.json())
-      .then((data) => {
-        // Replace the whole featured-properties-ajax block
-        document.querySelector("#featured-properties-ajax").innerHTML = data.html;
-        attachSaveListeners(); // Re-bind save button behavior after AJAX update
-        window.scrollTo({
-          top: document.querySelector("#featured-properties-ajax").offsetTop - 50,
-          behavior: "smooth",
-        });
-      });
-  }
-});
-
-function attachSaveListeners() {
-  document.querySelectorAll('.wishlist-btn').forEach(button => {
-    button.addEventListener('click', function(event) {
-      const propertyId = this.getAttribute('data-id');
-      toggleSave(event, propertyId);
-    });
-  });
-}
-
-document.addEventListener("DOMContentLoaded", function () {
-  attachSaveListeners();
-});
-</script>
 
 <style>
 .card-img-top.rounded-4 {

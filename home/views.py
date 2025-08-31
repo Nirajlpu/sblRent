@@ -324,6 +324,12 @@ def dashboard(request):
 
         # Fetch recent views for the user
         recently_viewed_qs = RecentView.objects.filter(user=request.user).select_related('property').order_by('-viewed_at')
+        # use to pass wishlist data
+        wishlist_ids = set()
+        if request.user.is_authenticated:
+            wishlist_ids = set(Wishlist.objects.filter(user=request.user).values_list('property_id', flat=True))
+        for rv in recently_viewed_qs:
+            rv.property.in_wishlist = rv.property.id in wishlist_ids
         paginator = Paginator([rv.property for rv in recently_viewed_qs], 3)  # 3 per page
         page_number = request.GET.get('recently_page')
         recently_viewed = paginator.get_page(page_number)
