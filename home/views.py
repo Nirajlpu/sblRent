@@ -1,3 +1,6 @@
+
+from django.views.decorators.http import require_POST
+from django.views.decorators.csrf import csrf_exempt
 from django.contrib.auth import authenticate, login, logout
 from django.views.decorators.csrf import csrf_exempt
 from django.shortcuts import render, redirect, get_object_or_404
@@ -474,9 +477,13 @@ def manage_property(request, property_id=None):
             property.save()
 
             # Handle multiple images (if you're using another input for multiple images)
-            images = request.FILES.getlist('images')  # optional enhancement
-            for img in images:
-                PropertyImage.objects.create(property=property, image=img)
+            images = request.FILES.getlist('image_upload')  # optional enhancement
+            if images:
+                n=1
+                for img in images:
+                    print(f"Uploading image {n}: {img.name}")
+                    PropertyImage.objects.create(property=property, image=img)
+                    n += 1
 
             messages.success(request,
                             "Property updated successfully!" if property_id else "Property added successfully!")
@@ -491,6 +498,30 @@ def manage_property(request, property_id=None):
         messages.success(request," You do not have permission to manage properties.")
         return redirect('dashboard')
 
+@login_required
+@require_POST
+def remove_property_image(request, image_id):
+    try:
+        image = PropertyImage.objects.get(id=image_id, property__owner=request.user)
+        image.delete()
+        return JsonResponse({'success': True})
+    except PropertyImage.DoesNotExist:
+        return JsonResponse({'success': False, 'error': 'Image not found or permission denied.'}, status=404)
+
+@login_required
+@require_POST
+def remove_property_video(request, property_id):
+    try:
+        prop = Property.objects.get(id=property_id, owner=request.user)
+        if prop.video:
+            prop.video.delete(save=False)
+            prop.video = None
+            prop.save(update_fields=['video'])
+            return JsonResponse({'success': True})
+        else:
+            return JsonResponse({'success': False, 'error': 'No video to remove.'}, status=404)
+    except Property.DoesNotExist:
+        return JsonResponse({'success': False, 'error': 'Property not found or permission denied.'}, status=404)
 
 
 @login_required
