@@ -374,7 +374,7 @@
                                 <td data-label="Property">
                                     <div class="property-info">
                                         <a href="{% url 'reservation_detail' booking.id %}">
-                                            <img src="{{ booking.property.image_url|default:'https://via.placeholder.com/80x60?text=Property' }}" 
+                                            <img src="{{ property.images.first.image.url|default:'https://images.unsplash.com/photo-1564013799919-ab600027ffc6?auto=format&fit=crop&w=600&q=600' }}" 
                                                  alt="{{ booking.property.title }}" class="property-img">
                                         </a>
                                         <div>
@@ -428,7 +428,7 @@
                             <tr>
                                 <td colspan="6">
                                     <div class="empty-state">
-                                        <img src="https://via.placeholder.com/300x200?text=No+Bookings" alt="No bookings" class="empty-img">
+                                        <!-- <img src="https://via.placeholder.com/300x200?text=No+Bookings" alt="No bookings" class="empty-img"> -->
                                         <h3>No Bookings Found</h3>
                                         <p>You don't have any property bookings yet.</p>
                                         {% comment %} <a href="{% url 'properties' %}" class="btn btn-primary">
