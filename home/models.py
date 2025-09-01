@@ -3,16 +3,31 @@ from django.contrib.auth.models import AbstractUser
 from django.utils import timezone
 from django.core.validators import MinValueValidator, MaxValueValidator, FileExtensionValidator
 from django.conf import settings
+import hashlib
+import os
 
+
+def hash_filename(filename):
+    """Generate a SHA256 hash for the filename (preserve extension)."""
+    name, ext = os.path.splitext(filename)
+    hash_str = hashlib.sha256(filename.encode('utf-8')).hexdigest()
+    return f"{hash_str}{ext}"
 
 def user_profile_pic_path(instance, filename):
-    return f'user_{instance.user.id}/profile_pics/{filename}'
+    """Path: user_<user_id>/profile_pics/<filename>"""
+    return f'user_{instance.user.id}/profile_pics/{hash_filename(filename)}'
 
 def vendor_document_path(instance, filename):
-    return f'user_{instance.user.id}/documents/{filename}'
+    """Path: user_<user_id>/documents/<filename>"""
+    return f'user_{instance.user.id}/documents/{hash_filename(filename)}'
 
 def property_image_path(instance, filename):
-    return f'property_{instance.property.id}/images/{filename}'
+    """Path: user_<owner_id>/property_<property_id>/images/<filename>"""
+    return f'user_{instance.property.owner.id}/property/property_{instance.property.id}/images/{hash_filename(filename)}'
+
+def property_video_path(instance, filename):
+    """Path: user_<owner_id>/property_<property_id>/videos/<filename>"""
+    return f'user_{instance.owner.id}/property/property_{instance.id}/videos/{hash_filename(filename)}'
 
 class CustomUser(AbstractUser):
     is_email_verified = models.BooleanField(default=False)
@@ -86,7 +101,7 @@ class Property(models.Model):
     zip_code = models.CharField(max_length=10)
     latitude = models.DecimalField(max_digits=9, decimal_places=6, null=True, blank=True)
     longitude = models.DecimalField(max_digits=9, decimal_places=6, null=True, blank=True)
-    image_url = models.URLField(default='https://via.placeholder.com/400x300?text=Property+Image', blank=True, null=True)
+    # image_url = models.URLField(default='https://via.placeholder.com/400x300?text=Property+Image', blank=True, null=True)
     image = models.ImageField(
         upload_to='property_images/',
         default='property_images/default.jpg',
@@ -94,7 +109,7 @@ class Property(models.Model):
         blank=True,
         null=True
     )
-    video = models.FileField(upload_to='property_videos/', validators=[FileExtensionValidator(['mp4', 'mov', 'avi'])],
+    video = models.FileField(upload_to=property_video_path, validators=[FileExtensionValidator(['mp4', 'mov', 'avi'])],
                               blank=True, null=True)
     bedrooms = models.PositiveIntegerField(default=1)
     bathrooms = models.PositiveIntegerField(default=1)
