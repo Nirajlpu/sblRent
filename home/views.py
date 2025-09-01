@@ -396,27 +396,19 @@ def property_detail(request, property_id):
     })
 
 
-
 @login_required
 def manage_property(request, property_id=None):
     user = request.user
     profile = user.profile
 
-    if not profile:
-        messages.error(request, "You do not have permission to manage properties.")
-        return redirect('home')
-    
-    
+    if profile.role == 'vendor':
 
-    if profile.role == 'admin':
-        # Admins can manage all properties
-        properties = Property.objects.all()
-    elif profile.role == 'vendor':
-        # Vendors can only manage their own properties
-        properties = Property.objects.filter(owner=user)
-
-    if property_id:
-        property_obj = get_object_or_404(properties, id=property_id)
+        property_obj = None
+        if property_id:
+            property_obj = get_object_or_404(Property, id=property_id, owner=user)
+            if property_obj.owner != user:
+                messages.error(request, "You do not have permission to edit this property.")
+                return redirect('dashboard')
 
         if request.method == 'POST':
             title = request.POST.get('title')
@@ -496,8 +488,9 @@ def manage_property(request, property_id=None):
             'images': property_obj.images.all() if property_obj else []
         })
     else:
-        messages.success(request,"You are normal user.You can't add Property")
+        messages.success(request," You do not have permission to manage properties.")
         return redirect('dashboard')
+
 
 
 @login_required
