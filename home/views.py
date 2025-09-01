@@ -1142,7 +1142,7 @@ def reservation_details(request, booking_id):
 
     monthly_payments = [p for p in monthly_payments if p["date"] <= today]
     # Filter by selected year if provided
-    print("Monthly Payments Niraj:", monthly_payments)
+    # print("Monthly Payments Niraj:", monthly_payments)
  
 
     selected_year = int(request.GET.get('year', booking.start_date.year))

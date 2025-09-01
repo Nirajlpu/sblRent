@@ -374,7 +374,7 @@
                                 <td data-label="Property">
                                     <div class="property-info">
                                         <a href="{% url 'reservation_detail' booking.id %}">
-                                            <img src="{{ property.images.first.image.url|default:'https://images.unsplash.com/photo-1564013799919-ab600027ffc6?auto=format&fit=crop&w=600&q=600' }}" 
+                                            <img src="{{ booking.property.images.first.image.url|default:'https://images.unsplash.com/photo-1564013799919-ab600027ffc6?auto=format&fit=crop&w=600&q=600' }}" 
                                                  alt="{{ booking.property.title }}" class="property-img">
                                         </a>
                                         <div>
