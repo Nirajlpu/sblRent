@@ -12,7 +12,7 @@ def vendor_document_path(instance, filename):
     return f'user_{instance.user.id}/documents/{filename}'
 
 def property_image_path(instance, filename):
-    return f'property_{instance.id}/images/{filename}'
+    return f'property_{instance.property.id}/images/{filename}'
 
 class CustomUser(AbstractUser):
     is_email_verified = models.BooleanField(default=False)
@@ -86,9 +86,14 @@ class Property(models.Model):
     zip_code = models.CharField(max_length=10)
     latitude = models.DecimalField(max_digits=9, decimal_places=6, null=True, blank=True)
     longitude = models.DecimalField(max_digits=9, decimal_places=6, null=True, blank=True)
-    image_url = models.URLField(default='https://via.placeholder.com/400x300?text=Property+Image')
-    image = models.ImageField(upload_to='property_images/', default='property_images/default.jpg',
-                              validators=[FileExtensionValidator(['jpg', 'jpeg', 'png'])])
+    image_url = models.URLField(default='https://via.placeholder.com/400x300?text=Property+Image', blank=True, null=True)
+    image = models.ImageField(
+        upload_to='property_images/',
+        default='property_images/default.jpg',
+        validators=[FileExtensionValidator(['jpg', 'jpeg', 'png'])],
+        blank=True,
+        null=True
+    )
     video = models.FileField(upload_to='property_videos/', validators=[FileExtensionValidator(['mp4', 'mov', 'avi'])],
                               blank=True, null=True)
     bedrooms = models.PositiveIntegerField(default=1)

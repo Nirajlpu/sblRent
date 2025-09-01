@@ -17,6 +17,9 @@ urlpatterns = [
     path('properties/', views.property_list, name='property_list'),
     path('my-bookings/', views.my_bookings, name='my_bookings'),
     path('my-wishlist/', views.my_wishlist, name='my_wishlist'),
+    path('remove-property-image/<int:image_id>/', views.remove_property_image, name='remove_property_image'),
+    path('remove-property-video/<int:property_id>/', views.remove_property_video, name='remove_property_video'),
+
     
     # Property URLs
     path('properties/', views.property_list, name='property_list'),

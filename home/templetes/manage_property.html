@@ -258,9 +258,9 @@
             </div>
             
             <div class="col-md-4 mb-3">
-              <label for="square_feet" class="form-label">Square Feet</label>
-              <input type="number" class="form-control" id="square_feet" name="square_feet" 
-                     value="{{ property.square_feet|default:'' }}" min="0">
+              <label for="area" class="form-label">Area (sq ft)</label>
+              <input type="number" class="form-control" id="area" name="area" 
+                     value="{{ property.area|default:'' }}" min="0">
             </div>
           </div>
           
@@ -289,22 +289,50 @@
         <div class="form-section">
           <h5><i class="bi bi-images"></i> Media</h5>
           
-          <div class="mb-3">
+          <!-- <div class="mb-3">
             <label for="image_url" class="form-label">Main Image URL</label>
             <input type="url" class="form-control" id="image_url" name="image_url" 
                    value="{{ property.image_url|default:'' }}" onchange="updateImagePreview(this.value)">
             <img id="image_preview" class="image-preview" src="{{ property.image_url|default:'' }}" 
                  alt="Property image preview" onerror="this.style.display='none'">
-          </div>
+          </div> -->
           
           <div class="mb-3">
-            <label for="image_upload" class="form-label">Or Upload Image</label>
-            <input type="file" class="form-control" id="image_upload" name="image_upload" accept="image/*">
+            <label for="image_upload" class="form-label">Upload Images</label>
+            <p class="text-muted">Multiple image upload with preview and remove option</p>
+            <!-- Existing images from database -->
+            {% if property and property.images.all %}
+            <div class="mb-2">
+              <label class="form-label">Existing Images</label>
+              <div id="existing_images" class="d-flex flex-wrap gap-2">
+                {% for image in property.images.all %}
+                  <div class="position-relative me-2 mb-2" style="display:inline-block;">
+                    <img src="{{ image.image.url }}" alt="Property image" class="rounded border" style="width:90px;height:90px;object-fit:cover;">
+                    <button type="button" class="btn btn-sm btn-danger position-absolute top-0 end-0" style="border-radius:50%;padding:0 6px 2px 6px;line-height:1;" onclick="removeExistingImage('{{ image.id }}', this)">&times;</button>
+                  </div>
+                {% endfor %}
+              </div>
+            </div>
+            {% endif %}
+            <input type="file" class="form-control" id="image_upload" name="image_upload" accept="image/*" multiple>
+            <div id="multi_image_preview" class="d-flex flex-wrap gap-2 mt-2"></div>
           </div>
 
           <div class="mb-3">
             <label for="video_upload" class="form-label">Upload Property Video</label>
-            <input type="file" class="form-control" id="video_upload" name="video" accept="video/mp4,video/x-m4v,video/*">
+            {% if property and property.video %}
+            <div class="mb-3 d-flex ">
+              <div class="card shadow-sm p-2" style="max-width: 320px; background: #f8f9fa; border-radius: 12px; position: relative;">
+                <label class="form-label mb-2 text-center w-100" style="color: #4361ee; font-weight: 600;">Existing Video</label>
+                <div class="position-relative w-100 d-flex justify-content-center align-items-center" style="min-height: 180px;">
+                  <video src="{{ property.video.url }}" controls style="width: 100%; max-width: 280px; height: 180px; object-fit: cover; border-radius: 8px; border: 1px solid #ced4da; background: #000;"></video>
+                  <button type="button" class="btn btn-danger btn-sm position-absolute top-0 end-0 m-2" style="border-radius: 50%; width: 32px; height: 32px; font-size: 1.2rem; display: flex; align-items: center; justify-content: center; box-shadow: 0 2px 8px rgba(0,0,0,0.08);" onclick="removeExistingVideo(this)" title="Remove Video">&times;</button>
+                </div>
+              </div>
+            </div>
+            {% endif %}
+                <input type="file" class="form-control" id="video_upload" name="video" accept="video/mp4,video/x-m4v,video/*">
+                <div id="video_preview_container" class="mt-2"></div>
           </div>
         </div>
         
@@ -322,6 +350,192 @@
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
 
   <script>
+    // Video preview and remove for new upload
+    document.addEventListener('DOMContentLoaded', function() {
+      const videoInput = document.getElementById('video_upload');
+      const videoPreviewContainer = document.getElementById('video_preview_container');
+      let selectedVideoFile = null;
+
+      function updateVideoPreview() {
+        videoPreviewContainer.innerHTML = '';
+        if (selectedVideoFile) {
+          const url = URL.createObjectURL(selectedVideoFile);
+          const wrapper = document.createElement('div');
+          wrapper.style.position = 'relative';
+          wrapper.style.display = 'inline-block';
+          wrapper.style.maxWidth = '280px';
+          wrapper.style.marginBottom = '8px';
+
+          const video = document.createElement('video');
+          video.src = url;
+          video.controls = true;
+          video.style.width = '100%';
+          video.style.maxWidth = '280px';
+          video.style.height = '180px';
+          video.style.objectFit = 'cover';
+          video.style.borderRadius = '8px';
+          video.style.border = '1px solid #ced4da';
+          video.style.background = '#000';
+
+          // Cross button
+          const cross = document.createElement('span');
+          cross.innerHTML = '&times;';
+          cross.style.position = 'absolute';
+          cross.style.top = '2px';
+          cross.style.right = '6px';
+          cross.style.background = 'rgba(255,255,255,0.8)';
+          cross.style.borderRadius = '50%';
+          cross.style.cursor = 'pointer';
+          cross.style.fontSize = '20px';
+          cross.style.color = '#dc3545';
+          cross.style.width = '28px';
+          cross.style.height = '28px';
+          cross.style.display = 'flex';
+          cross.style.alignItems = 'center';
+          cross.style.justifyContent = 'center';
+          cross.title = 'Remove';
+          cross.onclick = function() {
+            selectedVideoFile = null;
+            videoInput.value = '';
+            updateVideoPreview();
+          };
+
+          wrapper.appendChild(video);
+          wrapper.appendChild(cross);
+          videoPreviewContainer.appendChild(wrapper);
+        }
+      }
+
+      if (videoInput) {
+        videoInput.addEventListener('change', function() {
+          if (this.files && this.files[0]) {
+            selectedVideoFile = this.files[0];
+          } else {
+            selectedVideoFile = null;
+          }
+          updateVideoPreview();
+        });
+      }
+    });
+    // Remove existing video (AJAX or form submission)
+    function removeExistingVideo(btn) {
+      if (!confirm('Are you sure you want to remove this video?')) return;
+      // Option 1: AJAX call to backend endpoint (recommended for modern UX)
+      fetch(`/remove-property-video/{{ property.id }}/`, {
+        method: 'POST',
+        headers: {
+          'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+        }
+      })
+      .then(res => {
+        if (res.ok) {
+          // Remove video from DOM
+          btn.parentElement.remove();
+        } else {
+          alert('Failed to remove video.');
+        }
+      })
+      .catch(() => alert('Failed to remove video.'));
+      // Option 2: If you want to use a hidden form, you can submit it here instead
+    }
+    // Remove existing image (AJAX or form submission)
+    function removeExistingImage(imageId, btn) {
+      if (!confirm('Are you sure you want to remove this image?')) return;
+      // Option 1: AJAX call to backend endpoint (recommended for modern UX)
+      fetch(`/remove-property-image/${imageId}/`, {
+        method: 'POST',
+        headers: {
+          'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+        }
+      })
+      .then(res => {
+        if (res.ok) {
+          // Remove image from DOM
+          btn.parentElement.remove();
+        } else {
+          alert('Failed to remove image.');
+        }
+      })
+      .catch(() => alert('Failed to remove image.'));
+      // Option 2: If you want to use a hidden form, you can submit it here instead
+    }
+    // Multi-image preview for file input with remove option
+    document.addEventListener('DOMContentLoaded', function() {
+      const imageInput = document.getElementById('image_upload');
+      const previewContainer = document.getElementById('multi_image_preview');
+      let selectedFiles = [];
+
+      function updatePreview() {
+        previewContainer.innerHTML = '';
+        selectedFiles.forEach((file, idx) => {
+          const reader = new FileReader();
+          reader.onload = function(e) {
+            const wrapper = document.createElement('div');
+            wrapper.style.position = 'relative';
+            wrapper.style.display = 'inline-block';
+            wrapper.style.marginRight = '8px';
+            wrapper.style.marginBottom = '8px';
+
+            const img = document.createElement('img');
+            img.src = e.target.result;
+            img.className = 'rounded border';
+            img.style.width = '90px';
+            img.style.height = '90px';
+            img.style.objectFit = 'cover';
+
+            // Cross button
+            const cross = document.createElement('span');
+            cross.innerHTML = '&times;';
+            cross.style.position = 'absolute';
+            cross.style.top = '2px';
+            cross.style.right = '6px';
+            cross.style.background = 'rgba(255,255,255,0.8)';
+            cross.style.borderRadius = '50%';
+            cross.style.cursor = 'pointer';
+            cross.style.fontSize = '20px';
+            cross.style.color = '#dc3545';
+            cross.style.width = '22px';
+            cross.style.height = '22px';
+            cross.style.display = 'flex';
+            cross.style.alignItems = 'center';
+            cross.style.justifyContent = 'center';
+            cross.title = 'Remove';
+            cross.onclick = function() {
+              selectedFiles.splice(idx, 1);
+              updatePreview();
+              updateInputFiles();
+            };
+
+            wrapper.appendChild(img);
+            wrapper.appendChild(cross);
+            previewContainer.appendChild(wrapper);
+          };
+          reader.readAsDataURL(file);
+        });
+      }
+
+      function updateInputFiles() {
+        // Create a new DataTransfer to update the input's files
+        const dt = new DataTransfer();
+        selectedFiles.forEach(file => dt.items.add(file));
+        imageInput.files = dt.files;
+      }
+
+      if (imageInput) {
+        imageInput.addEventListener('change', function() {
+          // Append new files to selectedFiles, avoiding duplicates
+          const newFiles = Array.from(this.files);
+          // Only add files that are not already in selectedFiles (by name and size)
+          newFiles.forEach(newFile => {
+            if (!selectedFiles.some(f => f.name === newFile.name && f.size === newFile.size && f.lastModified === newFile.lastModified)) {
+              selectedFiles.push(newFile);
+            }
+          });
+          updatePreview();
+          updateInputFiles();
+        });
+      }
+    });
     // Update image preview when URL changes
     function updateImagePreview(url) {
       const preview = document.getElementById('image_preview');
