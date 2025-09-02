@@ -159,7 +159,7 @@ class Booking(models.Model):
     start_date = models.DateField()
     end_date = models.DateField()
     guest = models.CharField(max_length=15, blank=True, null=True)
-    status = models.CharField(max_length=10, choices=STATUS_CHOICES, default='unpaid')
+    status = models.CharField(max_length=10, choices=STATUS_CHOICES, default='approved')
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
     total_price = models.DecimalField(max_digits=10, decimal_places=2)
