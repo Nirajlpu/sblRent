@@ -61,7 +61,7 @@ def home(request):
     user_lng = request.GET.get('user_lng')
     radius_km = float(request.GET.get('radius', 20))
 
-    featured_list = Property.objects.filter(status='active', is_featured=True)
+    featured_list = Property.objects.filter(status='active', is_featured=True).order_by('-date_added')
     recent_list = Property.objects.filter(status='active').order_by('-date_added')
 
     # Filter featured properties by location if available
