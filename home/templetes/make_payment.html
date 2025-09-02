@@ -22,7 +22,11 @@
         <h5>Booking Summary</h5>
         <p><strong>Property:</strong> {{ booking.property.title }}</p>
         <p><strong>Location:</strong> {{ booking.property.address }}</p>
-        <p><strong>Booking Dates:</strong> {{ booking.start_date }} to {{ booking.end_date }}</p>
+        <p><strong>Booking duration:</strong> {{ booking.start_date }} to {{ booking.end_date }}</p>
+        <p><strong>Name:</strong> {{ booking.user.get_full_name }}</p>
+        <p><strong>Email:</strong> {{ booking.user.email }}</p>
+        <p><strong>Phone:</strong> {{ booking.user.phone_number }}</p>
+
         <p><strong>Total Price:</strong> ₹{{ booking.total_price }}</p>
     </div>
 

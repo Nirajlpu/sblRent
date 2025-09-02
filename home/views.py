@@ -625,12 +625,6 @@ def book_property(request, property_id):
             monthly_due_dates=monthly_due_dates
         )
         
-        messages.success(request, "Booking successful!")
-
-
-
-
-       
         # Redirect to pay for the first unpaid month only
         first_month = booking.start_date.strftime('%B')
         first_year = booking.start_date.year
@@ -646,10 +640,19 @@ def book_property(request, property_id):
 
 @login_required
 def booking_confirmation(request, booking_id):
+    #how can stop the user from accessing this view if the booking is not paid?
     booking = get_object_or_404(Booking, id=booking_id, user=request.user)
+
+
+    if booking.status != 'paid':
+        messages.error(request, "You must complete the payment before accessing this page.")
+        return redirect('reservation_detail', booking_id=booking.id)
+
     # Mark property as rented if booking is paid
-    booking.status = 'paid'
-   
+    if booking.status == 'paid' and booking.property.status != 'rented':
+        booking.property.status = 'rented'
+        booking.property.save()
+    
 
     vendor_email = booking.property.owner.email
     customer_email = request.user.email
@@ -710,10 +713,10 @@ def booking_confirmation(request, booking_id):
     )
     if booking.property.status != 'rented':
         t2.start()
-    booking.property.status = 'rented'
-    booking.property.save()
-
-    booking.save()
+   
+    if booking.status == 'paid':
+        booking.status='unpaid'
+        booking.save()
     return render(request, 'booking_confirmation.html', {'booking': booking})
 
 @login_required

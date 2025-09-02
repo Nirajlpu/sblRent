@@ -183,7 +183,19 @@
             <span>{{ booking.end_date|date:"M d, Y" }}</span>
           </div>
           <div class="detail-item">
-            <span class="fw-bold">Guests:</span>
+            <span class="fw-bold">User:</span>
+            <span>{{ booking.user.get_full_name }}</span>
+          </div>
+          <div class="detail-item">
+            <span class="fw-bold">Email:</span>
+            <span>{{ booking.user.email }}</span>
+          </div>
+          <div class="detail-item">
+            <span class="fw-bold">Phone:</span>
+            <span>{{ booking.user.phone_number }}</span>
+          </div>
+          <div class="detail-item">
+            <span class="fw-bold">Number of Guests:</span>
             <span>{{ booking.guest }}</span>
           </div>
           <div class="detail-item">
@@ -193,7 +205,7 @@
           {% if booking.special_requests %}
           <div class="detail-item">
             <span class="fw-bold">Special Requests:</span>
-            <span>{{ booking.special_requests }}</span>
+            <span>{{ booking.notes }}</span>
           </div>
           {% endif %}
         </div>
