@@ -719,21 +719,21 @@ def booking_confirmation(request, booking_id):
         booking.save()
     return render(request, 'booking_confirmation.html', {'booking': booking})
 
-@login_required
-def manage_profile(request):
-    profile = request.user.profile
+# @login_required
+# def manage_profile(request):
+#     profile = request.user.profile
     
     
-    if request.method == 'POST':
-        form = ProfileForm(request.POST, request.FILES, instance=profile)
-        if form.is_valid():
-            form.save()
-            messages.success(request, "Profile updated successfully!")
-            return redirect('dashboard')
-    else:
-        form = ProfileForm(instance=profile)
+#     if request.method == 'POST':
+#         form = ProfileForm(request.POST, request.FILES, instance=profile)
+#         if form.is_valid():
+#             form.save()
+#             messages.success(request, "Profile updated successfully!")
+#             return redirect('dashboard')
+#     else:
+#         form = ProfileForm(instance=profile)
     
-    return render(request, 'manage_profile.html', {'form': form})
+#     return render(request, 'manage_profile.html', {'form': form})
 
 
 def toggle_wishlist(request, property_id):
