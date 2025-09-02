@@ -13,7 +13,7 @@ urlpatterns = [
     
     # Dashboard and Profile URLs
     path('dashboard/', views.dashboard, name='dashboard'),
-    path('profile/', views.manage_profile, name='manage_profile'),
+    # path('profile/', views.manage_profile, name='manage_profile'),
     path('properties/', views.property_list, name='property_list'),
     path('my-bookings/', views.my_bookings, name='my_bookings'),
     path('my-wishlist/', views.my_wishlist, name='my_wishlist'),
