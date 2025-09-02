@@ -281,7 +281,10 @@
             <div class="amenities-tags" id="amenities_tags">
               <!-- Amenity tags will be added here by JavaScript -->
             </div>
-            <input type="hidden" name="amenities" id="amenities" value="{{ property.amenities|default:'[]' }}">
+            <script id="amenities-data" type="application/json">
+              {{ amenities_json|safe }}
+            </script>
+            <input type="hidden" name="amenities" id="amenities" value="">
           </div>
         </div>
         
@@ -548,52 +551,111 @@
     }
     
     // Show image preview if there's a default image
-    document.addEventListener('DOMContentLoaded', function() {
-      const defaultImage = "{{ property.image_url|default:'' }}";
-      if (defaultImage) {
-        updateImagePreview(defaultImage);
-      }
+    // document.addEventListener('DOMContentLoaded', function() {
+    //   const defaultImage = "{{ property.image_url|default:'' }}";
+    //   if (defaultImage) {
+    //     updateImagePreview(defaultImage);
+    //   }
       
-      // Initialize amenities tags
-      const amenities = JSON.parse(document.getElementById('amenities').value || '[]');
-      amenities.forEach(amenity => {
-        addAmenityTag(amenity);
+    //   // Initialize amenities tags
+    //   // const amenities = JSON.parse(document.getElementById('amenities').value || '[]');
+    //   // amenities.forEach(amenity => {
+    //   //   addAmenityTag(amenity);
+    //   // });
+    // });
+    // --------
+
+    document.addEventListener('DOMContentLoaded', function() {
+      // Amenities initialization
+      const tagsContainer = document.getElementById('amenities_tags');
+      const amenitiesInput = document.getElementById('amenities');
+      let amenities = [];
+      try {
+        amenities = JSON.parse(document.getElementById('amenities-data').textContent || '[]');
+      } catch {
+        amenities = [];
+      }
+      renderAmenities();
+
+      document.getElementById('add_amenity').addEventListener('click', function() {
+        const input = document.getElementById('amenity_input');
+        const name = input.value.trim();
+        if (name && !amenities.includes(name)) {
+          amenities.push(name);
+          input.value = '';
+          renderAmenities();
+        }
       });
-    });
-    
-    // Amenities management
-    document.getElementById('add_amenity').addEventListener('click', function() {
-      const input = document.getElementById('amenity_input');
-      if (input.value.trim()) {
-        addAmenityTag(input.value.trim());
-        input.value = '';
+
+      function renderAmenities() {
+        tagsContainer.innerHTML = '';
+        amenities.forEach((amenity, idx) => {
+          const tag = document.createElement('div');
+          tag.className = 'amenity-tag';
+          tag.innerHTML = `
+            <span>${amenity}</span>
+            <span class="amenity-tag-remove" style="margin-left:8px;cursor:pointer;" onclick="removeAmenityTag(${idx})">
+              <i class="bi bi-x"></i>
+            </span>
+          `;
+          tagsContainer.appendChild(tag);
+        });
+        updateAmenitiesInput();
+      }
+
+      window.removeAmenityTag = function(idx) {
+        amenities.splice(idx, 1);
+        renderAmenities();
+      };
+
+      function updateAmenitiesInput() {
+        amenitiesInput.value = JSON.stringify(amenities);
       }
     });
+
+
+
+
+
+
+
+
+
+
+    // ----------
+    // Amenities management
+    // document.getElementById('add_amenity').addEventListener('click', function() {
+    //   const input = document.getElementById('amenity_input');
+    //   if (input.value.trim()) {
+    //     addAmenityTag(input.value.trim());
+    //     input.value = '';
+    //   }
+    // });
     
-    function addAmenityTag(amenity) {
-      const tagsContainer = document.getElementById('amenities_tags');
-      const tag = document.createElement('div');
-      tag.className = 'amenity-tag';
-      tag.innerHTML = `
-        ${amenity}
-        <span class="amenity-tag-remove" onclick="removeAmenityTag(this)">
-          <i class="bi bi-x"></i>
-        </span>
-      `;
-      tagsContainer.appendChild(tag);
-      updateAmenitiesInput();
-    }
+    // function addAmenityTag(amenity) {
+    //   const tagsContainer = document.getElementById('amenities_tags');
+    //   const tag = document.createElement('div');
+    //   tag.className = 'amenity-tag';
+    //   tag.innerHTML = `
+    //     ${amenity}
+    //     <span class="amenity-tag-remove" onclick="removeAmenityTag(this)">
+    //       <i class="bi bi-x"></i>
+    //     </span>
+    //   `;
+    //   tagsContainer.appendChild(tag);
+    //   updateAmenitiesInput();
+    // }
     
-    function removeAmenityTag(element) {
-      element.parentElement.remove();
-      updateAmenitiesInput();
-    }
+    // function removeAmenityTag(element) {
+    //   element.parentElement.remove();
+    //   updateAmenitiesInput();
+    // }
     
-    function updateAmenitiesInput() {
-      const tags = Array.from(document.querySelectorAll('.amenity-tag'))
-        .map(tag => tag.textContent.trim().replace('×', '').trim());
-      document.getElementById('amenities').value = JSON.stringify(tags);
-    }
+    // function updateAmenitiesInput() {
+    //   const tags = Array.from(document.querySelectorAll('.amenity-tag'))
+    //     .map(tag => tag.textContent.trim().replace('×', '').trim());
+    //   document.getElementById('amenities').value = JSON.stringify(tags);
+    // }
 
     function openMapModal() {
       const modal = new bootstrap.Modal(document.getElementById('mapModal'));
