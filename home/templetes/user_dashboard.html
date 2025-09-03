@@ -432,18 +432,24 @@
   <div class="modal fade" id="mapModal" tabindex="-1" aria-labelledby="mapModalLabel" aria-hidden="true">
     <div class="modal-dialog modal-lg modal-dialog-centered">
       <div class="modal-content">
-        <div class="modal-header sticky-top bg-white">
-          <h5 class="modal-title" id="mapModalLabel">
-            <i class="fas fa-map-marked-alt me-2 text-success"></i>
-            Select Location on Map
-          </h5>
-          <button type="button" class="btn btn-outline-primary btn-sm ms-2" onclick="locateMeOnMap()">
-            <i class="fas fa-crosshairs"></i> Locate Me
-          </button>
-          <button type="button" class="btn btn-outline-secondary btn-sm ms-2" onclick="clearMapLocation()">
-            <i class="fas fa-eraser"></i> Clear Location
-          </button>
-          <button type="button" class="btn-close ms-2" data-bs-dismiss="modal" aria-label="Close"></button>
+        <div class="modal-header sticky-top bg-white flex-wrap">
+          <div class="d-flex align-items-center flex-wrap gap-2 w-100">
+            <h5 class="modal-title me-3" id="mapModalLabel">
+              <i class="fas fa-map-marked-alt me-2 text-success"></i>
+              Select Location on Map
+            </h5>
+            <input type="text" id="map-search-input" class="form-control form-control-sm w-auto" placeholder="Search location..." style="max-width: 220px;">
+            <button type="button" class="btn btn-outline-primary btn-sm" onclick="searchMapLocation()">
+              <i class="fas fa-search"></i>
+            </button>
+            <button type="button" class="btn btn-outline-primary btn-sm ms-2" onclick="locateMeOnMap()">
+              <i class="fas fa-crosshairs"></i> Locate Me
+            </button>
+            <button type="button" class="btn btn-outline-secondary btn-sm ms-2" onclick="clearMapLocation()">
+              <i class="fas fa-eraser"></i> Clear Location
+            </button>
+            <button type="button" class="btn-close ms-2" data-bs-dismiss="modal" aria-label="Close"></button>
+          </div>
         </div>
         <div class="modal-body" style="height: 400px;">
           <div class="mb-2 text-muted small">
@@ -662,6 +668,28 @@
       });
     });
 
+       // Search location on map using Nominatim
+    function searchMapLocation() {
+      const query = document.getElementById('map-search-input').value.trim();
+      if (!query) return;
+      fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}`)
+        .then(res => res.json())
+        .then(data => {
+          if (data && data.length > 0) {
+            const lat = parseFloat(data[0].lat);
+            const lon = parseFloat(data[0].lon);
+            if (window._map && window._marker) {
+              window._map.setView([lat, lon], 14);
+              window._marker.setLatLng([lat, lon]);
+              document.getElementById('lat').value = lat.toFixed(6);
+              document.getElementById('lng').value = lon.toFixed(6);
+            }
+          } else {
+            alert('Location not found. Please try a different search.');
+          }
+        })
+        .catch(() => alert('Error searching for location.'));
+    }
     // Locate Me function
     function locateMeOnMap() {
       if (!window._map || !window._marker) return;
