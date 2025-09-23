@@ -19,8 +19,8 @@ import dj_database_url
 BASE_DIR = Path(__file__).resolve().parent.parent
 
 
-RAZORPAY_KEY_ID = config('RAZORPAY_KEY_ID')
-RAZORPAY_KEY_SECRET = config('RAZORPAY_KEY_SECRET')
+RAZORPAY_KEY_ID = config('RAZORPAY_KEY_ID', default='your_default_key_id')
+RAZORPAY_KEY_SECRET = config('RAZORPAY_KEY_SECRET', default='your_default_key_secret')
 
 
 # Quick-start development settings - unsuitable for production
