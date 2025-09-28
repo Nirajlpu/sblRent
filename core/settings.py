@@ -206,3 +206,7 @@ SECURE_SSL_REDIRECT = False
 SESSION_COOKIE_SECURE = False
 CSRF_COOKIE_SECURE = False
 # ...existing code...
+
+CSRF_TRUSTED_ORIGINS = [
+    'https://sblrent-c9ehdmewcqcfhkh7.eastasia-01.azurewebsites.net'
+]
