@@ -66,6 +66,8 @@ SBLRent is a modern Django-based rental platform for property owners (vendors) a
 
 Visit the deployed app: [sblrent.onrender.com](https://sblrent.onrender.com/)
 
+Visit the deployed on Azure: [https://sblrent-c9ehdmewcqcfhkh7.eastasia-01.azurewebsites.net/](https://sblrent-c9ehdmewcqcfhkh7.eastasia-01.azurewebsites.net/)
+
 ---
 
 ## Setup Instructions
@@ -144,6 +146,7 @@ Visit `http://127.0.0.1:8000/` in your browser.
 ## Deployment on Render
 
 This project is ready for deployment on [Render](https://render.com/):
+Visit the deployed on Azure: [https://sblrent-c9ehdmewcqcfhkh7.eastasia-01.azurewebsites.net/](https://sblrent-c9ehdmewcqcfhkh7.eastasia-01.azurewebsites.net/)
 
 1. Push your code to GitHub (do NOT include your local `myenv` or `db.sqlite3`).
 2. Connect your GitHub repo to Render and create a new Web Service.
@@ -154,6 +157,7 @@ This project is ready for deployment on [Render](https://render.com/):
 5. Render will auto-deploy on every push to GitHub.
 
 Live site: [https://sblrent.onrender.com/](https://sblrent.onrender.com/)
+Visit the deployed on Azure: [https://sblrent-c9ehdmewcqcfhkh7.eastasia-01.azurewebsites.net/](https://sblrent-c9ehdmewcqcfhkh7.eastasia-01.azurewebsites.net/)
 
 ---
 
