@@ -526,8 +526,7 @@ def manage_property(request, property_id=None):
                     PropertyImage.objects.create(property=property, image=img)
                     n += 1
 
-            messages.success(request,
-                            "Property updated successfully!" if property_id else "Property added successfully!")
+            messages.success(request,"Property updated successfully!" if property_id else "Property added successfully!")
             return redirect('dashboard')
 
         # Prepare amenities as valid JSON for template
@@ -544,7 +543,7 @@ def manage_property(request, property_id=None):
             'amenities_json': amenities_json,
         })
     else:
-        messages.success(request," You do not have permission to manage properties.")
+        messages.error(request," You do not have permission to manage properties.")
         return redirect('dashboard')
 
 @login_required
@@ -649,7 +648,12 @@ def book_property(request, property_id):
 
         days = (end_date - start_date).days
         months = Decimal(days) / Decimal("30")
-        total_price = (months * property_obj.price).quantize(Decimal("0.01"))
+        
+        price = property_obj.price  # already Decimal
+
+        tax_rate = Decimal("0.01")   # NOT 0.01
+
+        total_price = price + (price * tax_rate)
 
         # Calculate monthly dues
         monthly_due_dates = []
@@ -786,7 +790,7 @@ def booking_confirmation(request, booking_id):
     
 #     return render(request, 'manage_profile.html', {'form': form})
 
-
+@login_required
 def toggle_wishlist(request, property_id):
     if not request.user.is_authenticated:
         # AJAX: return JSON with login redirect
@@ -808,6 +812,7 @@ def toggle_wishlist(request, property_id):
         return JsonResponse({"status": status})
     else:
         return redirect(request.META.get("HTTP_REFERER", "home"))
+
 
 def logout_user(request):
     logout(request)
@@ -1200,7 +1205,8 @@ def reservation_details(request, booking_id):
     # Use Django's timezone utilities to get IST (Asia/Kolkata) date
     # today = timezone.localtime(timezone.now(), timezone.get_fixed_timezone(330)).date()
 
-    today = timezone.localdate()
+    # today = timezone.localdate()
+    today = date(2030, 10, 28)
     logger.debug("Generating reservation details for date: %s", today)
 
     monthly_payments = [p for p in monthly_payments if p["date"] <= today]

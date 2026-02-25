@@ -225,24 +225,70 @@ CSP_SCRIPT_SRC = (
     "https://cdn.jsdelivr.net",
     "https://cdnjs.cloudflare.com",
     "https://unpkg.com",
+    "https://checkout.razorpay.com",
+    "https://*.razorpay.com",
+    "https://kit.fontawesome.com",
 )
+
+CSP_STYLE_SRC = (
+    "'self'",
+    "'unsafe-inline'",
+    "https://cdn.jsdelivr.net",
+    "https://cdnjs.cloudflare.com",
+    "https://fonts.googleapis.com",
+    "https://unpkg.com",
+)
+
 CSP_FONT_SRC = (
     "'self'",
     "https://fonts.gstatic.com",
     "https://cdnjs.cloudflare.com",
+    "https://cdn.jsdelivr.net",
 )
+
 CSP_IMG_SRC = (
     "'self'",
     "data:",
     "blob:",
     "https:",
+    "https://*.razorpay.com",
+    "https://*.blob.core.windows.net",
+    "https://*.tile.openstreetmap.org",
 )
+
+CSP_MEDIA_SRC = (
+    "'self'",
+    "blob:",
+    "https://*.blob.core.windows.net",
+)
+
+CSP_FRAME_SRC = (
+    "'self'",
+    "https://maps.google.com",
+    "https://www.google.com",
+    "https://checkout.razorpay.com",
+    "https://*.razorpay.com",
+)
+
+CSP_FORM_ACTION = (
+    "'self'",
+    "https://checkout.razorpay.com",
+    "https://api.razorpay.com",
+    "https://*.razorpay.com",
+)
+
 CSP_CONNECT_SRC = (
     "'self'",
     "https://nominatim.openstreetmap.org",
     "https://maps.google.com",
     "https://www.google.com",
+    "https://maps.googleapis.com",
     "https://wa.me",
+    "https://*.tile.openstreetmap.org",
+    "https://api.razorpay.com",
+    "https://checkout.razorpay.com",
+    "https://*.razorpay.com",
+    "https://*.blob.core.windows.net",
 )
 
 if not DEBUG:
@@ -265,13 +311,15 @@ if not DEBUG:
 
     # --- Security Headers ---
     SECURE_REFERRER_POLICY = "same-origin"
-    SECURE_CROSS_ORIGIN_OPENER_POLICY = "same-origin"
+    SECURE_CROSS_ORIGIN_OPENER_POLICY = "same-origin-allow-popups"
     SECURE_BROWSER_XSS_FILTER = True
     SECURE_CONTENT_TYPE_NOSNIFF = True
     X_FRAME_OPTIONS = 'DENY'
 
     CSRF_TRUSTED_ORIGINS = [
-        'https://sblrent-c9ehdmewcqcfhkh7.eastasia-01.azurewebsites.net'
+        'https://sblrent-c9ehdmewcqcfhkh7.eastasia-01.azurewebsites.net',
+        'https://sblconstruction.in',
+        'https://sblrent.sblconstruction.in',
     ]
 
     LOGIN_FAILURE_LIMIT = config('LOGIN_FAILURE_LIMIT', default=5, cast=int)

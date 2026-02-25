@@ -32,7 +32,7 @@ from django.conf.urls.static import static
 
 urlpatterns = [
     # ... your existing URLs
-    path("admin/", admin.site.urls),
+    path("nilamadmin/", admin.site.urls),
     # add manually
     path('',include('home.urls'))
     
