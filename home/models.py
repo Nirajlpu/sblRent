@@ -158,7 +158,7 @@ class Booking(models.Model):
     user = models.ForeignKey(CustomUser, on_delete=models.CASCADE, related_name='bookings')
     start_date = models.DateField()
     end_date = models.DateField()
-    guest = models.CharField(max_length=15, blank=True, null=True)
+    guest = models.PositiveIntegerField(blank=True, null=True)
     status = models.CharField(max_length=10, choices=STATUS_CHOICES, default='approved')
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
@@ -166,7 +166,7 @@ class Booking(models.Model):
     paid_amount = models.DecimalField(max_digits=10, decimal_places=2, default=0)
     notes = models.TextField(blank=True, null=True)
     payment_data = models.JSONField(default=list, blank=True)
-    payment_type = models.CharField(max_length=10, choices=PAYMENT_TYPE_CHOICES, default='full')
+    payment_type = models.CharField(max_length=10, choices=PAYMENT_TYPE_CHOICES, default='monthly')
     monthly_due_dates = models.JSONField(default=list, blank=True)
 
     def __str__(self):

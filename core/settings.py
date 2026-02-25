@@ -19,8 +19,8 @@ import dj_database_url
 BASE_DIR = Path(__file__).resolve().parent.parent
 
 
-RAZORPAY_KEY_ID = config('RAZORPAY_KEY_ID', default='your_default_key_id')
-RAZORPAY_KEY_SECRET = config('RAZORPAY_KEY_SECRET', default='your_default_key_secret')
+RAZORPAY_KEY_ID = config('RAZORPAY_KEY_ID')
+RAZORPAY_KEY_SECRET = config('RAZORPAY_KEY_SECRET')
 
 
 # Quick-start development settings - unsuitable for production
@@ -35,7 +35,7 @@ DEBUG = config('DEBUG', default=False, cast=bool)
 
 ALLOWED_HOSTS = config('ALLOWED_HOSTS', default='127.0.0.1,localhost').split(',')
 TIME_ZONE = 'Asia/Kolkata'
-USE_TZ = True
+
 
 
 # Application definition
@@ -64,8 +64,9 @@ EXTERNAL_APPS=[
 INSTALLED_APPS += EXTERNAL_APPS
 
 MIDDLEWARE = [
-    "whitenoise.middleware.WhiteNoiseMiddleware",
     "django.middleware.security.SecurityMiddleware",
+    "whitenoise.middleware.WhiteNoiseMiddleware",
+    "core.middleware.SecurityHeadersMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
@@ -73,6 +74,8 @@ MIDDLEWARE = [
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
 ]
+
+
 
 ROOT_URLCONF = "core.urls"
 
@@ -140,7 +143,6 @@ AUTH_PASSWORD_VALIDATORS = [
 
 LANGUAGE_CODE = "en-us"
 
-TIME_ZONE = "UTC"
 
 USE_I18N = True
 
@@ -202,11 +204,68 @@ EMAIL_HOST_PASSWORD = config('EMAIL_HOST_PASSWORD')
 DEFAULT_FROM_EMAIL = EMAIL_HOST_USER
 
 # ...existing code...
-SECURE_SSL_REDIRECT = False
-SESSION_COOKIE_SECURE = False
-CSRF_COOKIE_SECURE = False
+
+SECURE_SSL_REDIRECT = config('SECURE_SSL_REDIRECT', default=True, cast=bool)
+SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
+SESSION_COOKIE_SECURE = config('SESSION_COOKIE_SECURE', default=True, cast=bool)
+CSRF_COOKIE_SECURE = config('CSRF_COOKIE_SECURE', default=True, cast=bool)
+SESSION_COOKIE_SAMESITE = 'Lax'
+CSRF_COOKIE_SAMESITE = 'Lax'
+
+SECURE_HSTS_SECONDS = config('SECURE_HSTS_SECONDS', default=31536000, cast=int)
+SECURE_HSTS_INCLUDE_SUBDOMAINS = True
+SECURE_HSTS_PRELOAD = True
+
+
+SESSION_COOKIE_HTTPONLY = True
+CSRF_COOKIE_HTTPONLY = True
+
+SECURE_REFERRER_POLICY = "same-origin"
+SECURE_CROSS_ORIGIN_OPENER_POLICY = "same-origin"
+
+SECURE_BROWSER_XSS_FILTER = True
+SECURE_CONTENT_TYPE_NOSNIFF = True
+X_FRAME_OPTIONS = 'DENY'
+
+CSP_DEFAULT_SRC = ("'self'",)
+CSP_STYLE_SRC = (
+    "'self'",
+    "'unsafe-inline'",
+    "https://cdn.jsdelivr.net",
+    "https://cdnjs.cloudflare.com",
+    "https://fonts.googleapis.com",
+    "https://unpkg.com",
+)
+CSP_SCRIPT_SRC = (
+    "'self'",
+    "'unsafe-inline'",
+    "https://cdn.jsdelivr.net",
+    "https://cdnjs.cloudflare.com",
+    "https://unpkg.com",
+)
+CSP_FONT_SRC = (
+    "'self'",
+    "https://fonts.gstatic.com",
+    "https://cdnjs.cloudflare.com",
+)
+CSP_IMG_SRC = (
+    "'self'",
+    "data:",
+    "blob:",
+    "https:",
+)
+CSP_CONNECT_SRC = (
+    "'self'",
+    "https://nominatim.openstreetmap.org",
+    "https://maps.google.com",
+    "https://www.google.com",
+    "https://wa.me",
+)
 # ...existing code...
 
 CSRF_TRUSTED_ORIGINS = [
     'https://sblrent-c9ehdmewcqcfhkh7.eastasia-01.azurewebsites.net'
 ]
+
+LOGIN_FAILURE_LIMIT = config('LOGIN_FAILURE_LIMIT', default=5, cast=int)
+LOGIN_LOCKOUT_SECONDS = config('LOGIN_LOCKOUT_SECONDS', default=900, cast=int)

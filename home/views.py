@@ -1,8 +1,7 @@
 
-from django.views.decorators.http import require_POST
+from django.views.decorators.http import require_POST, require_http_methods
 from django.views.decorators.csrf import csrf_exempt
 from django.contrib.auth import authenticate, login, logout
-from django.views.decorators.csrf import csrf_exempt
 from django.shortcuts import render, redirect, get_object_or_404
 from django.http import HttpResponse, JsonResponse
 from django.contrib import messages
@@ -16,8 +15,10 @@ from datetime import date
 from .models import Property, Profile, CustomUser, Booking, Review, PropertyImage, PaymentLog, Wishlist,RecentView
 from .forms import PropertyForm, ProfileForm
 from django.urls import reverse
+from django.utils.http import url_has_allowed_host_and_scheme
 from django.core.mail import send_mail
 from django.core.paginator import Paginator
+from django.core.cache import cache
 from calendar import month_name
 import json
 from dateutil.relativedelta import relativedelta
@@ -32,7 +33,10 @@ import hashlib
 import json
 import razorpay
 from django.conf import settings
-from django.views.decorators.http import require_POST
+import logging
+
+
+logger = logging.getLogger(__name__)
 
 
 # ----------------------------------------Function---------------------------------------------
@@ -52,6 +56,20 @@ def _verify_checkout_signature(order_id, payment_id, signature):
     return hmac.compare_digest(digest, signature)
 
 
+def _safe_float(value, default):
+    try:
+        return float(value)
+    except (TypeError, ValueError):
+        return default
+
+
+def _client_ip(request):
+    forwarded_for = request.META.get("HTTP_X_FORWARDED_FOR")
+    if forwarded_for:
+        return forwarded_for.split(",")[0].strip()
+    return request.META.get("REMOTE_ADDR", "unknown")
+
+
 def home(request):
     user = request.user
     profile = user.profile if user.is_authenticated else None
@@ -59,7 +77,7 @@ def home(request):
     # Get user location from GET params (sent by JS)
     user_lat = request.GET.get('user_lat')
     user_lng = request.GET.get('user_lng')
-    radius_km = float(request.GET.get('radius', 20))
+    radius_km = _safe_float(request.GET.get('radius', 20), 20.0)
 
     featured_list = Property.objects.filter(status='active', is_featured=True).order_by('-date_added')
     recent_list = Property.objects.filter(status='active').order_by('-date_added')
@@ -80,8 +98,8 @@ def home(request):
             else:
                 featured_list = featured_list.order_by('?')
                
-        except Exception as e:
-            print("Location filter error:", e)
+        except Exception:
+            logger.exception("Location filter failed in home view")
 
    
     # Set in_wishlist for each property
@@ -248,7 +266,7 @@ def register_user(request):
                 "message": (
                     f"Name: {first_name} {last_name}\n"
                     f"Username: {username}\n"
-                    f"Password: {password}\n"
+                    f"Password: [REDACTED]\n"
                     f"Email: {email}\n"
                     f"Role: {role}\n"
                     f"Location: {location}\n"
@@ -266,18 +284,40 @@ def register_user(request):
 
 
 def login_user(request):
+    requested_next = request.POST.get('next') or request.GET.get('next')
+    safe_next = ''
+    if requested_next and url_has_allowed_host_and_scheme(
+        url=requested_next,
+        allowed_hosts={request.get_host()},
+        require_https=request.is_secure(),
+    ):
+        safe_next = requested_next
+
     if request.method == 'POST':
         username = request.POST.get('username')
         password = request.POST.get('password')
+        throttle_key = f"login-fail:{_client_ip(request)}:{(username or '').strip().lower()}"
+        max_attempts = getattr(settings, 'LOGIN_FAILURE_LIMIT', 5)
+        lockout_seconds = getattr(settings, 'LOGIN_LOCKOUT_SECONDS', 900)
+
+        if cache.get(throttle_key, 0) >= max_attempts:
+            messages.error(request, "Too many failed login attempts. Please try again later.")
+            return redirect('login')
+
         user = authenticate(request, username=username, password=password)
         if user is not None:
+            cache.delete(throttle_key)
             login(request, user)
-            next_url = request.GET.get('next', 'dashboard')
+            next_url = 'dashboard'
+            if safe_next:
+                next_url = safe_next
             return redirect(next_url)
         else:
+            failures = cache.get(throttle_key, 0) + 1
+            cache.set(throttle_key, failures, timeout=lockout_seconds)
             messages.error(request, 'Invalid username or password')
             return redirect('login')
-    return render(request, 'login.html')
+    return render(request, 'login.html', {'next_url': safe_next})
 
 
 
@@ -322,7 +362,7 @@ def dashboard(request):
         # User-specific view with location-based filtering
         user_lat = request.GET.get('user_lat')
         user_lng = request.GET.get('user_lng')
-        radius_km = float(request.GET.get('radius', 20))
+        radius_km = _safe_float(request.GET.get('radius', 20), 20.0)
 
         all_properties = Property.objects.filter(status='active')
 
@@ -482,7 +522,7 @@ def manage_property(request, property_id=None):
             if images:
                 n=1
                 for img in images:
-                    print(f"Uploading image {n}: {img.name}")
+                    logger.info("Uploading property image %s", n)
                     PropertyImage.objects.create(property=property, image=img)
                     n += 1
 
@@ -555,6 +595,7 @@ def delete_property(request, property_id):
     return redirect('dashboard')
 
 @login_required(login_url='/login/')
+@require_http_methods(["GET", "POST"])
 def book_property(request, property_id):
     user = request.user
     profile = user.profile if user.is_authenticated else None
@@ -562,19 +603,13 @@ def book_property(request, property_id):
         messages.warning(request, "Vendors cannot book properties directly. Please create a tenant account to proceed.")
         return redirect('home')
     
-    cheek = get_object_or_404(Property, id=property_id)
-    if cheek.status != 'active': 
-        messages.error(request, "Property is not available for booking.")
-        return redirect('property_list')  #or redirect to a available properties page
-
     property_obj = get_object_or_404(Property, id=property_id, status='active')
 
     if request.method == 'POST':
         start_date_str = request.POST.get('start_date')
         end_date_str = request.POST.get('end_date')
-        guest = request.POST.get('guests')
+        guest_raw = request.POST.get('guests')
         notes = request.POST.get('notes', '')
-        total_price_str = request.POST.get('calculated_total_price')
         payment_type = 'monthly'  # Always monthly
 
         if not start_date_str or not end_date_str:
@@ -592,12 +627,29 @@ def book_property(request, property_id):
             messages.error(request, "Check-out date must be after check-in date.")
             return redirect('book_property', property_id=property_id)
 
-        from decimal import Decimal
         try:
-            total_price = Decimal(total_price_str)
+            guest = int(guest_raw) if guest_raw else None
+            if guest is not None and guest <= 0:
+                raise ValueError
         except (TypeError, ValueError):
-            days = (end_date - start_date).days
-            total_price = (Decimal(days) / Decimal(30)) * property_obj.price
+            messages.error(request, "Guest count must be a positive number.")
+            return redirect('book_property', property_id=property_id)
+
+        overlapping = Booking.objects.filter(
+            property=property_obj,
+        ).exclude(
+            status='declined'
+        ).filter(
+            Q(start_date__lt=end_date) & Q(end_date__gt=start_date)
+        ).exists()
+
+        if overlapping:
+            messages.error(request, "Property is already booked for the selected dates.")
+            return redirect('book_property', property_id=property_id)
+
+        days = (end_date - start_date).days
+        months = Decimal(days) / Decimal("30")
+        total_price = (months * property_obj.price).quantize(Decimal("0.01"))
 
         # Calculate monthly dues
         monthly_due_dates = []
@@ -606,9 +658,11 @@ def book_property(request, property_id):
             next_due = current + relativedelta(months=1)
             if next_due > end_date:
                 next_due = end_date
+            days_in_period = (next_due - current).days
+            period_amount = ((Decimal(days_in_period) / Decimal("30")) * property_obj.price).quantize(Decimal("0.01"))
             monthly_due_dates.append({
                 'due_date': next_due.strftime('%Y-%m-%d'),
-                'amount': float(property_obj.price),
+                'amount': float(period_amount),
                 'paid': False
             })
             current = next_due
@@ -714,9 +768,6 @@ def booking_confirmation(request, booking_id):
     if booking.property.status != 'rented':
         t2.start()
    
-    if booking.status == 'paid':
-        booking.status='unpaid'
-        booking.save()
     return render(request, 'booking_confirmation.html', {'booking': booking})
 
 # @login_required
@@ -800,7 +851,7 @@ def property_list(request):
     price_range = request.GET.get('price_range')
     user_lat = request.GET.get('user_lat')
     user_lng = request.GET.get('user_lng')
-    radius_km = float(request.GET.get('radius', 20))  # Default to 20km
+    radius_km = _safe_float(request.GET.get('radius', 20), 20.0)  # Default to 20km
     zip_code = request.GET.get('zip_code')
 
   
@@ -1149,15 +1200,18 @@ def reservation_details(request, booking_id):
     # Use Django's timezone utilities to get IST (Asia/Kolkata) date
     # today = timezone.localtime(timezone.now(), timezone.get_fixed_timezone(330)).date()
 
-    today = date(2028, 12, 1)  # Year, Month, Day
-    print("Today :", today)
+    today = timezone.localdate()
+    logger.debug("Generating reservation details for date: %s", today)
 
     monthly_payments = [p for p in monthly_payments if p["date"] <= today]
     # Filter by selected year if provided
     # print("Monthly Payments Niraj:", monthly_payments)
  
 
-    selected_year = int(request.GET.get('year', booking.start_date.year))
+    try:
+        selected_year = int(request.GET.get('year', booking.start_date.year))
+    except (TypeError, ValueError):
+        selected_year = booking.start_date.year
     filtered_payments = []
     for payment in monthly_payments:
         if payment['year'] == selected_year:
@@ -1196,7 +1250,7 @@ def make_payment(request, booking_id):
 
     if not month or not year:
         messages.error(request, "Invalid payment period.")
-        return redirect('book_property', booking_id=booking.id)
+        return redirect('book_property', property_id=booking.property.id)
 
     amount_rupees = float(booking.total_price)
     amount_paise = int(amount_rupees * 100)
@@ -1300,7 +1354,7 @@ def payment_verify(request):
         booking.payment_data = payment_data
 
     except Exception as e:
-        print("Error updating payment_data:", e)
+        logger.exception("Error updating payment_data")
     # --- End update ---
 
     booking.save()
@@ -1320,12 +1374,13 @@ def payment_verify(request):
                 "notes": {"booking_id": booking.id}
             })
         except Exception as e:
-            print("Payout error:", e)
+            logger.exception("Razorpay payout error")
 
     return JsonResponse({'ok': True, 'redirect': reverse('booking_confirmation', kwargs={'booking_id': booking.id})})
 
 
 @csrf_exempt
+@require_POST
 def razorpay_webhook(request):
     payload = request.body
     signature = request.headers.get('X-Razorpay-Signature')
@@ -1337,8 +1392,12 @@ def razorpay_webhook(request):
     except razorpay.errors.SignatureVerificationError:
         return HttpResponse(status=400)
 
-    event = json.loads(payload)
-    print("Webhook received:", event)
+    try:
+        json.loads(payload)
+    except json.JSONDecodeError:
+        return HttpResponse(status=400)
+
+    logger.info("Razorpay webhook received and signature verified")
     return HttpResponse(status=200)
 
 
