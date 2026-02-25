@@ -39,10 +39,4 @@ __pycache__/
 
 # Environment variables
 .env
-.env.*
-
-# macOS
-.DS_Store
-
-# Database
-db.sqlite3
+*.env

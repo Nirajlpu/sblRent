@@ -19,8 +19,8 @@ import dj_database_url
 BASE_DIR = Path(__file__).resolve().parent.parent
 
 
-RAZORPAY_KEY_ID = config('RAZORPAY_KEY_ID')
-RAZORPAY_KEY_SECRET = config('RAZORPAY_KEY_SECRET')
+RAZORPAY_KEY_ID = config('RAZORPAY_KEY_ID', default='your_default_key_id')
+RAZORPAY_KEY_SECRET = config('RAZORPAY_KEY_SECRET', default='your_default_key_secret')
 
 
 # Quick-start development settings - unsuitable for production
@@ -204,6 +204,7 @@ EMAIL_HOST_PASSWORD = config('EMAIL_HOST_PASSWORD')
 DEFAULT_FROM_EMAIL = EMAIL_HOST_USER
 
 # ...existing code...
+<<<<<<< HEAD
 
 SECURE_SSL_REDIRECT = config('SECURE_SSL_REDIRECT', default=True, cast=bool)
 SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
@@ -261,11 +262,20 @@ CSP_CONNECT_SRC = (
     "https://www.google.com",
     "https://wa.me",
 )
+=======
+SECURE_SSL_REDIRECT = False
+SESSION_COOKIE_SECURE = False
+CSRF_COOKIE_SECURE = False
+>>>>>>> 3bf228a781b7f866ede3a6c1b914f9ff8f8aadc1
 # ...existing code...
 
 CSRF_TRUSTED_ORIGINS = [
     'https://sblrent-c9ehdmewcqcfhkh7.eastasia-01.azurewebsites.net'
+<<<<<<< HEAD
 ]
 
 LOGIN_FAILURE_LIMIT = config('LOGIN_FAILURE_LIMIT', default=5, cast=int)
 LOGIN_LOCKOUT_SECONDS = config('LOGIN_LOCKOUT_SECONDS', default=900, cast=int)
+=======
+]
+>>>>>>> 3bf228a781b7f866ede3a6c1b914f9ff8f8aadc1

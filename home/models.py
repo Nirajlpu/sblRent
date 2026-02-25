@@ -158,7 +158,11 @@ class Booking(models.Model):
     user = models.ForeignKey(CustomUser, on_delete=models.CASCADE, related_name='bookings')
     start_date = models.DateField()
     end_date = models.DateField()
+<<<<<<< HEAD
     guest = models.PositiveIntegerField(blank=True, null=True)
+=======
+    guest = models.CharField(max_length=15, blank=True, null=True)
+>>>>>>> 3bf228a781b7f866ede3a6c1b914f9ff8f8aadc1
     status = models.CharField(max_length=10, choices=STATUS_CHOICES, default='approved')
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
