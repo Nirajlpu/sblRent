@@ -64,6 +64,8 @@ SBLRent is a modern Django-based rental platform for property owners (vendors) a
 
 ## Live Site
 
+Primary domain: [https://sblrent.sblconstruction.in/](https://sblrent.sblconstruction.in/)
+
 Visit the deployed app: [sblrent.onrender.com](https://sblrent.onrender.com/)
 
 Visit the deployed on Azure: [https://sblrent-c9ehdmewcqcfhkh7.eastasia-01.azurewebsites.net/](https://sblrent-c9ehdmewcqcfhkh7.eastasia-01.azurewebsites.net/)

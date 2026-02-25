@@ -789,8 +789,7 @@ def booking_confirmation(request, booking_id):
 #         form = ProfileForm(instance=profile)
     
 #     return render(request, 'manage_profile.html', {'form': form})
-
-@login_required
+@login_required(login_url='/login/')
 def toggle_wishlist(request, property_id):
     if not request.user.is_authenticated:
         # AJAX: return JSON with login redirect
@@ -1079,7 +1078,7 @@ def cancel_booking(request, booking_id):
 
 
 
-@login_required
+@login_required(login_url='/login/')
 def my_wishlist(request):
     wishlist_items = Wishlist.objects.filter(user=request.user).select_related('property').order_by('-property__date_added')
     return render(request, 'my_wishlist.html', {'wishlist_items': wishlist_items})
