@@ -99,6 +99,12 @@ EMAIL_HOST_USER=your-email@gmail.com
 EMAIL_HOST_PASSWORD=your-email-password
 ```
 
+For production, start from the template:
+```bash
+cp .env.production.example .env
+```
+Then replace all placeholder values before deploying.
+
 ### 5. Apply migrations
 ```bash
 python manage.py migrate
@@ -115,6 +121,19 @@ python manage.py runserver
 ```
 
 Visit `http://127.0.0.1:8000/` in your browser.
+
+### 8. Run local HTTPS (self-signed certificate)
+```bash
+python manage.py runserver_plus --cert-file certs/localhost.pem 127.0.0.1:8000
+```
+
+Then open:
+- `https://localhost:8000/`
+- `https://127.0.0.1:8000/`
+
+Notes:
+- On first run, a self-signed cert is generated under `certs/`.
+- Your browser will show a warning once; choose “Advanced” and continue for local development.
 
 ---
 

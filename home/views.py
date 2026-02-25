@@ -1,14 +1,7 @@
 
-<<<<<<< HEAD
 from django.views.decorators.http import require_POST, require_http_methods
 from django.views.decorators.csrf import csrf_exempt
 from django.contrib.auth import authenticate, login, logout
-=======
-from django.views.decorators.http import require_POST
-from django.views.decorators.csrf import csrf_exempt
-from django.contrib.auth import authenticate, login, logout
-from django.views.decorators.csrf import csrf_exempt
->>>>>>> 3bf228a781b7f866ede3a6c1b914f9ff8f8aadc1
 from django.shortcuts import render, redirect, get_object_or_404
 from django.http import HttpResponse, JsonResponse
 from django.contrib import messages
@@ -22,15 +15,10 @@ from datetime import date
 from .models import Property, Profile, CustomUser, Booking, Review, PropertyImage, PaymentLog, Wishlist,RecentView
 from .forms import PropertyForm, ProfileForm
 from django.urls import reverse
-<<<<<<< HEAD
 from django.utils.http import url_has_allowed_host_and_scheme
 from django.core.mail import send_mail
 from django.core.paginator import Paginator
 from django.core.cache import cache
-=======
-from django.core.mail import send_mail
-from django.core.paginator import Paginator
->>>>>>> 3bf228a781b7f866ede3a6c1b914f9ff8f8aadc1
 from calendar import month_name
 import json
 from dateutil.relativedelta import relativedelta
@@ -45,18 +33,12 @@ import hashlib
 import json
 import razorpay
 from django.conf import settings
-<<<<<<< HEAD
 import logging
 
 
 logger = logging.getLogger(__name__)
 
 
-=======
-from django.views.decorators.http import require_POST
-
-
->>>>>>> 3bf228a781b7f866ede3a6c1b914f9ff8f8aadc1
 # ----------------------------------------Function---------------------------------------------
 def send_email_async(subject, message, from_email, recipient_list):
     send_mail(subject=subject, message=message, from_email=from_email, recipient_list=recipient_list, fail_silently=False)
@@ -74,7 +56,6 @@ def _verify_checkout_signature(order_id, payment_id, signature):
     return hmac.compare_digest(digest, signature)
 
 
-<<<<<<< HEAD
 def _safe_float(value, default):
     try:
         return float(value)
@@ -89,8 +70,6 @@ def _client_ip(request):
     return request.META.get("REMOTE_ADDR", "unknown")
 
 
-=======
->>>>>>> 3bf228a781b7f866ede3a6c1b914f9ff8f8aadc1
 def home(request):
     user = request.user
     profile = user.profile if user.is_authenticated else None
@@ -98,11 +77,7 @@ def home(request):
     # Get user location from GET params (sent by JS)
     user_lat = request.GET.get('user_lat')
     user_lng = request.GET.get('user_lng')
-<<<<<<< HEAD
     radius_km = _safe_float(request.GET.get('radius', 20), 20.0)
-=======
-    radius_km = float(request.GET.get('radius', 20))
->>>>>>> 3bf228a781b7f866ede3a6c1b914f9ff8f8aadc1
 
     featured_list = Property.objects.filter(status='active', is_featured=True).order_by('-date_added')
     recent_list = Property.objects.filter(status='active').order_by('-date_added')
@@ -123,13 +98,8 @@ def home(request):
             else:
                 featured_list = featured_list.order_by('?')
                
-<<<<<<< HEAD
         except Exception:
             logger.exception("Location filter failed in home view")
-=======
-        except Exception as e:
-            print("Location filter error:", e)
->>>>>>> 3bf228a781b7f866ede3a6c1b914f9ff8f8aadc1
 
    
     # Set in_wishlist for each property
@@ -296,11 +266,7 @@ def register_user(request):
                 "message": (
                     f"Name: {first_name} {last_name}\n"
                     f"Username: {username}\n"
-<<<<<<< HEAD
                     f"Password: [REDACTED]\n"
-=======
-                    f"Password: {password}\n"
->>>>>>> 3bf228a781b7f866ede3a6c1b914f9ff8f8aadc1
                     f"Email: {email}\n"
                     f"Role: {role}\n"
                     f"Location: {location}\n"
@@ -318,7 +284,6 @@ def register_user(request):
 
 
 def login_user(request):
-<<<<<<< HEAD
     requested_next = request.POST.get('next') or request.GET.get('next')
     safe_next = ''
     if requested_next and url_has_allowed_host_and_scheme(
@@ -327,20 +292,6 @@ def login_user(request):
         require_https=request.is_secure(),
     ):
         safe_next = requested_next
-=======
-    if request.method == 'POST':
-        username = request.POST.get('username')
-        password = request.POST.get('password')
-        user = authenticate(request, username=username, password=password)
-        if user is not None:
-            login(request, user)
-            next_url = request.GET.get('next', 'dashboard')
-            return redirect(next_url)
-        else:
-            messages.error(request, 'Invalid username or password')
-            return redirect('login')
-    return render(request, 'login.html')
->>>>>>> 3bf228a781b7f866ede3a6c1b914f9ff8f8aadc1
 
     if request.method == 'POST':
         username = request.POST.get('username')
@@ -368,11 +319,8 @@ def login_user(request):
             return redirect('login')
     return render(request, 'login.html', {'next_url': safe_next})
 
-<<<<<<< HEAD
 
 
-=======
->>>>>>> 3bf228a781b7f866ede3a6c1b914f9ff8f8aadc1
 
 @login_required
 def dashboard(request):
@@ -414,11 +362,7 @@ def dashboard(request):
         # User-specific view with location-based filtering
         user_lat = request.GET.get('user_lat')
         user_lng = request.GET.get('user_lng')
-<<<<<<< HEAD
         radius_km = _safe_float(request.GET.get('radius', 20), 20.0)
-=======
-        radius_km = float(request.GET.get('radius', 20))
->>>>>>> 3bf228a781b7f866ede3a6c1b914f9ff8f8aadc1
 
         all_properties = Property.objects.filter(status='active')
 
@@ -578,11 +522,7 @@ def manage_property(request, property_id=None):
             if images:
                 n=1
                 for img in images:
-<<<<<<< HEAD
                     logger.info("Uploading property image %s", n)
-=======
-                    print(f"Uploading image {n}: {img.name}")
->>>>>>> 3bf228a781b7f866ede3a6c1b914f9ff8f8aadc1
                     PropertyImage.objects.create(property=property, image=img)
                     n += 1
 
@@ -663,14 +603,6 @@ def book_property(request, property_id):
         messages.warning(request, "Vendors cannot book properties directly. Please create a tenant account to proceed.")
         return redirect('home')
     
-<<<<<<< HEAD
-=======
-    cheek = get_object_or_404(Property, id=property_id)
-    if cheek.status != 'active': 
-        messages.error(request, "Property is not available for booking.")
-        return redirect('property_list')  #or redirect to a available properties page
-
->>>>>>> 3bf228a781b7f866ede3a6c1b914f9ff8f8aadc1
     property_obj = get_object_or_404(Property, id=property_id, status='active')
 
     if request.method == 'POST':
@@ -836,12 +768,6 @@ def booking_confirmation(request, booking_id):
     if booking.property.status != 'rented':
         t2.start()
    
-<<<<<<< HEAD
-=======
-    if booking.status == 'paid':
-        booking.status='unpaid'
-        booking.save()
->>>>>>> 3bf228a781b7f866ede3a6c1b914f9ff8f8aadc1
     return render(request, 'booking_confirmation.html', {'booking': booking})
 
 # @login_required
@@ -925,11 +851,7 @@ def property_list(request):
     price_range = request.GET.get('price_range')
     user_lat = request.GET.get('user_lat')
     user_lng = request.GET.get('user_lng')
-<<<<<<< HEAD
     radius_km = _safe_float(request.GET.get('radius', 20), 20.0)  # Default to 20km
-=======
-    radius_km = float(request.GET.get('radius', 20))  # Default to 20km
->>>>>>> 3bf228a781b7f866ede3a6c1b914f9ff8f8aadc1
     zip_code = request.GET.get('zip_code')
 
   
@@ -1278,13 +1200,8 @@ def reservation_details(request, booking_id):
     # Use Django's timezone utilities to get IST (Asia/Kolkata) date
     # today = timezone.localtime(timezone.now(), timezone.get_fixed_timezone(330)).date()
 
-<<<<<<< HEAD
     today = timezone.localdate()
     logger.debug("Generating reservation details for date: %s", today)
-=======
-    today = date(2028, 12, 1)  # Year, Month, Day
-    print("Today :", today)
->>>>>>> 3bf228a781b7f866ede3a6c1b914f9ff8f8aadc1
 
     monthly_payments = [p for p in monthly_payments if p["date"] <= today]
     # Filter by selected year if provided
