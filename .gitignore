@@ -28,3 +28,21 @@ bin/
 
 ### Mac OS ###
 .DS_Store
+
+# Virtual environments
+myenv/
+.venv/
+
+# Python
+__pycache__/
+*.pyc
+
+# Environment variables
+.env
+.env.*
+
+# macOS
+.DS_Store
+
+# Database
+db.sqlite3
