@@ -28,3 +28,24 @@ bin/
 
 ### Mac OS ###
 .DS_Store
+
+### Python ###
+.env
+*.pyc
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+myenv/
+.venv/
+venv/
+ENV/
+env/
+*.egg-info/
+dist/
+build/
+*.sqlite3
+db.sqlite3
+staticfiles/
+media/
