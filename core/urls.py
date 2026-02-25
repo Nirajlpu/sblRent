@@ -18,7 +18,7 @@ Including another URLconf
 from django.contrib import admin
 # add manually
 from django.urls import path , include
-from django.http import HttpResponse
+from django.http import HttpResponse, FileResponse
 
 #To change the title of admin pannel. # add manually
 # admin.site.site_header = "Niraj's SuperUser Pannel"
@@ -30,11 +30,17 @@ from django.conf import settings
 from django.conf.urls.static import static
 
 
+def sitemap_xml(request):
+    return FileResponse(
+        open(settings.BASE_DIR / "sitemap.xml", "rb"),
+        content_type="application/xml",
+    )
+
 urlpatterns = [
     # ... your existing URLs
+    path("sitemap.xml", sitemap_xml, name="sitemap_xml"),
     path("nilamadmin/", admin.site.urls),
-    # add manually
-    path('',include('home.urls'))
+    path('', include('home.urls'))
     
 ]
 
