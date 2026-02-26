@@ -836,7 +836,8 @@ def book_property(request, property_id):
         if overlapping:
             messages.error(request, "Property is already booked for the selected dates.")
             return redirect('book_property', property_id=property_id)
-
+        
+#payment logic
         days = (end_date - start_date).days
         months = Decimal(days) / Decimal("30")
         
@@ -853,8 +854,8 @@ def book_property(request, property_id):
             next_due = current + relativedelta(months=1)
             if next_due > end_date:
                 next_due = end_date
-            days_in_period = (next_due - current).days
-            period_amount = ((Decimal(days_in_period) / Decimal("30")) * property_obj.price).quantize(Decimal("0.01"))
+            #days_in_period = (next_due - current).days
+            period_amount = total_price #rest of payment logic.
             monthly_due_dates.append({
                 'due_date': next_due.strftime('%Y-%m-%d'),
                 'amount': float(period_amount),
@@ -1248,7 +1249,13 @@ def reservation_details(request, booking_id):
 
     # Generate monthly payments: each period is from start_date to same day next month
     monthly_payments = []
-    payment_data = booking.payment_data or []
+     
+    price = booking.payment_data  # already Decimal
+
+    tax_rate = Decimal("0.01")   # NOT 0.01
+
+    total_price = price + (price * tax_rate)
+    payment_data = total_price or []
     payment_lookup = {}
     for year_entry in payment_data:
         year = year_entry.get('year')
@@ -1286,10 +1293,11 @@ def reservation_details(request, booking_id):
             try:
                 amount = float(payment['payment_amount'])
             except Exception:
-                amount = float(booking.property.price)
+                
+                amount = total_price
         else:
             payment_date = current
-            amount = float(booking.property.price)
+            amount = total_price
         monthly_payments.append({
             "month": month_name[month],
             "year": year,
