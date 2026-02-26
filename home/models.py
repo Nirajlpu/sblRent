@@ -194,7 +194,8 @@ class Booking(models.Model):
     payment_data = models.JSONField(default=list, blank=True)
     payment_type = models.CharField(max_length=10, choices=PAYMENT_TYPE_CHOICES, default='monthly')
     monthly_due_dates = models.JSONField(default=list, blank=True)
-
+    service_fee=models.DecimalField(max_digits=10, decimal_places=2,default=0.01)
+    tax_amount=models.DecimalField(max_digits=10, decimal_places=2,default=0)
     def __str__(self):
         return f"Booking #{self.id} - {self.property.title}"
 

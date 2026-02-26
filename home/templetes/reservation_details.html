@@ -892,20 +892,20 @@
                     </ul>
                 </div>
                 <div class="price-item">
-                    <span>Base Price ({{ booking_duration }} days)</span>
+                    <span>Base Price  per Month </span>
                     <span>₹{{ booking.property.price}}</span>
                 </div>
                 <div class="price-item">
                     <span>Service Fee</span>
-                    <span>₹{{ booking.service_fee }}</span>
+                    <span>₹{{ service_fee }}</span>
                 </div>
                 <div class="price-item">
                     <span>Taxes</span>
-                    <span>₹{{ booking.tax_amount }}</span>
+                    <span>₹{{ tax_amount }}</span>
                 </div>
                 <div class="price-total">
                     <span>Total Amount</span>
-                    <span>₹{{ booking.total_price }}</span>
+                    <span>₹{{ total_amount }}</span>
                 </div>
                 {% if booking.status == 'approved' and booking.payment_status != 'paid' %}
                 <div class="action-buttons" style="justify-content: flex-start;">

@@ -742,6 +742,8 @@ def book_property(request, property_id):
             return redirect('reservation_detail', booking_id=existing_booking.id)
 
         amount_rupees = Decimal(existing_booking.total_price).quantize(Decimal("0.01"))
+        service_fee_rate = Decimal(existing_booking.service_fee).quantize(Decimal("0.01"))
+        tax_amount = Decimal("0.00")
         amount_paise = int(amount_rupees * 100)
         commission = float(amount_rupees) * 0.10
         vendor_amount = float(amount_rupees) - commission
@@ -765,6 +767,8 @@ def book_property(request, property_id):
             'booking_id': existing_booking.id,
             'property_id': property_obj.id,
             'total_price': str(amount_rupees),
+            'service_fee_rate': str(service_fee_rate),
+            'tax_amount': str(tax_amount),
             'amount_paise': amount_paise,
             'order_id': order['id'],
             'month': month_param,
@@ -839,13 +843,14 @@ def book_property(request, property_id):
         
 #payment logic
         days = (end_date - start_date).days
-        months = Decimal(days) / Decimal("30")
-        
-        price = property_obj.price  # already Decimal
+        # months = Decimal(days) / Decimal("30")
 
-        tax_rate = Decimal("0.01")   # NOT 0.01
-
-        total_price = price + (price * tax_rate)
+        price = Decimal(property_obj.price).quantize(Decimal("0.01"))
+        service_fee_rate = Decimal("0.01")
+        tax_rate = Decimal("0.00")
+        service_fee = (price * service_fee_rate).quantize(Decimal("0.01"))
+        tax_amount = (price * tax_rate).quantize(Decimal("0.01"))
+        total_price = (price + service_fee + tax_amount).quantize(Decimal("0.01"))
 
         # Calculate monthly dues
         monthly_due_dates = []
@@ -863,7 +868,6 @@ def book_property(request, property_id):
             })
             current = next_due
 
-        total_price = total_price.quantize(Decimal("0.01"))
         amount_paise = int(total_price * 100)
         month = start_date.strftime('%B')
         year = str(start_date.year)
@@ -889,6 +893,8 @@ def book_property(request, property_id):
             'payment_type': payment_type,
             'monthly_due_dates': monthly_due_dates,
             'total_price': str(total_price),
+            'service_fee_rate': str(service_fee_rate),
+            'tax_amount': str(tax_amount),
             'amount_paise': amount_paise,
             'order_id': order['id'],
             'month': month,
@@ -901,6 +907,8 @@ def book_property(request, property_id):
             'start_date': start_date,
             'end_date': end_date,
             'user': request.user,
+            'service_fee': service_fee,
+            'tax_amount': tax_amount,
             'total_price': total_price,
         }
 
@@ -978,7 +986,9 @@ def payment_verify(request):
         total_price = Decimal(str(pending['total_price']))
         booking.status = 'paid'
         booking.paid_amount += total_price
-        booking.save(update_fields=['status', 'paid_amount', 'updated_at'])
+        booking.service_fee = Decimal(str(pending.get('service_fee_rate', booking.service_fee or "0.01")))
+        booking.tax_amount = Decimal("0.00")
+        booking.save(update_fields=['status', 'paid_amount', 'service_fee', 'tax_amount', 'updated_at'])
     else:
         property_obj = get_object_or_404(Property, id=pending['property_id'], status='active')
         start_date = datetime.strptime(pending['start_date'], "%Y-%m-%d").date()
@@ -996,6 +1006,8 @@ def payment_verify(request):
             return JsonResponse({'ok': False, 'error': 'This property was booked by someone else during payment. No booking was created.'}, status=409)
 
         total_price = Decimal(str(pending['total_price']))
+        service_fee_rate = Decimal(str(pending.get('service_fee_rate', "0.01")))
+        tax_amount = Decimal("0.00")
         booking = Booking.objects.create(
             property=property_obj,
             user=request.user,
@@ -1006,6 +1018,8 @@ def payment_verify(request):
             notes=pending.get('notes', ''),
             payment_type=pending.get('payment_type', 'monthly'),
             monthly_due_dates=pending.get('monthly_due_dates', []),
+            service_fee=service_fee_rate,
+            tax_amount=tax_amount,
             status='paid',
             paid_amount=total_price,
         )
@@ -1249,13 +1263,9 @@ def reservation_details(request, booking_id):
 
     # Generate monthly payments: each period is from start_date to same day next month
     monthly_payments = []
-     
-    price = booking.payment_data  # already Decimal
-
-    tax_rate = Decimal("0.01")   # NOT 0.01
-
-    total_price = price + (price * tax_rate)
-    payment_data = total_price or []
+    
+    total_price = booking.total_price
+    payment_data = booking.payment_data or []
     payment_lookup = {}
     for year_entry in payment_data:
         year = year_entry.get('year')
@@ -1342,15 +1352,21 @@ def reservation_details(request, booking_id):
             else:
                 filtered_payments.append(payment)
 
+    base_price = Decimal(booking.property.price).quantize(Decimal("0.01"))
+    service_fee = (base_price * Decimal(booking.service_fee)).quantize(Decimal("0.01"))
+    tax_amount = Decimal("0.00")
+    total_amount = (base_price + service_fee + tax_amount).quantize(Decimal("0.01"))
     return render(request, 'reservation_details.html', {
         'booking': booking,
         'current_year': current_year,
-        'booking_duration': booking_duration,
         'previous_bookings': previous_bookings,
         'pic': profile if profile else None,
         'average_rating': average_rating,
         'monthly_payments': filtered_payments,
         'selected_year': selected_year,
+        'service_fee': service_fee,
+        'tax_amount': tax_amount,
+        'total_amount': total_amount,
     })
 
 
