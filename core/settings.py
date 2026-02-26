@@ -15,13 +15,15 @@ import os
 from decouple import config
 import dj_database_url
 
+
+
+#--------------------------configuration------------------------------------------------
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-
+#Payment RAZORPAY
 RAZORPAY_KEY_ID = config('RAZORPAY_KEY_ID', default='your_default_key_id')
 RAZORPAY_KEY_SECRET = config('RAZORPAY_KEY_SECRET', default='your_default_key_secret')
-
 
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/5.2/howto/deployment/checklist/
@@ -32,12 +34,57 @@ SECRET_KEY = config('SECRET_KEY')
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = config('DEBUG', default=False, cast=bool)
 # DEBUG = True
-
 ALLOWED_HOSTS = config('ALLOWED_HOSTS', default='127.0.0.1,localhost').split(',')
+
+# Database
+# https://docs.djangoproject.com/en/5.2/ref/settings/#databases
+
+USE_POSTGRES = config('USE_POSTGRES', default=False, cast=bool)
+DATABASE_URL = config('DATABASE_URL', default='')
+
+#STORAGE
+AZURE_ACCOUNT_NAME = config('AZURE_ACCOUNT_NAME')
+AZURE_ACCOUNT_KEY = config('AZURE_ACCOUNT_KEY')
+AZURE_CONTAINER = config('AZURE_CONTAINER', default='media')
+
+#EMAIL
+EMAIL_HOST_USER = config('EMAIL_HOST_USER')
+EMAIL_HOST_PASSWORD = config('EMAIL_HOST_PASSWORD')
+DEFAULT_FROM_EMAIL = EMAIL_HOST_USER
+
+#----------------------------TIME AND LANGUAGE---------------------------------------------
+
+#TIME ZONE
 TIME_ZONE = 'Asia/Kolkata'
 
+#LANUAGE
+LANGUAGE_CODE = "en-us"
 
 
+USE_I18N = True
+
+USE_TZ = True
+
+AUTH_USER_MODEL = 'home.CustomUser'
+ROOT_URLCONF = "core.urls"
+
+
+#-------------------- Static files (CSS, JavaScript, Images)--------------------------------
+# https://docs.djangoproject.com/en/5.2/howto/static-files/
+
+STATIC_URL = "static/"
+
+# Optional: if you want to collect static files
+STATICFILES_DIRS = [BASE_DIR / "static"]
+STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
+
+# Default primary key field type
+# https://docs.djangoproject.com/en/5.2/ref/settings/#default-auto-field
+
+DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
+LOGIN_REDIRECT_URL = '/'
+
+#----------------------------------------------------------------------------
 # Application definition
 
 INSTALLED_APPS = [
@@ -50,14 +97,10 @@ INSTALLED_APPS = [
     
 ]
 
-
-
 #add Manually
 EXTERNAL_APPS=[
     'home',
-    'accounts',
-    
-
+    'accounts',   
 ]
 
 #add Manually
@@ -78,9 +121,6 @@ MIDDLEWARE = [
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
 ]
 
-
-
-ROOT_URLCONF = "core.urls"
 
 TEMPLATES = [
     {
@@ -104,13 +144,11 @@ TEMPLATES = [
 WSGI_APPLICATION = "core.wsgi.application"
 
 
-# Database
-# https://docs.djangoproject.com/en/5.2/ref/settings/#databases
-
-if config('USE_POSTGRES', default=False, cast=bool):
+#DATABASE
+if USE_POSTGRES and DATABASE_URL: #POSTGRESQL
     DATABASES = {
         'default': dj_database_url.config(
-            default=config('DATABASE_URL')
+            default=DATABASE_URL
         )
     }
 else:
@@ -144,28 +182,22 @@ AUTH_PASSWORD_VALIDATORS = [
 # Internationalization
 # https://docs.djangoproject.com/en/5.2/topics/i18n/
 
-LANGUAGE_CODE = "en-us"
-
-
-USE_I18N = True
-
-USE_TZ = True
-AUTH_USER_MODEL = 'home.CustomUser'
-
-# Static files (CSS, JavaScript, Images)
-# https://docs.djangoproject.com/en/5.2/howto/static-files/
-
-STATIC_URL = "static/"
-
-# Optional: if you want to collect static files
-STATICFILES_DIRS = [BASE_DIR / "static"]
-STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
-
-# Default primary key field type
-# https://docs.djangoproject.com/en/5.2/ref/settings/#default-auto-field
-
-DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
-LOGIN_REDIRECT_URL = '/'
+# Advanced endpoint throttling (override via environment-specific settings if needed)
+RATE_LIMITS = {
+    'register_ip': {'limit': 5, 'window': 1800},
+    'register_username': {'limit': 8, 'window': 1800},
+    'login_ip': {'limit': 25, 'window': 300},
+    'login_ip_username': {'limit': 7, 'window': 900},
+    'wishlist_toggle_user': {'limit': 80, 'window': 60},
+    'wishlist_toggle_ip': {'limit': 120, 'window': 60},
+    'book_property_user': {'limit': 12, 'window': 600},
+    'book_property_ip': {'limit': 20, 'window': 600},
+    'make_payment_user': {'limit': 20, 'window': 600},
+    'make_payment_ip': {'limit': 35, 'window': 600},
+    'payment_verify_user': {'limit': 30, 'window': 600},
+    'payment_verify_ip': {'limit': 45, 'window': 600},
+    'razorpay_webhook_ip': {'limit': 180, 'window': 60},
+}
 
 # --- REMOVE or COMMENT OUT these lines when using Azure for media ---
 # MEDIA_URL = '/media/'
@@ -173,10 +205,6 @@ LOGIN_REDIRECT_URL = '/'
 
 # --- Azure Storage for Media Files (Django 4.2+) ---
 INSTALLED_APPS += ['storages']
-
-AZURE_ACCOUNT_NAME = config('AZURE_ACCOUNT_NAME')
-AZURE_ACCOUNT_KEY = config('AZURE_ACCOUNT_KEY')
-AZURE_CONTAINER = config('AZURE_CONTAINER', default='media')
 
 STORAGES = {
     "default": {
@@ -201,10 +229,6 @@ EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
 EMAIL_HOST  = 'smtp.gmail.com'
 EMAIL_PORT = 587
 EMAIL_USE_TLS  = True
-
-EMAIL_HOST_USER = config('EMAIL_HOST_USER')
-EMAIL_HOST_PASSWORD = config('EMAIL_HOST_PASSWORD')
-DEFAULT_FROM_EMAIL = EMAIL_HOST_USER
 
 # ================================
 # Production vs Development Security Settings

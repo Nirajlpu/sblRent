@@ -46,7 +46,41 @@
 
 <script src="https://kit.fontawesome.com/a076d05399.js" crossorigin="anonymous"></script>
 <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
 <script>
+  function createAxiosRateLimiter(maxRequests, perMs) {
+    const queue = [];
+    const recent = [];
+
+    function drain() {
+      const now = Date.now();
+      while (recent.length && now - recent[0] >= perMs) {
+        recent.shift();
+      }
+
+      while (queue.length && recent.length < maxRequests) {
+        recent.push(Date.now());
+        const job = queue.shift();
+        axios(job.config).then(job.resolve).catch(job.reject);
+      }
+
+      if (queue.length) {
+        const wait = Math.max(perMs - (Date.now() - recent[0]), 50);
+        setTimeout(drain, wait);
+      }
+    }
+
+    return function limitedAxios(config) {
+      return new Promise((resolve, reject) => {
+        queue.push({ config, resolve, reject });
+        drain();
+      });
+    };
+  }
+
+  const limitedAxios = createAxiosRateLimiter(6, 5000);
+  axios.defaults.headers.common["X-Requested-With"] = "XMLHttpRequest";
+
   const options = {
     key: "{{ razorpay_key_id }}",
     amount: {{ razorpay_amount_paise }},
@@ -64,10 +98,28 @@
       document.getElementById('razorpay_order_id').value = response.razorpay_order_id;
       document.getElementById('razorpay_signature').value = response.razorpay_signature;
       const form = document.getElementById('verify-form');
-      fetch(form.action, { method: 'POST', body: new FormData(form) })
-        .then(r => r.json())
-        .then(data => { if (data.ok && data.redirect) { window.location.href = data.redirect; } else { alert(data.error || 'Verification failed'); } })
-        .catch(() => alert('Network error during verification'));
+      limitedAxios({
+        url: form.action,
+        method: 'POST',
+        data: new FormData(form),
+        headers: { 'Content-Type': 'multipart/form-data' }
+      })
+        .then(({ data }) => {
+          if (data.ok && data.redirect) {
+            window.location.href = data.redirect;
+            return;
+          }
+          alert(data.error || 'Verification failed');
+        })
+        .catch((error) => {
+          const response = error.response;
+          if (response && response.status === 429) {
+            const retry = response.data?.retry_after;
+            alert(`Too many requests. Please retry in ${retry || 30} seconds.`);
+            return;
+          }
+          alert('Network error during verification');
+        });
     },
     theme: { color: '#4361ee' }
   };

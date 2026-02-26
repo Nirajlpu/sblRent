@@ -862,7 +862,7 @@
                                 {% else %}
                                 <i class="fas fa-times-circle text-danger"></i> Payment missing
                                 {% if request.user.profile.role == 'user' %}
-                                <a href="{% url 'make_payment' booking.id %}?month={{ payment.month }}&year={{ payment.year }}" class="btn btn-sm btn-warning ms-2">Pay Now</a>
+                                <a href="{% url 'book_property' booking.property.id %}?month={{ payment.month }}&year={{ payment.year }}" class="btn btn-sm btn-warning ms-2">Pay Now</a>
                                 {% endif %}
                                 {% endif %}
                             </div>
@@ -909,7 +909,7 @@
                 </div>
                 {% if booking.status == 'approved' and booking.payment_status != 'paid' %}
                 <div class="action-buttons" style="justify-content: flex-start;">
-                    <a href="{% url 'make_payment' booking.id %}" class="btn btn-pay">
+                    <a href="{% url 'book_property' booking.property.id %}" class="btn btn-pay">
                         <i class="fas fa-credit-card"></i> Complete Payment Now
                     </a>
                 </div>

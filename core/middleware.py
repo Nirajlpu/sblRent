@@ -31,7 +31,7 @@ class SecurityHeadersMiddleware:
         response.setdefault("Referrer-Policy", "same-origin")
         response.setdefault("Permissions-Policy", "geolocation=(self), camera=(), microphone=()")
 
-        if request.user.is_authenticated and response.get("Content-Type", "").startswith("text/html"):
+        if hasattr(request, "user") and request.user.is_authenticated and response.get("Content-Type", "").startswith("text/html"):
             response["Cache-Control"] = "no-store, no-cache, must-revalidate, max-age=0"
             response["Pragma"] = "no-cache"
             response["Expires"] = "0"

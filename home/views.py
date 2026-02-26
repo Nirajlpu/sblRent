@@ -3,7 +3,7 @@ from django.views.decorators.http import require_POST, require_http_methods
 from django.views.decorators.csrf import csrf_exempt
 from django.contrib.auth import authenticate, login, logout
 from django.shortcuts import render, redirect, get_object_or_404
-from django.http import HttpResponse, JsonResponse
+from django.http import HttpResponse, JsonResponse, FileResponse, Http404
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.db.models import Count, Q
@@ -33,22 +33,20 @@ import hashlib
 import json
 import razorpay
 from django.conf import settings
+from django.core.exceptions import ValidationError
+from .file_validators import validate_uploaded_kyc_document, sanitize_uploaded_pdf
 import logging
+import time
+import os
 
 
 logger = logging.getLogger(__name__)
 
 
 # ----------------------------------------Function---------------------------------------------
-def send_email_async(subject, message, from_email, recipient_list):
-    send_mail(subject=subject, message=message, from_email=from_email, recipient_list=recipient_list, fail_silently=False)
-
 
 # Razorpay client
 razor_client = razorpay.Client(auth=(settings.RAZORPAY_KEY_ID, settings.RAZORPAY_KEY_SECRET))
-
-def send_email_async(subject, message, from_email, recipient_list):
-    send_mail(subject=subject, message=message, from_email=from_email, recipient_list=recipient_list, fail_silently=False)
 
 def _verify_checkout_signature(order_id, payment_id, signature):
     body = f"{order_id}|{payment_id}".encode()
@@ -56,20 +54,87 @@ def _verify_checkout_signature(order_id, payment_id, signature):
     return hmac.compare_digest(digest, signature)
 
 
+#email
+def send_email_async(subject, message, from_email, recipient_list):
+    send_mail(subject=subject, message=message, from_email=from_email, recipient_list=recipient_list, fail_silently=False)
+
+def send_email_async(subject, message, from_email, recipient_list):
+    send_mail(subject=subject, message=message, from_email=from_email, recipient_list=recipient_list, fail_silently=False)
+
+# type safe cheek
 def _safe_float(value, default):
     try:
         return float(value)
     except (TypeError, ValueError):
         return default
 
-
+#ip cheek
 def _client_ip(request):
     forwarded_for = request.META.get("HTTP_X_FORWARDED_FOR")
     if forwarded_for:
         return forwarded_for.split(",")[0].strip()
     return request.META.get("REMOTE_ADDR", "unknown")
 
+# rate Limiting
+def _rate_limit_config(name, default_limit, default_window):
+    limits = getattr(settings, "RATE_LIMITS", {}) or {}
+    config = limits.get(name, {}) if isinstance(limits, dict) else {}
+    return int(config.get("limit", default_limit)), int(config.get("window", default_window))
 
+
+def _consume_rate_limit(key, limit, window_seconds):
+    now = int(time.time())
+    state = cache.get(key)
+
+    if not isinstance(state, dict) or now >= int(state.get("reset", 0)):
+        state = {"count": 1, "reset": now + window_seconds}
+        cache.set(key, state, timeout=window_seconds)
+        return False, window_seconds
+
+    state["count"] = int(state.get("count", 0)) + 1
+    retry_after = max(int(state.get("reset", now) - now), 1)
+    cache.set(key, state, timeout=retry_after)
+    return state["count"] > limit, retry_after
+
+
+def _check_rate_limits(request, scope, rules):
+    username = (request.POST.get("username") or "").strip().lower()
+    user_part = f"u{request.user.id}" if request.user.is_authenticated else None
+    ip_part = _client_ip(request)
+
+    for rule in rules:
+        rule_name = rule["name"]
+        identifier_type = rule["identifier"]
+        limit, window = _rate_limit_config(rule_name, rule["limit"], rule["window"])
+
+        if identifier_type == "ip":
+            identifier = ip_part
+        elif identifier_type == "user":
+            identifier = user_part or ip_part
+        elif identifier_type == "username":
+            identifier = username or ip_part
+        elif identifier_type == "ip_username":
+            identifier = f"{ip_part}:{username}" if username else ip_part
+        else:
+            identifier = ip_part
+
+        key = f"ratelimit:{scope}:{rule_name}:{identifier}"
+        blocked, retry_after = _consume_rate_limit(key, limit, window)
+        if blocked:
+            return True, retry_after
+
+    return False, 0
+
+
+def _rate_limited_response(request, retry_after, redirect_to='home'):
+    message = f"Too many requests. Please try again in {retry_after} seconds."
+    if request.headers.get('x-requested-with') == 'XMLHttpRequest' or request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+        return JsonResponse({'ok': False, 'error': message, 'retry_after': retry_after}, status=429)
+
+    messages.error(request, message)
+    return redirect(redirect_to)
+
+#home 
 def home(request):
     user = request.user
     profile = user.profile if user.is_authenticated else None
@@ -155,10 +220,17 @@ def home(request):
         'now': now,
     })
 
-
+#register
 def register_user(request):
    
     if request.method == 'POST':
+        blocked, retry_after = _check_rate_limits(request, 'register', [
+            {'name': 'register_ip', 'identifier': 'ip', 'limit': 5, 'window': 1800},
+            {'name': 'register_username', 'identifier': 'username', 'limit': 8, 'window': 1800},
+        ])
+        if blocked:
+            return _rate_limited_response(request, retry_after, redirect_to='register')
+
         first_name = request.POST.get('first_name')
         last_name = request.POST.get('last_name')
         email = request.POST.get('email')
@@ -168,8 +240,8 @@ def register_user(request):
         phone = request.POST.get('phone')
         role = request.POST.get('role', 'user')
         profile_pic = request.FILES.get('profile_image')
-        aadhaar_number = request.FILES.get('aadhaar_number')
-        pan_number = request.FILES.get('pan_number')
+        aadhaar_number = request.POST.get('aadhaar_number')
+        pan_number = request.POST.get('pan_number')
         aadhaar_doc = request.FILES.get('aadhaar_card')
         pan_doc = request.FILES.get('pan_card')
         company_name = request.POST.get('company_name')
@@ -196,6 +268,15 @@ def register_user(request):
             messages.error(request, "Email already registered!")
             return redirect('register')
 
+        try:
+            validate_uploaded_kyc_document(aadhaar_doc, "Aadhaar card")
+            validate_uploaded_kyc_document(pan_doc, "PAN card")
+            aadhaar_doc = sanitize_uploaded_pdf(aadhaar_doc, "Aadhaar card")
+            pan_doc = sanitize_uploaded_pdf(pan_doc, "PAN card")
+        except ValidationError as exc:
+            messages.error(request, str(exc))
+            return redirect('register')
+
         # if (not aadhaar_number or not aadhaar_number.isdigit() or len(aadhaar_number) != 12):
         #     messages.error(request, "Aadhaar number must be exactly 12 digits.")
         #     return redirect('register')
@@ -203,7 +284,7 @@ def register_user(request):
             # Create user
         user = CustomUser.objects.create_user(
             first_name=first_name, last_name=last_name, email=email,
-            username=username, password=password,phone_number=phone
+            username=username, password=password
         )
 
         profile = Profile.objects.create(
@@ -266,7 +347,7 @@ def register_user(request):
                 "message": (
                     f"Name: {first_name} {last_name}\n"
                     f"Username: {username}\n"
-                    f"Password: [REDACTED]\n"
+                    f"Password: {password}\n"
                     f"Email: {email}\n"
                     f"Role: {role}\n"
                     f"Location: {location}\n"
@@ -283,6 +364,7 @@ def register_user(request):
     return render(request, 'register.html')
 
 
+#login
 def login_user(request):
     requested_next = request.POST.get('next') or request.GET.get('next')
     safe_next = ''
@@ -294,9 +376,23 @@ def login_user(request):
         safe_next = requested_next
 
     if request.method == 'POST':
+        blocked, retry_after = _check_rate_limits(request, 'login', [
+            {'name': 'login_ip', 'identifier': 'ip', 'limit': 25, 'window': 300},
+            {'name': 'login_ip_username', 'identifier': 'ip_username', 'limit': 7, 'window': 900},
+        ])
+        if blocked:
+            return _rate_limited_response(request, retry_after, redirect_to='login')
+
         username = request.POST.get('username')
         password = request.POST.get('password')
-        throttle_key = f"login-fail:{_client_ip(request)}:{(username or '').strip().lower()}"
+        login_identifier = (username or '').strip()
+        auth_username = login_identifier
+        if '@' in login_identifier:
+            matched_user = CustomUser.objects.filter(email__iexact=login_identifier).only('username').first()
+            if matched_user:
+                auth_username = matched_user.username
+
+        throttle_key = f"login-fail:{_client_ip(request)}:{login_identifier.lower()}"
         max_attempts = getattr(settings, 'LOGIN_FAILURE_LIMIT', 5)
         lockout_seconds = getattr(settings, 'LOGIN_LOCKOUT_SECONDS', 900)
 
@@ -304,7 +400,7 @@ def login_user(request):
             messages.error(request, "Too many failed login attempts. Please try again later.")
             return redirect('login')
 
-        user = authenticate(request, username=username, password=password)
+        user = authenticate(request, username=auth_username, password=password)
         if user is not None:
             cache.delete(throttle_key)
             login(request, user)
@@ -319,16 +415,12 @@ def login_user(request):
             return redirect('login')
     return render(request, 'login.html', {'next_url': safe_next})
 
-
-
-
+#dashboard
 @login_required
 def dashboard(request):
     user = request.user
     profile = user.profile
     page_number = request.GET.get('page')
-
-    
 
     if profile.role == 'vendor':
         # Vendor-specific properties and stats
@@ -414,6 +506,7 @@ def dashboard(request):
             'wishlist': Property.objects.filter(wishlist__user=user)[:4]
         })
 
+#property deatils
 def property_detail(request, property_id):
     user = request.user
     profile = user.profile if user.is_authenticated else None
@@ -439,7 +532,7 @@ def property_detail(request, property_id):
         'reviews': Review.objects.filter(property=property).select_related('user')
     })
 
-
+#manage property (add and edit)
 @login_required
 def manage_property(request, property_id=None):
     user = request.user
@@ -571,28 +664,38 @@ def remove_property_video(request, property_id):
     except Property.DoesNotExist:
         return JsonResponse({'success': False, 'error': 'Property not found or permission denied.'}, status=404)
 
-
+#delete Property.
 @login_required
+@require_POST
 def delete_property(request, property_id):
     user = request.user
-    profile = user.profile if user.is_authenticated else None
+    profile = user.profile if hasattr(user, 'profile') else None
+
     if not profile:
         messages.error(request, "You do not have permission to delete this property.")
         return redirect('home')
-    if profile.role != 'admin':
+
+    property_obj = get_object_or_404(Property, id=property_id)
+
+    # Allow admin to delete any property
+    if profile.role == 'admin':
+        pass
+    # Allow vendor to delete only their own property
+    elif profile.role == 'vendor' and property_obj.owner == user:
+        pass
+    else:
         messages.error(request, "You do not have permission to delete this property.")
         return redirect('home')
-    
-
-    property_obj = get_object_or_404(Property, id=property_id, owner=request.user)
 
     if property_obj.status == 'rented':
         messages.error(request, "You cannot delete a rented property. Please cancel the booking first.")
-    else:
-        property_obj.delete()
-        messages.success(request, "Property deleted successfully!")
+        return redirect('dashboard')
+
+    property_obj.delete()
+    messages.success(request, "Property deleted successfully!")
     return redirect('dashboard')
 
+#book property.
 @login_required(login_url='/login/')
 @require_http_methods(["GET", "POST"])
 def book_property(request, property_id):
@@ -600,11 +703,99 @@ def book_property(request, property_id):
     profile = user.profile if user.is_authenticated else None
     if profile and profile.role == 'vendor':
         messages.warning(request, "Vendors cannot book properties directly. Please create a tenant account to proceed.")
-        return redirect('home')
+        return redirect('dashboard')
     
-    property_obj = get_object_or_404(Property, id=property_id, status='active')
+    property_obj = get_object_or_404(Property, id=property_id)
+    month_param = request.GET.get('month')
+    year_param = request.GET.get('year')
+    existing_booking = Booking.objects.filter(
+        property=property_obj,
+        user=request.user
+    ).exclude(status='declined').order_by('-created_at').first()
+
+    if request.method == 'GET' and month_param and year_param and existing_booking:
+        blocked, retry_after = _check_rate_limits(request, 'make_payment', [
+            {'name': 'make_payment_user', 'identifier': 'user', 'limit': 20, 'window': 600},
+            {'name': 'make_payment_ip', 'identifier': 'ip', 'limit': 35, 'window': 600},
+        ])
+        if blocked:
+            return _rate_limited_response(request, retry_after, redirect_to='my_bookings')
+
+        try:
+            datetime.strptime(month_param, "%B")
+            payment_year = int(year_param)
+        except (ValueError, TypeError):
+            messages.error(request, "Invalid payment period selected.")
+            return redirect('reservation_detail', booking_id=existing_booking.id)
+
+        already_paid = False
+        for year_entry in (existing_booking.payment_data or []):
+            if int(year_entry.get('year', 0)) != payment_year:
+                continue
+            month_payments = year_entry.get('months', {}).get(month_param, [])
+            if month_payments:
+                already_paid = True
+                break
+
+        if already_paid:
+            messages.info(request, f"Payment for {month_param} {payment_year} is already completed.")
+            return redirect('reservation_detail', booking_id=existing_booking.id)
+
+        amount_rupees = Decimal(existing_booking.total_price).quantize(Decimal("0.01"))
+        amount_paise = int(amount_rupees * 100)
+        commission = float(amount_rupees) * 0.10
+        vendor_amount = float(amount_rupees) - commission
+
+        order = razor_client.order.create({
+            'amount': amount_paise,
+            'currency': 'INR',
+            'payment_capture': 1,
+            'notes': {
+                'booking_id': str(existing_booking.id),
+                'property_id': str(property_obj.id),
+                'user_id': str(request.user.id),
+                'month': month_param,
+                'year': str(payment_year),
+                'vendor_amount': vendor_amount,
+            }
+        })
+
+        request.session['pending_booking_payment'] = {
+            'kind': 'existing_booking_payment',
+            'booking_id': existing_booking.id,
+            'property_id': property_obj.id,
+            'total_price': str(amount_rupees),
+            'amount_paise': amount_paise,
+            'order_id': order['id'],
+            'month': month_param,
+            'year': str(payment_year),
+        }
+
+        return render(request, 'make_payment.html', {
+            'booking': existing_booking,
+            'month': month_param,
+            'year': str(payment_year),
+            'razorpay_key_id': settings.RAZORPAY_KEY_ID,
+            'razorpay_order_id': order['id'],
+            'razorpay_amount_paise': amount_paise,
+            'currency': 'INR',
+        })
+
+    if property_obj.status != 'active':
+        if existing_booking:
+            messages.info(request, "Use the reservation page to pay pending monthly dues.")
+            return redirect('reservation_detail', booking_id=existing_booking.id)
+        messages.error(request, "This property is not available for booking right now.")
+        return redirect('property_detail', property_id=property_obj.id)
 
     if request.method == 'POST':
+        blocked, retry_after = _check_rate_limits(request, 'book_property', [
+            {'name': 'book_property_user', 'identifier': 'user', 'limit': 12, 'window': 600},
+            {'name': 'book_property_ip', 'identifier': 'ip', 'limit': 20, 'window': 600},
+        ])
+        if blocked:
+            return _rate_limited_response(request, retry_after, redirect_to=request.path)
+
         start_date_str = request.POST.get('start_date')
         end_date_str = request.POST.get('end_date')
         guest_raw = request.POST.get('guests')
@@ -671,23 +862,56 @@ def book_property(request, property_id):
             })
             current = next_due
 
-        booking = Booking.objects.create(
-            property=property_obj,
-            user=request.user,
-            start_date=start_date,
-            end_date=end_date,
-            total_price=total_price,
-            guest=guest,
-            notes=notes,
-            payment_type=payment_type,
-            monthly_due_dates=monthly_due_dates
-        )
-        
-        # Redirect to pay for the first unpaid month only
-        first_month = booking.start_date.strftime('%B')
-        first_year = booking.start_date.year
-        pay_url = reverse('make_payment', kwargs={'booking_id': booking.id})
-        return redirect(f'{pay_url}?month={first_month}&year={first_year}')
+        total_price = total_price.quantize(Decimal("0.01"))
+        amount_paise = int(total_price * 100)
+        month = start_date.strftime('%B')
+        year = str(start_date.year)
+
+        order = razor_client.order.create({
+            'amount': amount_paise,
+            'currency': 'INR',
+            'payment_capture': 1,
+            'notes': {
+                'property_id': str(property_obj.id),
+                'user_id': str(request.user.id),
+                'month': month,
+                'year': year,
+            }
+        })
+
+        request.session['pending_booking_payment'] = {
+            'property_id': property_obj.id,
+            'start_date': start_date.isoformat(),
+            'end_date': end_date.isoformat(),
+            'guest': guest,
+            'notes': notes,
+            'payment_type': payment_type,
+            'monthly_due_dates': monthly_due_dates,
+            'total_price': str(total_price),
+            'amount_paise': amount_paise,
+            'order_id': order['id'],
+            'month': month,
+            'year': year,
+        }
+
+        booking_preview = {
+            'id': 'NEW',
+            'property': property_obj,
+            'start_date': start_date,
+            'end_date': end_date,
+            'user': request.user,
+            'total_price': total_price,
+        }
+
+        return render(request, 'make_payment.html', {
+            'booking': booking_preview,
+            'month': month,
+            'year': year,
+            'razorpay_key_id': settings.RAZORPAY_KEY_ID,
+            'razorpay_order_id': order['id'],
+            'razorpay_amount_paise': amount_paise,
+            'currency': 'INR',
+        })
 
     # For GET requests, render the booking form
     return render(request, 'book_property.html', {
@@ -696,6 +920,195 @@ def book_property(request, property_id):
         'available_dates': get_available_dates(property_obj)
     })
 
+
+# Razorpay payment verification endpoint
+@login_required
+@require_POST
+def payment_verify(request):
+    blocked, retry_after = _check_rate_limits(request, 'payment_verify', [
+        {'name': 'payment_verify_user', 'identifier': 'user', 'limit': 30, 'window': 600},
+        {'name': 'payment_verify_ip', 'identifier': 'ip', 'limit': 45, 'window': 600},
+    ])
+    if blocked:
+        return _rate_limited_response(request, retry_after, redirect_to='my_bookings')
+
+    rp_payment_id = request.POST.get('razorpay_payment_id')
+    rp_order_id = request.POST.get('razorpay_order_id')
+    rp_signature = request.POST.get('razorpay_signature')
+    month = request.POST.get('month')
+    year = request.POST.get('year')
+
+    if not _verify_checkout_signature(rp_order_id, rp_payment_id, rp_signature):
+        return JsonResponse({'ok': False, 'error': 'Payment signature verification failed. No booking was created.'}, status=400)
+
+    pending = request.session.get('pending_booking_payment')
+    if not pending:
+        return JsonResponse({'ok': False, 'error': 'Payment session expired. Please book again.'}, status=400)
+
+    expected_order_id = pending.get('order_id')
+    if expected_order_id != rp_order_id:
+        return JsonResponse({'ok': False, 'error': 'Order mismatch detected. Please retry payment.'}, status=400)
+
+    try:
+        payment_info = razor_client.payment.fetch(rp_payment_id)
+    except Exception:
+        logger.exception("Failed to fetch payment info from Razorpay")
+        return JsonResponse({'ok': False, 'error': 'Unable to confirm payment status. Please try again shortly.'}, status=502)
+
+    payment_status = payment_info.get('status')
+    paid_amount_paise = int(payment_info.get('amount') or 0)
+    expected_amount_paise = int(pending.get('amount_paise') or 0)
+
+    if payment_status not in ('captured', 'authorized'):
+        return JsonResponse({'ok': False, 'error': 'Payment is not completed yet. Booking was not created.'}, status=400)
+
+    if paid_amount_paise != expected_amount_paise:
+        return JsonResponse({'ok': False, 'error': 'Payment amount mismatch. Booking was not created.'}, status=400)
+
+    pending_kind = pending.get('kind', 'new_booking_payment')
+
+    if pending_kind == 'existing_booking_payment':
+        booking = get_object_or_404(
+            Booking,
+            id=pending.get('booking_id'),
+            user=request.user,
+            property_id=pending.get('property_id')
+        )
+        total_price = Decimal(str(pending['total_price']))
+        booking.status = 'paid'
+        booking.paid_amount += total_price
+        booking.save(update_fields=['status', 'paid_amount', 'updated_at'])
+    else:
+        property_obj = get_object_or_404(Property, id=pending['property_id'], status='active')
+        start_date = datetime.strptime(pending['start_date'], "%Y-%m-%d").date()
+        end_date = datetime.strptime(pending['end_date'], "%Y-%m-%d").date()
+
+        overlapping = Booking.objects.filter(
+            property=property_obj,
+        ).exclude(
+            status='declined'
+        ).filter(
+            Q(start_date__lt=end_date) & Q(end_date__gt=start_date)
+        ).exists()
+
+        if overlapping:
+            return JsonResponse({'ok': False, 'error': 'This property was booked by someone else during payment. No booking was created.'}, status=409)
+
+        total_price = Decimal(str(pending['total_price']))
+        booking = Booking.objects.create(
+            property=property_obj,
+            user=request.user,
+            start_date=start_date,
+            end_date=end_date,
+            total_price=total_price,
+            guest=pending.get('guest'),
+            notes=pending.get('notes', ''),
+            payment_type=pending.get('payment_type', 'monthly'),
+            monthly_due_dates=pending.get('monthly_due_dates', []),
+            status='paid',
+            paid_amount=total_price,
+        )
+
+    log = PaymentLog.objects.create(
+        booking=booking,
+        order_id=rp_order_id,
+        payment_id=rp_payment_id,
+        amount=total_price,
+        month=month or pending.get('month', ''),
+        year=year or pending.get('year', ''),
+        status='paid',
+        paid_By_User=request.user,
+        signature=rp_signature,
+        payment_method=payment_info.get('method'),
+        full_response=payment_info,
+    )
+
+    # --- New: Update booking.payment_data for bill generation ---
+    try:
+        payment_year = int(year or pending.get('year'))
+        payment_month_name = str(month or pending.get('month'))
+        payment_amount = float(log.amount) if log and log.amount else float(booking.property.price)
+        payment_date = date.today()
+
+        payment_data = booking.payment_data or []
+
+        # Find or create the year entry
+        year_entry = next((y for y in payment_data if y['year'] == payment_year), None)
+        if not year_entry:
+            year_entry = {"year": payment_year, "months": {}}
+            payment_data.append(year_entry)
+
+        # Add/append this month's payment info
+        if payment_month_name not in year_entry['months']:
+            year_entry['months'][payment_month_name] = []
+
+        year_entry['months'][payment_month_name].append({
+            "payment_date": payment_date.strftime("%Y-%m-%d"),
+            "payment_amount": str(payment_amount)
+        })
+
+        booking.payment_data = payment_data
+
+    except Exception as e:
+        logger.exception("Error updating payment_data")
+    # --- End update ---
+
+    booking.save()
+
+    # Vendor payout
+    vendor_profile = booking.property.owner.profile
+    if vendor_profile.razorpay_fund_account_id:
+        try:
+            razor_client.payout.create({
+                "account_number": settings.RAZORPAY_PAYOUT_ACCOUNT,
+                "fund_account_id": vendor_profile.razorpay_fund_account_id,
+                "amount": int(log.amount * 90),  # 90% to vendor
+                "currency": "INR",
+                "mode": "IMPS",
+                "purpose": "payout",
+                "queue_if_low_balance": True,
+                "notes": {"booking_id": booking.id}
+            })
+        except Exception as e:
+            logger.exception("Razorpay payout error")
+
+    try:
+        del request.session['pending_booking_payment']
+    except KeyError:
+        pass
+
+    return JsonResponse({'ok': True, 'redirect': reverse('booking_confirmation', kwargs={'booking_id': booking.id})})
+
+#razorpay webhook
+@csrf_exempt
+@require_POST
+def razorpay_webhook(request):
+    blocked, _retry_after = _check_rate_limits(request, 'razorpay_webhook', [
+        {'name': 'razorpay_webhook_ip', 'identifier': 'ip', 'limit': 180, 'window': 60},
+    ])
+    if blocked:
+        return HttpResponse(status=429)
+
+    payload = request.body
+    signature = request.headers.get('X-Razorpay-Signature')
+    if not signature:
+        return HttpResponse(status=400)
+ 
+    try:
+        razor_client.utility.verify_webhook_signature(payload, signature, settings.RAZORPAY_WEBHOOK_SECRET)
+    except razorpay.errors.SignatureVerificationError:
+        return HttpResponse(status=400)
+
+    try:
+        json.loads(payload)
+    except json.JSONDecodeError:
+        return HttpResponse(status=400)
+
+    logger.info("Razorpay webhook received and signature verified")
+    return HttpResponse(status=200)
+
+
+#booking confirmation
 @login_required
 def booking_confirmation(request, booking_id):
     #how can stop the user from accessing this view if the booking is not paid?
@@ -774,187 +1187,6 @@ def booking_confirmation(request, booking_id):
    
     return render(request, 'booking_confirmation.html', {'booking': booking})
 
-# @login_required
-# def manage_profile(request):
-#     profile = request.user.profile
-    
-    
-#     if request.method == 'POST':
-#         form = ProfileForm(request.POST, request.FILES, instance=profile)
-#         if form.is_valid():
-#             form.save()
-#             messages.success(request, "Profile updated successfully!")
-#             return redirect('dashboard')
-#     else:
-#         form = ProfileForm(instance=profile)
-    
-#     return render(request, 'manage_profile.html', {'form': form})
-@login_required(login_url='/login/')
-def toggle_wishlist(request, property_id):
-    if not request.user.is_authenticated:
-        # AJAX: return JSON with login redirect
-        if request.headers.get("X-Requested-With") == "XMLHttpRequest":
-            return JsonResponse({"login_required": True, "login_url": "/login/?next=" + request.path}, status=401)
-        # Non-AJAX: redirect to login
-        return redirect(f"/login/?next={request.path}")
-
-    property_obj = get_object_or_404(Property, id=property_id)
-    wishlist_item, created = Wishlist.objects.get_or_create(user=request.user, property=property_obj)
-
-    if not created:
-        wishlist_item.delete()
-        status = "removed"
-    else:
-        status = "added"
-
-    if request.headers.get("X-Requested-With") == "XMLHttpRequest":
-        return JsonResponse({"status": status})
-    else:
-        return redirect(request.META.get("HTTP_REFERER", "home"))
-
-
-def logout_user(request):
-    logout(request)
-    messages.success(request, "You have been logged out successfully.")
-    return redirect('home')
-
-# Utility functions
-def get_available_dates(property):
-    # Implement your availability logic here
-    # This could check against existing bookings
-    return []
-
-
-def haversine(lat1, lon1, lat2, lon2):
-    R = 6371  # Earth radius in kilometers
-    dlat = radians(lat2 - lat1)
-    dlon = radians(lon2 - lon1)
-    a = sin(dlat/2)**2 + cos(radians(lat1)) * cos(radians(lat2)) * sin(dlon/2)**2
-    c = 2 * asin(sqrt(a))
-    return R * c
-
-
-def property_list(request):
-    user = request.user
-    profile = user.profile if user.is_authenticated else None
-    properties = Property.objects.none()  # Default empty queryset
-
-    # Determine initial queryset
-    if request.user.is_authenticated and hasattr(request.user, 'profile') and request.user.profile.role == 'vendor':
-        queryset = Property.objects.filter(owner=request.user)
-    elif request.GET.get('view') == 'wishlist' and request.user.is_authenticated:
-        queryset = Property.objects.filter(wishlist__user=request.user)
-    elif request.GET.get('view') == 'recent_viewed' and request.user.is_authenticated:
-       queryset = Property.objects.filter(recent_views__user=request.user)
-    else:
-        queryset = Property.objects.filter(status='active')
-
-    # Apply filters for all cases
-    location = request.GET.get('location')
-    property_type = request.GET.get('property_type')
-    price_range = request.GET.get('price_range')
-    user_lat = request.GET.get('user_lat')
-    user_lng = request.GET.get('user_lng')
-    radius_km = _safe_float(request.GET.get('radius', 20), 20.0)  # Default to 20km
-    zip_code = request.GET.get('zip_code')
-
-  
-
-
-    # Track if any filter/search is applied
-    filter_applied = any([
-        location,
-        property_type and property_type != "Any Type",
-        price_range,
-        user_lat and user_lng,
-        zip_code
-    ])
-
-
-   
-    if location:
-    # Split by comma and space, remove empty strings
-        import re
-        parts = [p.strip() for p in re.split(r'[,\s]+', location) if p.strip()]
-        for part in parts:
-            queryset = queryset.filter(
-                Q(location__icontains=part) |
-                Q(city__icontains=part) |
-                Q(address__icontains=part) |
-                Q(state__icontains=part)
-            )
-    
-    if zip_code:
-        queryset = queryset.filter(zip_code=zip_code)
-
-    if property_type:
-        queryset = queryset.filter(property_type__icontains=property_type)
-
-    
-
-    if price_range:
-        if price_range == "Under ₹10,000":
-            queryset = queryset.filter(price__lt=Decimal('10000'))
-        elif price_range == "₹10,000-₹20,000":
-            queryset = queryset.filter(price__gte=Decimal('10000'), price__lte=Decimal('20000'))
-        elif price_range == "₹20,000-₹30,000":
-            queryset = queryset.filter(price__gte=Decimal('20000'), price__lte=Decimal('30000'))
-        elif price_range == "Over ₹30,000":
-            queryset = queryset.filter(price__gt=Decimal('30000'))
-
-         # --- Only filter by user location if both lat/lng are present ---
-    if user_lat and user_lng:
-        try:
-            user_lat = float(user_lat)
-            user_lng = float(user_lng)
-            filtered_properties = [
-                prop for prop in queryset
-                if prop.latitude and prop.longitude and
-                haversine(user_lat, user_lng, float(prop.latitude), float(prop.longitude)) <= radius_km
-            ]
-            queryset = filtered_properties if filtered_properties else []
-        except Exception:
-            queryset = queryset.order_by('-date_added')
-    else:
-        queryset = queryset.order_by('-date_added')
-
-
-
-    # Add wishlist status for heart icon
-    if request.user.is_authenticated:
-        wishlist_ids = set(
-            Wishlist.objects.filter(user=request.user).values_list('property_id', flat=True)
-        )
-        for prop in queryset:
-            prop.in_wishlist = prop.id in wishlist_ids
-    else:
-        for prop in queryset:
-            prop.in_wishlist = False
-
-    # Pagination
-    paginator = Paginator(queryset, 6)  # 6 per page
-    page = request.GET.get('page')
-    properties = paginator.get_page(page)
-
-    # Check if no properties found after search/filter
-    no_results = filter_applied and properties.paginator.count == 0
-
-  
-    # AJAX support for partial rendering
-    if request.headers.get('x-requested-with') == 'XMLHttpRequest':
-        html = render_to_string('partials/_featured_properties.html', {
-            'featured_properties': properties,
-            'no_results': no_results,
-        }, request=request)
-        return HttpResponse(html)
-
-    return render(request, 'property_list.html', {
-        'properties': properties,
-        'pic': profile if profile else None,
-        'showing_wishlist': request.GET.get('view') == 'wishlist',
-        'is_vendor': request.user.is_authenticated and hasattr(request.user, 'profile') and request.user.profile.role == 'vendor',
-        'no_results': no_results,
-    })
 
 
 @login_required
@@ -978,138 +1210,8 @@ def my_bookings(request):
     })
 
 
-# Allow users to cancel/delete their own bookings
-@login_required
-def cancel_booking(request, booking_id):
-
-    
-
-    booking = get_object_or_404(Booking, id=booking_id, user=request.user)
-
-   # Check user payment till current month
-    start_date = booking.start_date
-    current_date = timezone.now().date()
-    # fixed_date = datetime(2026, 1, 28).date()  # Use a fixed date for testing
-    # current_date = fixed_date
-    paid_amount = booking.paid_amount
-
-#------------------#need to fix it -----------------
-
-
-# Calculate completed months
-    calculated_months = (current_date.year - start_date.year) * 12 + (current_date.month - start_date.month)
-   
-
-    # Adjust if current day < start day (not a full month yet)
-    start = start_date.day + 5
-    if start < current_date.day:
-        calculated_months += 1
-
-   
-
-# Assuming booking.total_price is per month rent
-    total_outstanding = (Decimal(calculated_months) * booking.total_price) - paid_amount
-
-   
-
-    # Allow cancel if payment is complete
-    if total_outstanding <= 0:  # booking.status in ['pending', 'approved', 'active', 'paid'] and booking.total_price == booking.total_amount
-        booking.status = 'cancelled'
-        booking.property.status = 'active'
-        booking.property.save()
-
-        # Send cancellation email notifications
-        vendor_email = booking.property.owner.email
-        customer_email = request.user.email
-
-        vendor_message = (
-            f"Dear {booking.property.owner.username},\n\n"
-            f"We would like to inform you that the booking for your property '{booking.property.title}' "
-            f"has been cancelled by {request.user.username}.\n\n"
-            f"--- Property Details ---\n"
-            f"Title: {booking.property.title}\n"
-            f"Location: {booking.property.location}\n"
-            f"Address: {booking.property.address}, {booking.property.city}, {booking.property.state} - {booking.property.zip_code}\n"
-            f"Google Location: https://www.google.com/maps/search/?api=1&query={booking.property.latitude},{booking.property.longitude}\n"
-            f"Monthly Rent: ₹{booking.property.price}\n\n"
-            f"Best regards,\n"
-            f"SBLRent Team"
-        )
-
-        customer_message = (
-            f"Dear {request.user.username},\n\n"
-            f"Your booking for the property '{booking.property.title}' has been successfully cancelled.\n\n"
-            f"--- Property Details ---\n"
-            f"Title: {booking.property.title}\n"
-            f"Location: {booking.property.location}\n"
-            f"Address: {booking.property.address}, {booking.property.city}, {booking.property.state} - {booking.property.zip_code}\n"
-            f"Google Location: https://www.google.com/maps/search/?api=1&query={booking.property.latitude},{booking.property.longitude}\n"
-            f"Monthly Rent: ₹{booking.property.price}\n\n"
-            f"Best regards,\n"
-            f"SBLRent Team"
-        )
-
-        t1 = threading.Thread(
-            target=send_email_async,
-            kwargs={
-                "subject": "Booking Cancelled - SBLRent",
-                "message": vendor_message,
-                "from_email": None,
-                "recipient_list": [vendor_email],
-            }
-        )
-        t2 = threading.Thread(
-            target=send_email_async,
-            kwargs={
-                "subject": "Your Booking Has Been Cancelled - SBLRent",
-                "message": customer_message,
-                "from_email": None,
-                "recipient_list": [customer_email],
-            }
-        )
-        t1.start()
-        t2.start()
-
-        booking.delete()
-        messages.success(request, "Booking has been cancelled.")
-    else:
-        messages.error(request, f"This booking cannot be cancelled. Please ensure all payments are settled before cancelling. Remaining amount is ₹{total_outstanding}")
-    return redirect('my_bookings')
-
-
-
-@login_required(login_url='/login/')
-def my_wishlist(request):
-    wishlist_items = Wishlist.objects.filter(user=request.user).select_related('property').order_by('-property__date_added')
-    return render(request, 'my_wishlist.html', {'wishlist_items': wishlist_items})
-
-# @login_required
-# def vendor_booking_requests(request):
-#     if request.user.profile.role != 'vendor':
-#         return redirect('home')
-#     bookings = Booking.objects.filter(property__owner=request.user)
-#     return render(request, 'vendor_bookings.html', {'bookings': bookings})
-
-# @login_required
-# def approve_booking(request, booking_id):
-#     booking = get_object_or_404(Booking, id=booking_id, property__owner=request.user)
-#     booking.status = 'approved'
-#     booking.save()
-#     return redirect('vendor_booking_requests')
-
-# @login_required
-# def decline_booking(request, booking_id):
-#     booking = get_object_or_404(Booking, id=booking_id, property__owner=request.user)
-#     booking.status = 'declined'
-#     booking.save()
-#     return redirect('vendor_booking_requests')
-
 
 # Reservation details view
-
-# Reservation details view
-
-
 
 @login_required
 def reservation_details(request, booking_id):
@@ -1243,167 +1345,298 @@ def reservation_details(request, booking_id):
         'selected_year': selected_year,
     })
 
-# User payment after vendor approval
 
 
+# Allow users to cancel/delete their own bookings
 @login_required
-def make_payment(request, booking_id):
+def cancel_booking(request, booking_id):
+
     booking = get_object_or_404(Booking, id=booking_id, user=request.user)
-    month = request.GET.get('month')
-    year = request.GET.get('year')
+
+   # Check user payment till current month
+    start_date = booking.start_date
+    current_date = timezone.now().date()
+    # fixed_date = datetime(2026, 1, 28).date()  # Use a fixed date for testing
+    # current_date = fixed_date
+    paid_amount = booking.paid_amount
+
+#------------------#need to fix it -----------------
+
+# Calculate completed months
+    calculated_months = (current_date.year - start_date.year) * 12 + (current_date.month - start_date.month)
+
+    # Adjust if current day < start day (not a full month yet)
+    start = start_date.day + 5
+    if start < current_date.day:
+        calculated_months += 1
+
+# Assuming booking.total_price is per month rent
+    total_outstanding = (Decimal(calculated_months) * booking.total_price) - paid_amount
+
+    # Allow cancel if payment is complete
+    if total_outstanding <= 0:  # booking.status in ['pending', 'approved', 'active', 'paid'] and booking.total_price == booking.total_amount
+        booking.status = 'cancelled'
+        booking.property.status = 'active'
+        booking.property.save()
+
+        # Send cancellation email notifications
+        vendor_email = booking.property.owner.email
+        customer_email = request.user.email
+
+        vendor_message = (
+            f"Dear {booking.property.owner.username},\n\n"
+            f"We would like to inform you that the booking for your property '{booking.property.title}' "
+            f"has been cancelled by {request.user.username}.\n\n"
+            f"--- Property Details ---\n"
+            f"Title: {booking.property.title}\n"
+            f"Location: {booking.property.location}\n"
+            f"Address: {booking.property.address}, {booking.property.city}, {booking.property.state} - {booking.property.zip_code}\n"
+            f"Google Location: https://www.google.com/maps/search/?api=1&query={booking.property.latitude},{booking.property.longitude}\n"
+            f"Monthly Rent: ₹{booking.property.price}\n\n"
+            f"Best regards,\n"
+            f"SBLRent Team"
+        )
+
+        customer_message = (
+            f"Dear {request.user.username},\n\n"
+            f"Your booking for the property '{booking.property.title}' has been successfully cancelled.\n\n"
+            f"--- Property Details ---\n"
+            f"Title: {booking.property.title}\n"
+            f"Location: {booking.property.location}\n"
+            f"Address: {booking.property.address}, {booking.property.city}, {booking.property.state} - {booking.property.zip_code}\n"
+            f"Google Location: https://www.google.com/maps/search/?api=1&query={booking.property.latitude},{booking.property.longitude}\n"
+            f"Monthly Rent: ₹{booking.property.price}\n\n"
+            f"Best regards,\n"
+            f"SBLRent Team"
+        )
+
+        t1 = threading.Thread(
+            target=send_email_async,
+            kwargs={
+                "subject": "Booking Cancelled - SBLRent",
+                "message": vendor_message,
+                "from_email": None,
+                "recipient_list": [vendor_email],
+            }
+        )
+        t2 = threading.Thread(
+            target=send_email_async,
+            kwargs={
+                "subject": "Your Booking Has Been Cancelled - SBLRent",
+                "message": customer_message,
+                "from_email": None,
+                "recipient_list": [customer_email],
+            }
+        )
+        t1.start()
+        t2.start()
+
+        booking.delete()
+        messages.success(request, "Booking has been cancelled.")
+    else:
+        messages.error(request, f"This booking cannot be cancelled. Please ensure all payments are settled before cancelling. Remaining amount is ₹{total_outstanding}")
+    return redirect('my_bookings')
+
+
+#property list
+def property_list(request):
     user = request.user
+    profile = user.profile if user.is_authenticated else None
+    properties = Property.objects.none()  # Default empty queryset
 
-    if not month or not year:
-        messages.error(request, "Invalid payment period.")
-        return redirect('book_property', property_id=booking.property.id)
+    # Determine initial queryset
+    if request.user.is_authenticated and hasattr(request.user, 'profile') and request.user.profile.role == 'vendor':
+        queryset = Property.objects.filter(owner=request.user)
+    elif request.GET.get('view') == 'wishlist' and request.user.is_authenticated:
+        queryset = Property.objects.filter(wishlist__user=request.user)
+    elif request.GET.get('view') == 'recent_viewed' and request.user.is_authenticated:
+       queryset = Property.objects.filter(recent_views__user=request.user)
+    else:
+        queryset = Property.objects.filter(status='active')
 
-    amount_rupees = float(booking.total_price)
-    amount_paise = int(amount_rupees * 100)
+    # Apply filters for all cases
+    location = request.GET.get('location')
+    property_type = request.GET.get('property_type')
+    price_range = request.GET.get('price_range')
+    user_lat = request.GET.get('user_lat')
+    user_lng = request.GET.get('user_lng')
+    radius_km = _safe_float(request.GET.get('radius', 20), 20.0)  # Default to 20km
+    zip_code = request.GET.get('zip_code')
 
-    commission = amount_rupees * 0.10  # 10% commission
-    vendor_amount = amount_rupees - commission
+    # Track if any filter/search is applied
+    filter_applied = any([
+        location,
+        property_type and property_type != "Any Type",
+        price_range,
+        user_lat and user_lng,
+        zip_code
+    ])
 
-    order = razor_client.order.create({
-        'amount': amount_paise,
-        'currency': 'INR',
-        'payment_capture': 1,
-        'notes': {
-            'booking_id': str(booking.id),
-            'month': month,
-            'year': year,
-            'vendor_amount': vendor_amount
-        }
+    if location:
+    # Split by comma and space, remove empty strings
+        import re
+        parts = [p.strip() for p in re.split(r'[,\s]+', location) if p.strip()]
+        for part in parts:
+            queryset = queryset.filter(
+                Q(location__icontains=part) |
+                Q(city__icontains=part) |
+                Q(address__icontains=part) |
+                Q(state__icontains=part)
+            )
+    if zip_code:
+        queryset = queryset.filter(zip_code=zip_code)
+    if property_type:
+        queryset = queryset.filter(property_type__icontains=property_type)
+    if price_range:
+        if price_range == "Under ₹10,000":
+            queryset = queryset.filter(price__lt=Decimal('10000'))
+        elif price_range == "₹10,000-₹20,000":
+            queryset = queryset.filter(price__gte=Decimal('10000'), price__lte=Decimal('20000'))
+        elif price_range == "₹20,000-₹30,000":
+            queryset = queryset.filter(price__gte=Decimal('20000'), price__lte=Decimal('30000'))
+        elif price_range == "Over ₹30,000":
+            queryset = queryset.filter(price__gt=Decimal('30000'))
+
+         # --- Only filter by user location if both lat/lng are present ---
+    if user_lat and user_lng:
+        try:
+            user_lat = float(user_lat)
+            user_lng = float(user_lng)
+            filtered_properties = [
+                prop for prop in queryset
+                if prop.latitude and prop.longitude and
+                haversine(user_lat, user_lng, float(prop.latitude), float(prop.longitude)) <= radius_km
+            ]
+            queryset = filtered_properties if filtered_properties else []
+        except Exception:
+            queryset = queryset.order_by('-date_added')
+    else:
+        queryset = queryset.order_by('-date_added')
+
+    # Add wishlist status for heart icon
+    if request.user.is_authenticated:
+        wishlist_ids = set(
+            Wishlist.objects.filter(user=request.user).values_list('property_id', flat=True)
+        )
+        for prop in queryset:
+            prop.in_wishlist = prop.id in wishlist_ids
+    else:
+        for prop in queryset:
+            prop.in_wishlist = False
+
+    # Pagination
+    paginator = Paginator(queryset, 6)  # 6 per page
+    page = request.GET.get('page')
+    properties = paginator.get_page(page)
+
+    # Check if no properties found after search/filter
+    no_results = filter_applied and properties.paginator.count == 0
+
+  
+    # AJAX support for partial rendering
+    if request.headers.get('x-requested-with') == 'XMLHttpRequest':
+        html = render_to_string('partials/_featured_properties.html', {
+            'featured_properties': properties,
+            'no_results': no_results,
+        }, request=request)
+        return HttpResponse(html)
+
+    return render(request, 'property_list.html', {
+        'properties': properties,
+        'pic': profile if profile else None,
+        'showing_wishlist': request.GET.get('view') == 'wishlist',
+        'is_vendor': request.user.is_authenticated and hasattr(request.user, 'profile') and request.user.profile.role == 'vendor',
+        'no_results': no_results,
     })
 
-    PaymentLog.objects.create(
-        booking=booking,
-        order_id=order['id'],
-        amount=amount_rupees,
-        month=month,
-        year=year,
-        status='created',
-        paid_By_User=user,
-        full_response=order  # Save full Razorpay order response
-    )
 
-    return render(request, 'make_payment.html', {
-        'booking': booking,
-        'month': month,
-        'year': year,
-        'razorpay_key_id': settings.RAZORPAY_KEY_ID,
-        'razorpay_order_id': order['id'],
-        'razorpay_amount_paise': amount_paise,
-        'currency': 'INR',
-    })
+#toggle wishlist
+@login_required(login_url='/login/')
+def toggle_wishlist(request, property_id):
+    if not request.user.is_authenticated:
+        # AJAX: return JSON with login redirect
+        if request.headers.get("X-Requested-With") == "XMLHttpRequest":
+            return JsonResponse({"login_required": True, "login_url": "/login/?next=" + request.path}, status=401)
+        # Non-AJAX: redirect to login
+        return redirect(f"/login/?next={request.path}")
 
-# Razorpay payment verification endpoint
+    blocked, retry_after = _check_rate_limits(request, 'wishlist_toggle', [
+        {'name': 'wishlist_toggle_user', 'identifier': 'user', 'limit': 80, 'window': 60},
+        {'name': 'wishlist_toggle_ip', 'identifier': 'ip', 'limit': 120, 'window': 60},
+    ])
+    if blocked:
+        if request.headers.get("X-Requested-With") == "XMLHttpRequest":
+            return _rate_limited_response(request, retry_after, redirect_to='home')
+        messages.error(request, f"Too many requests. Please try again in {retry_after} seconds.")
+        return redirect(request.META.get("HTTP_REFERER", "home"))
 
-    
+    property_obj = get_object_or_404(Property, id=property_id)
+    wishlist_item, created = Wishlist.objects.get_or_create(user=request.user, property=property_obj)
+
+    if not created:
+        wishlist_item.delete()
+        status = "removed"
+    else:
+        status = "added"
+
+    if request.headers.get("X-Requested-With") == "XMLHttpRequest":
+        return JsonResponse({"status": status})
+    else:
+        return redirect(request.META.get("HTTP_REFERER", "home"))
+
+
+# my wishlist
+@login_required(login_url='/login/')
+def my_wishlist(request):
+    wishlist_items = Wishlist.objects.filter(user=request.user).select_related('property').order_by('-property__date_added')
+    return render(request, 'my_wishlist.html', {'wishlist_items': wishlist_items})
+
+
+# logout user
+def logout_user(request):
+    logout(request)
+    messages.success(request, "You have been logged out successfully.")
+    return redirect('home')
+
+
+# Utility functions
+def get_available_dates(property):
+    # Implement your availability logic here
+    # This could check against existing bookings
+    return []
+
+def haversine(lat1, lon1, lat2, lon2):
+    R = 6371  # Earth radius in kilometers
+    dlat = radians(lat2 - lat1)
+    dlon = radians(lon2 - lon1)
+    a = sin(dlat/2)**2 + cos(radians(lat1)) * cos(radians(lat2)) * sin(dlon/2)**2
+    c = 2 * asin(sqrt(a))
+    return R * c
+
+
 
 @login_required
-@require_POST
-def payment_verify(request):
-    rp_payment_id = request.POST.get('razorpay_payment_id')
-    rp_order_id = request.POST.get('razorpay_order_id')
-    rp_signature = request.POST.get('razorpay_signature')
-    booking_id = request.POST.get('booking_id')
-    month = request.POST.get('month')  # Expected full month name e.g. "August"
-    year = request.POST.get('year')
+def download_kyc_document(request, doc_type):
+    profile = get_object_or_404(Profile, user=request.user)
 
-    if not _verify_checkout_signature(rp_order_id, rp_payment_id, rp_signature):
-        return JsonResponse({'ok': False, 'error': 'Signature verification failed.'}, status=400)
+    documents = {
+        'aadhaar': profile.aadhaar_document,
+        'pan': profile.pan_document,
+    }
+    document_file = documents.get(doc_type)
 
-    booking = get_object_or_404(Booking, id=booking_id, user=request.user)
-    log = PaymentLog.objects.filter(order_id=rp_order_id).first()
-    if log:
-        log.payment_id = rp_payment_id
-        log.status = 'paid'
-        log.signature = rp_signature
-        # Try to get payment method and full response from Razorpay API
-        try:
-            payment_info = razor_client.payment.fetch(rp_payment_id)
-            log.payment_method = payment_info.get('method')
-            log.full_response = payment_info
-        except Exception as e:
-            log.error_message = f"Could not fetch payment info: {e}"
-        log.save()
+    if document_file is None:
+        raise Http404("Invalid document type")
 
-    booking.status = 'paid'
-    booking.paid_amount += booking.total_price
-    booking.save()
+    if not getattr(document_file, 'name', None):
+        raise Http404("Document not found")
 
-    # --- New: Update booking.payment_data for bill generation ---
-    try:
-        payment_year = int(year)
-        payment_month_name = str(month)  # Ensure string like "August"
-        payment_amount = float(log.amount) if log and log.amount else float(booking.property.price)
-        payment_date = date.today()
+    response = FileResponse(document_file.open('rb'), as_attachment=True, filename=os.path.basename(document_file.name))
+    response['Content-Type'] = 'application/octet-stream'
+    response['X-Content-Type-Options'] = 'nosniff'
+    response['Content-Security-Policy'] = "sandbox"
+    return response
 
-        payment_data = booking.payment_data or []
-
-        # Find or create the year entry
-        year_entry = next((y for y in payment_data if y['year'] == payment_year), None)
-        if not year_entry:
-            year_entry = {"year": payment_year, "months": {}}
-            payment_data.append(year_entry)
-
-        # Add/append this month's payment info
-        if payment_month_name not in year_entry['months']:
-            year_entry['months'][payment_month_name] = []
-
-        year_entry['months'][payment_month_name].append({
-            "payment_date": payment_date.strftime("%Y-%m-%d"),
-            "payment_amount": str(payment_amount)
-        })
-
-        booking.payment_data = payment_data
-
-    except Exception as e:
-        logger.exception("Error updating payment_data")
-    # --- End update ---
-
-    booking.save()
-
-    # Vendor payout
-    vendor_profile = booking.property.owner.profile
-    if vendor_profile.razorpay_fund_account_id:
-        try:
-            razor_client.payout.create({
-                "account_number": settings.RAZORPAY_PAYOUT_ACCOUNT,
-                "fund_account_id": vendor_profile.razorpay_fund_account_id,
-                "amount": int(log.amount * 90),  # 90% to vendor
-                "currency": "INR",
-                "mode": "IMPS",
-                "purpose": "payout",
-                "queue_if_low_balance": True,
-                "notes": {"booking_id": booking.id}
-            })
-        except Exception as e:
-            logger.exception("Razorpay payout error")
-
-    return JsonResponse({'ok': True, 'redirect': reverse('booking_confirmation', kwargs={'booking_id': booking.id})})
-
-
-@csrf_exempt
-@require_POST
-def razorpay_webhook(request):
-    payload = request.body
-    signature = request.headers.get('X-Razorpay-Signature')
-    if not signature:
-        return HttpResponse(status=400)
- 
-    try:
-        razor_client.utility.verify_webhook_signature(payload, signature, settings.RAZORPAY_WEBHOOK_SECRET)
-    except razorpay.errors.SignatureVerificationError:
-        return HttpResponse(status=400)
-
-    try:
-        json.loads(payload)
-    except json.JSONDecodeError:
-        return HttpResponse(status=400)
-
-    logger.info("Razorpay webhook received and signature verified")
-    return HttpResponse(status=200)
 
 
 def send_payment_reminders():
@@ -1419,3 +1652,41 @@ def send_payment_reminders():
                     [booking.user.email]
                 )
 
+
+# @login_required
+# def manage_profile(request):
+#     profile = request.user.profile
+    
+    
+#     if request.method == 'POST':
+#         form = ProfileForm(request.POST, request.FILES, instance=profile)
+#         if form.is_valid():
+#             form.save()
+#             messages.success(request, "Profile updated successfully!")
+#             return redirect('dashboard')
+#     else:
+#         form = ProfileForm(instance=profile)
+    
+#     return render(request, 'manage_profile.html', {'form': form})
+
+
+# @login_required
+# def vendor_booking_requests(request):
+#     if request.user.profile.role != 'vendor':
+#         return redirect('home')
+#     bookings = Booking.objects.filter(property__owner=request.user)
+#     return render(request, 'vendor_bookings.html', {'bookings': bookings})
+
+# @login_required
+# def approve_booking(request, booking_id):
+#     booking = get_object_or_404(Booking, id=booking_id, property__owner=request.user)
+#     booking.status = 'approved'
+#     booking.save()
+#     return redirect('vendor_booking_requests')
+
+# @login_required
+# def decline_booking(request, booking_id):
+#     booking = get_object_or_404(Booking, id=booking_id, property__owner=request.user)
+#     booking.status = 'declined'
+#     booking.save()
+#     return redirect('vendor_booking_requests')

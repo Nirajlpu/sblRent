@@ -3,9 +3,10 @@ from django.contrib.auth.models import AbstractUser
 from django.utils import timezone
 from django.core.validators import MinValueValidator, MaxValueValidator, FileExtensionValidator
 from django.conf import settings
+from .file_validators import validate_uploaded_kyc_document, sanitize_uploaded_pdf
 import hashlib
 import os
-
+from django.core.validators import MaxLengthValidator
 
 def hash_filename(filename):
     """Generate a SHA256 hash for the filename (preserve extension)."""
@@ -31,7 +32,7 @@ def property_video_path(instance, filename):
 
 class CustomUser(AbstractUser):
     is_email_verified = models.BooleanField(default=False)
-    phone_number = models.CharField(max_length=15, blank=True, null=True)
+   
     def __str__(self):
         return self.username
 
@@ -49,16 +50,29 @@ class Profile(models.Model):
         blank=True,
         default='default_profile_pic.jpg'
     )
-    is_email_verified = models.BooleanField(default=False)
     phone_number = models.CharField(max_length=15, blank=True, null=True)
-    bio = models.TextField(blank=True, null=True)
+    bio = models.TextField(
+    blank=True,
+    default='',
+    validators=[MaxLengthValidator(300)]
+    )
 
     # Vendor-specific
     company_name = models.CharField(max_length=100, blank=True, null=True)
     aadhaar_number = models.CharField(max_length=20, blank=True, null=True)
     pan_number = models.CharField(max_length=20, blank=True, null=True)
-    aadhaar_document = models.FileField(upload_to=vendor_document_path, blank=True, null=True)
-    pan_document = models.FileField(upload_to=vendor_document_path, blank=True, null=True)
+    aadhaar_document = models.FileField(
+        upload_to=vendor_document_path,
+        validators=[FileExtensionValidator(['pdf', 'jpg', 'jpeg', 'png']), validate_uploaded_kyc_document],
+        blank=True,
+        null=True,
+    )
+    pan_document = models.FileField(
+        upload_to=vendor_document_path,
+        validators=[FileExtensionValidator(['pdf', 'jpg', 'jpeg', 'png']), validate_uploaded_kyc_document],
+        blank=True,
+        null=True,
+    )
     is_verified = models.BooleanField(default=False)
 
     # New payout-related fields
@@ -89,13 +103,15 @@ class Property(models.Model):
         ('commercial', 'Commercial')
     )
     title = models.CharField(max_length=200)
-    description = models.TextField()
+    description = models.TextField(
+    validators=[MaxLengthValidator(1500)]
+    )
     status = models.CharField(max_length=10, choices=STATUS_CHOICES, default='active')
     property_type = models.CharField(max_length=20, choices=TYPE_CHOICES, default='apartment')
     price = models.DecimalField(max_digits=12, decimal_places=2)
     deposit = models.DecimalField(max_digits=12, decimal_places=2, default=0)
     location = models.CharField(max_length=100)
-    address = models.TextField()
+    address = models.TextField(validators=[MaxLengthValidator(500)])
     city = models.CharField(max_length=50)
     state = models.CharField(max_length=50)
     zip_code = models.CharField(max_length=10)
@@ -111,17 +127,27 @@ class Property(models.Model):
     )
     video = models.FileField(upload_to=property_video_path, validators=[FileExtensionValidator(['mp4', 'mov', 'avi'])],
                               blank=True, null=True)
-    bedrooms = models.PositiveIntegerField(default=1)
-    bathrooms = models.PositiveIntegerField(default=1)
+    bedrooms = models.PositiveIntegerField(default=1, validators=[MinValueValidator(1), MaxValueValidator(50)])
+    bathrooms = models.PositiveIntegerField(default=1, validators=[MinValueValidator(1), MaxValueValidator(50)])
     area = models.DecimalField(max_digits=8, decimal_places=2, help_text="Area in square feet")
-    year_built = models.PositiveIntegerField(null=True, blank=True)
+    year_built = models.PositiveIntegerField(
+        null=True,
+        blank=True,
+        validators=[MinValueValidator(1800), MaxValueValidator(timezone.now().year)]
+    )
     owner = models.ForeignKey(CustomUser, on_delete=models.CASCADE, related_name='properties')
-    views = models.PositiveIntegerField(default=0)
-    rating = models.DecimalField(max_digits=3, decimal_places=1, default=4.5,
-                                 validators=[MinValueValidator(0), MaxValueValidator(5)])
-    date_added = models.DateTimeField(default=timezone.now)
+    views = models.PositiveIntegerField(default=0, validators=[MinValueValidator(0)], db_index=True, editable=False)
+    rating = models.DecimalField(
+        max_digits=3,
+        decimal_places=1,
+        default=0,
+        validators=[MinValueValidator(0), MaxValueValidator(5)],
+        editable=False,
+        db_index=True
+    )
+    date_added = models.DateTimeField(auto_now_add=True, db_index=True)
     last_updated = models.DateTimeField(auto_now=True)
-    is_featured = models.BooleanField(default=True)
+    is_featured = models.BooleanField(default=False, db_index=True)
     amenities = models.JSONField(default=list, blank=True)
 
     def __str__(self):
@@ -164,7 +190,7 @@ class Booking(models.Model):
     updated_at = models.DateTimeField(auto_now=True)
     total_price = models.DecimalField(max_digits=10, decimal_places=2)
     paid_amount = models.DecimalField(max_digits=10, decimal_places=2, default=0)
-    notes = models.TextField(blank=True, null=True)
+    notes = models.TextField(blank=True, validators=[MaxLengthValidator(1000)],default='')
     payment_data = models.JSONField(default=list, blank=True)
     payment_type = models.CharField(max_length=10, choices=PAYMENT_TYPE_CHOICES, default='monthly')
     monthly_due_dates = models.JSONField(default=list, blank=True)
@@ -197,7 +223,7 @@ class Review(models.Model):
     rating = models.PositiveIntegerField(
         validators=[MinValueValidator(1), MaxValueValidator(5)]
     )
-    comment = models.TextField()
+    comment = models.TextField(validators=[MaxLengthValidator(1000)])
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
@@ -236,6 +262,28 @@ class RecentView(models.Model):
 # --- SIGNALS FOR FILE DELETION ON UPDATE OR DELETE ---
 from django.db.models.signals import pre_save, post_delete
 from django.dispatch import receiver
+
+@receiver(pre_save, sender=Profile)
+def sanitize_profile_pdf_files_on_change(sender, instance, **kwargs):
+    old = None
+    if instance.pk:
+        try:
+            old = Profile.objects.get(pk=instance.pk)
+        except Profile.DoesNotExist:
+            old = None
+
+    aadhaar_changed = bool(instance.aadhaar_document) and (
+        old is None or old.aadhaar_document.name != instance.aadhaar_document.name
+    )
+    pan_changed = bool(instance.pan_document) and (
+        old is None or old.pan_document.name != instance.pan_document.name
+    )
+
+    if aadhaar_changed:
+        instance.aadhaar_document = sanitize_uploaded_pdf(instance.aadhaar_document, "Aadhaar card")
+    if pan_changed:
+        instance.pan_document = sanitize_uploaded_pdf(instance.pan_document, "PAN card")
+
 
 @receiver(pre_save, sender=Profile)
 def delete_old_profile_files_on_change(sender, instance, **kwargs):

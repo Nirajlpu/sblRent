@@ -424,18 +424,71 @@
       aadhaarNumberInput.setAttribute('minlength', '12');
       aadhaarNumberInput.setAttribute('title', 'Aadhaar number must be exactly 12 digits');
     }
+    async function validateDocumentFile(file, fieldLabel) {
+      if (!file) return true;
+
+      const maxBytes = 5 * 1024 * 1024;
+      const allowedExt = ['pdf', 'jpg', 'jpeg', 'png'];
+      const extension = (file.name.split('.').pop() || '').toLowerCase();
+
+      if (!allowedExt.includes(extension)) {
+        alert(`${fieldLabel} must be PDF, JPG, JPEG, or PNG.`);
+        return false;
+      }
+
+      if (file.size > maxBytes) {
+        alert(`${fieldLabel} exceeds 5MB.`);
+        return false;
+      }
+
+      if (extension === 'pdf') {
+        const headBuffer = await file.slice(0, 5).arrayBuffer();
+        const head = new TextDecoder('latin1').decode(headBuffer);
+        if (head !== '%PDF-') {
+          alert(`${fieldLabel} must be a valid PDF.`);
+          return false;
+        }
+
+        const scanBuffer = await file.slice(0, Math.min(file.size, 1024 * 1024)).arrayBuffer();
+        const text = new TextDecoder('latin1').decode(scanBuffer);
+        const blockedTokens = ['/JavaScript', '/JS', '/OpenAction', '/AA', '/Launch', '/RichMedia', '/EmbeddedFile'];
+        if (blockedTokens.some(token => text.includes(token))) {
+          alert(`${fieldLabel} contains active PDF content and was blocked.`);
+          return false;
+        }
+      }
+
+      return true;
+    }
+
     const aadhaarInput = document.getElementById('aadhaarCard');
     if (aadhaarInput) {
-      aadhaarInput.addEventListener('change', function() {
+      aadhaarInput.addEventListener('change', async function() {
         const file = this.files[0];
-        if (file) { document.getElementById('aadhaarFileName').textContent = file.name; }
+        if (file) {
+          const valid = await validateDocumentFile(file, 'Aadhaar card');
+          if (!valid) {
+            this.value = '';
+            document.getElementById('aadhaarFileName').textContent = 'JPEG, PNG or PDF, Max 5MB';
+            return;
+          }
+          document.getElementById('aadhaarFileName').textContent = file.name;
+        }
       });
     }
 
     const panInput = document.getElementById('panCard');
-    panInput.addEventListener('change', function() {
+    panInput.addEventListener('change', async function() {
       const file = this.files[0];
-      if (file) { document.getElementById('panFileName').textContent = file.name; }
+      if (file) {
+        const valid = await validateDocumentFile(file, 'PAN card');
+        if (!valid) {
+          this.value = '';
+          document.getElementById('panFileName').textContent = 'JPEG, PNG or PDF, Max 5MB';
+          return;
+        }
+        document.getElementById('panFileName').textContent = file.name;
+      }
     });
 
     // Show/hide vendor fields
@@ -455,7 +508,7 @@
 
     // Form validation
     const form = document.querySelector('form');
-    form.addEventListener('submit', function(e) {
+    form.addEventListener('submit', async function(e) {
       const password = document.getElementById('password').value;
       const confirmPassword = document.getElementById('confirmPassword').value;
       if(password.length < 8){ e.preventDefault(); alert('Password must be at least 8 characters'); return; }
@@ -469,7 +522,10 @@
         e.preventDefault(); alert('Aadhaar number must be exactly 12 digits'); return;
       }
       if(!aadhaarFile){ e.preventDefault(); alert('Aadhaar Card required'); return; }
-      if(aadhaarFile.size > 5*1024*1024){ e.preventDefault(); alert('Aadhaar exceeds 5MB'); return; }
+      if(!(await validateDocumentFile(aadhaarFile, 'Aadhaar card'))){ e.preventDefault(); return; }
+
+      const panFile = document.getElementById('panCard').files[0];
+      if(panFile && !(await validateDocumentFile(panFile, 'PAN card'))){ e.preventDefault(); return; }
 
       if(roleSelect.value === 'vendor'){
         const bankAccount = document.getElementById('bankAccount').value;
