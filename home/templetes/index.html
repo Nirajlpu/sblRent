@@ -502,7 +502,7 @@
 
 <body>
   {% load static %}
-  <!-- Navbar -->
+
      {% if messages %}
     {% for message in messages %}
       <div class="alert alert-{{ message.tags|default:'info' }} alert-dismissible fade show" role="alert">
@@ -511,7 +511,7 @@
       </div>
     {% endfor %}
   {% endif %}
-  
+    <!-- Navbar -->
   {% include 'navbar.html'%}
 
   <!-- Hero Carousel Section -->
