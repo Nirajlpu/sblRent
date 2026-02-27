@@ -1,8 +1,12 @@
 from pathlib import Path
 import io
+import logging
 
 from django.core.exceptions import ValidationError
 from django.core.files.base import ContentFile
+
+
+logger = logging.getLogger(__name__)
 
 
 MAX_KYC_DOC_SIZE_BYTES = 5 * 1024 * 1024
@@ -379,8 +383,29 @@ def sanitize_uploaded_pdf(uploaded_file, field_label="Document"):
                             annotation_obj.pop("/A", None)
 
             pdf.save(sanitized_stream)
-    except Exception:
-        raise ValidationError(f"{field_label} could not be sanitized.")
+    except Exception as pike_error:
+        logger.warning("Primary PDF sanitization failed for %s: %s", field_label, pike_error)
+        try:
+            from pypdf import PdfReader, PdfWriter
+
+            source_stream.seek(0)
+            reader = PdfReader(source_stream, strict=False)
+            writer = PdfWriter()
+
+            for page in reader.pages:
+                writer.add_page(page)
+
+            writer.add_metadata({})
+            writer.write(sanitized_stream)
+        except Exception as fallback_error:
+            logger.exception(
+                "Fallback PDF sanitization failed for %s: %s",
+                field_label,
+                fallback_error,
+            )
+            raise ValidationError(
+                f"{field_label} could not be sanitized. Please upload a valid, non-encrypted PDF."
+            )
 
     sanitized_content = ContentFile(sanitized_stream.getvalue())
     sanitized_content.name = uploaded_file.name
