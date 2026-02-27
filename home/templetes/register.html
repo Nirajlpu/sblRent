@@ -230,14 +230,15 @@
           <!-- Profile Image Upload -->
           <div class="mb-4 text-center">
             <div class="file-upload">
-              <input type="file" id="profileImage" name="profile_image" class="file-upload-input" accept="image/*">
+              <input type="file" id="profileImage" name="profile_image" class="file-upload-input" accept=".jpg,.jpeg,.png,image/jpeg,image/png">
               <label for="profileImage" class="file-upload-label">
                 <img id="profilePreview" src="{% static 'images/default-avatar.jpg' %}" class="file-upload-preview" alt="Profile Preview">
                 <span>Click to upload profile photo</span>
-                <span class="file-name" id="profileFileName">JPEG or PNG, Max 2MB</span>
+                <span class="file-name" id="profileFileName">JPEG or PNG, Max 5MB</span>
               </label>
             </div>
           </div>
+          <div id="uploadWarning" class="alert alert-warning d-none" role="alert"></div>
           
           <!-- Name Fields -->
           <div class="row g-3">
@@ -315,7 +316,7 @@
           <div class="mb-3">
             <label for="aadhaarCard" class="form-label required-field">Aadhaar Card</label>
             <div class="file-upload">
-              <input type="file" id="aadhaarCard" name="aadhaar_card" class="file-upload-input" accept="image/*,.pdf" required>
+              <input type="file" id="aadhaarCard" name="aadhaar_card" class="file-upload-input" accept=".jpg,.jpeg,.png,.pdf,image/jpeg,image/png,application/pdf" required>
               <label for="aadhaarCard" class="file-upload-label">
                 <i class="fas fa-id-card fs-1 text-muted"></i>
                 <div>Upload Aadhaar Card</div>
@@ -333,7 +334,7 @@
             </div>
               <label for="panCard" class="form-label">PAN Card (Optional)</label>
               <div class="file-upload">
-                <input type="file" id="panCard" name="pan_card" class="file-upload-input" accept="image/*,.pdf">
+                <input type="file" id="panCard" name="pan_card" class="file-upload-input" accept=".jpg,.jpeg,.png,.pdf,image/jpeg,image/png,application/pdf">
                 <label for="panCard" class="file-upload-label">
                   <i class="fas fa-credit-card fs-1 text-muted"></i>
                   <div>Upload PAN Card</div>
@@ -392,6 +393,25 @@
 
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
   <script>
+    const uploadWarning = document.getElementById('uploadWarning');
+
+    function showUploadWarning(message) {
+      if (!uploadWarning) return;
+      uploadWarning.textContent = message;
+      uploadWarning.classList.remove('d-none');
+      alert(message);
+    }
+
+    function clearUploadWarning() {
+      if (!uploadWarning) return;
+      uploadWarning.textContent = '';
+      uploadWarning.classList.add('d-none');
+    }
+
+    function getFileExtension(fileName) {
+      return (fileName.split('.').pop() || '').toLowerCase();
+    }
+
     // Password toggle
     const togglePassword = document.querySelector('#togglePassword');
     const password = document.querySelector('#password');
@@ -406,8 +426,28 @@
     const profilePreview = document.getElementById('profilePreview');
     const profileFileName = document.getElementById('profileFileName');
     profileInput.addEventListener('change', function() {
+      clearUploadWarning();
       const file = this.files[0];
       if (file) {
+        const ext = getFileExtension(file.name);
+        const allowedExt = ['jpg', 'jpeg', 'png'];
+        const allowedMime = ['image/jpeg', 'image/png'];
+        const maxBytes = 5 * 1024 * 1024;
+
+        if (!allowedExt.includes(ext) || !allowedMime.includes(file.type)) {
+          this.value = '';
+          profileFileName.textContent = 'JPEG or PNG, Max 5MB';
+          showUploadWarning('Invalid profile photo. Only JPG/JPEG/PNG files are allowed. SVG is blocked for security.');
+          return;
+        }
+
+        if (file.size > maxBytes) {
+          this.value = '';
+          profileFileName.textContent = 'JPEG or PNG, Max 5MB';
+          showUploadWarning('Profile photo exceeds 5MB limit.');
+          return;
+        }
+
         const reader = new FileReader();
         reader.onload = function(e){ profilePreview.src = e.target.result; };
         reader.readAsDataURL(file);
@@ -429,15 +469,21 @@
 
       const maxBytes = 5 * 1024 * 1024;
       const allowedExt = ['pdf', 'jpg', 'jpeg', 'png'];
+      const allowedMime = ['application/pdf', 'image/jpeg', 'image/png'];
       const extension = (file.name.split('.').pop() || '').toLowerCase();
 
       if (!allowedExt.includes(extension)) {
-        alert(`${fieldLabel} must be PDF, JPG, JPEG, or PNG.`);
+        showUploadWarning(`${fieldLabel} must be PDF, JPG, JPEG, or PNG. SVG is blocked for security.`);
+        return false;
+      }
+
+      if (!allowedMime.includes(file.type)) {
+        showUploadWarning(`${fieldLabel} has an invalid content type.`);
         return false;
       }
 
       if (file.size > maxBytes) {
-        alert(`${fieldLabel} exceeds 5MB.`);
+        showUploadWarning(`${fieldLabel} exceeds 5MB.`);
         return false;
       }
 
@@ -445,7 +491,7 @@
         const headBuffer = await file.slice(0, 5).arrayBuffer();
         const head = new TextDecoder('latin1').decode(headBuffer);
         if (head !== '%PDF-') {
-          alert(`${fieldLabel} must be a valid PDF.`);
+          showUploadWarning(`${fieldLabel} must be a valid PDF.`);
           return false;
         }
 
@@ -453,7 +499,7 @@
         const text = new TextDecoder('latin1').decode(scanBuffer);
         const blockedTokens = ['/JavaScript', '/JS', '/OpenAction', '/AA', '/Launch', '/RichMedia', '/EmbeddedFile'];
         if (blockedTokens.some(token => text.includes(token))) {
-          alert(`${fieldLabel} contains active PDF content and was blocked.`);
+          showUploadWarning(`${fieldLabel} contains active PDF content and was blocked.`);
           return false;
         }
       }
@@ -464,6 +510,7 @@
     const aadhaarInput = document.getElementById('aadhaarCard');
     if (aadhaarInput) {
       aadhaarInput.addEventListener('change', async function() {
+        clearUploadWarning();
         const file = this.files[0];
         if (file) {
           const valid = await validateDocumentFile(file, 'Aadhaar card');
@@ -479,6 +526,7 @@
 
     const panInput = document.getElementById('panCard');
     panInput.addEventListener('change', async function() {
+      clearUploadWarning();
       const file = this.files[0];
       if (file) {
         const valid = await validateDocumentFile(file, 'PAN card');
@@ -509,19 +557,20 @@
     // Form validation
     const form = document.querySelector('form');
     form.addEventListener('submit', async function(e) {
+      clearUploadWarning();
       const password = document.getElementById('password').value;
       const confirmPassword = document.getElementById('confirmPassword').value;
-      if(password.length < 8){ e.preventDefault(); alert('Password must be at least 8 characters'); return; }
-      if(password !== confirmPassword){ e.preventDefault(); alert('Passwords do not match'); return; }
-      if(!document.getElementById('termsCheck').checked){ e.preventDefault(); alert('Agree to Terms & Privacy'); return; }
+      if(password.length < 8){ e.preventDefault(); showUploadWarning('Password must be at least 8 characters.'); return; }
+      if(password !== confirmPassword){ e.preventDefault(); showUploadWarning('Passwords do not match.'); return; }
+      if(!document.getElementById('termsCheck').checked){ e.preventDefault(); showUploadWarning('Agree to Terms & Privacy.'); return; }
 
       // Aadhaar validation for all users
       const aadhaarNumber = document.getElementById('aadhaarNumber').value;
       const aadhaarFile = document.getElementById('aadhaarCard').files[0];
       if(!aadhaarNumber.match(/^\d{12}$/)){
-        e.preventDefault(); alert('Aadhaar number must be exactly 12 digits'); return;
+        e.preventDefault(); showUploadWarning('Aadhaar number must be exactly 12 digits.'); return;
       }
-      if(!aadhaarFile){ e.preventDefault(); alert('Aadhaar Card required'); return; }
+      if(!aadhaarFile){ e.preventDefault(); showUploadWarning('Aadhaar Card is required.'); return; }
       if(!(await validateDocumentFile(aadhaarFile, 'Aadhaar card'))){ e.preventDefault(); return; }
 
       const panFile = document.getElementById('panCard').files[0];
@@ -530,12 +579,20 @@
       if(roleSelect.value === 'vendor'){
         const bankAccount = document.getElementById('bankAccount').value;
         const ifscCode = document.getElementById('ifscCode').value;
-        if(!bankAccount.match(/^[0-9]{9,18}$/)){ e.preventDefault(); alert('Invalid Bank Account'); return; }
-        if(!ifscCode.match(/^[A-Za-z]{4}[a-zA-Z0-9]{7}$/)){ e.preventDefault(); alert('Invalid IFSC Code'); return; }
+        if(!bankAccount.match(/^[0-9]{9,18}$/)){ e.preventDefault(); showUploadWarning('Invalid Bank Account.'); return; }
+        if(!ifscCode.match(/^[A-Za-z]{4}[a-zA-Z0-9]{7}$/)){ e.preventDefault(); showUploadWarning('Invalid IFSC Code.'); return; }
       }
 
       const profileFile = document.getElementById('profileImage').files[0];
-      if(profileFile && profileFile.size > 2*1024*1024){ e.preventDefault(); alert('Profile image exceeds 2MB'); return; }
+      if (profileFile) {
+        const profileExt = getFileExtension(profileFile.name);
+        if (!['jpg', 'jpeg', 'png'].includes(profileExt) || !['image/jpeg', 'image/png'].includes(profileFile.type)) {
+          e.preventDefault();
+          showUploadWarning('Invalid profile photo. SVG is blocked for security.');
+          return;
+        }
+        if(profileFile.size > 5*1024*1024){ e.preventDefault(); showUploadWarning('Profile image exceeds 5MB.'); return; }
+      }
     });
   </script>
 

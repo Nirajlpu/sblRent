@@ -3,16 +3,22 @@ from django.contrib.auth.models import AbstractUser
 from django.utils import timezone
 from django.core.validators import MinValueValidator, MaxValueValidator, FileExtensionValidator
 from django.conf import settings
-from .file_validators import validate_uploaded_kyc_document, sanitize_uploaded_pdf
-import hashlib
+from .file_validators import (
+    validate_uploaded_kyc_document,
+    sanitize_uploaded_pdf,
+    validate_profile_picture,
+    validate_property_image,
+    validate_property_video,
+    sanitize_uploaded_image,
+)
 import os
+import uuid
 from django.core.validators import MaxLengthValidator
 
 def hash_filename(filename):
-    """Generate a SHA256 hash for the filename (preserve extension)."""
-    name, ext = os.path.splitext(filename)
-    hash_str = hashlib.sha256(filename.encode('utf-8')).hexdigest()
-    return f"{hash_str}{ext}"
+    """Generate a random filename (preserve extension)."""
+    _, ext = os.path.splitext(filename)
+    return f"{uuid.uuid4().hex}{ext.lower()}"
 
 def user_profile_pic_path(instance, filename):
     """Path: user_<user_id>/profile_pics/<filename>"""
@@ -46,6 +52,7 @@ class Profile(models.Model):
     registration_date = models.DateField(auto_now_add=True)
     profile_picture = models.ImageField(
         upload_to=user_profile_pic_path,
+        validators=[validate_profile_picture],
         null=True,
         blank=True,
         default='default_profile_pic.jpg'
@@ -121,11 +128,11 @@ class Property(models.Model):
     image = models.ImageField(
         upload_to='property_images/',
         default='property_images/default.jpg',
-        validators=[FileExtensionValidator(['jpg', 'jpeg', 'png'])],
+        validators=[FileExtensionValidator(['jpg', 'jpeg', 'png']), validate_property_image],
         blank=True,
         null=True
     )
-    video = models.FileField(upload_to=property_video_path, validators=[FileExtensionValidator(['mp4', 'mov', 'avi'])],
+    video = models.FileField(upload_to=property_video_path, validators=[FileExtensionValidator(['mp4', 'mov', 'avi']), validate_property_video],
                               blank=True, null=True)
     bedrooms = models.PositiveIntegerField(default=1, validators=[MinValueValidator(1), MaxValueValidator(50)])
     bathrooms = models.PositiveIntegerField(default=1, validators=[MinValueValidator(1), MaxValueValidator(50)])
@@ -161,7 +168,7 @@ class Property(models.Model):
 
 class PropertyImage(models.Model):
     property = models.ForeignKey(Property, on_delete=models.CASCADE, related_name='images')
-    image = models.ImageField(upload_to=property_image_path)
+    image = models.ImageField(upload_to=property_image_path, validators=[validate_property_image])
     is_primary = models.BooleanField(default=False)
     uploaded_at = models.DateTimeField(auto_now_add=True)
 
@@ -264,6 +271,10 @@ class RecentView(models.Model):
 from django.db.models.signals import pre_save, post_delete
 from django.dispatch import receiver
 
+
+def _is_new_uploaded_file(field_file):
+    return bool(field_file) and getattr(field_file, "_committed", True) is False
+
 @receiver(pre_save, sender=Profile)
 def sanitize_profile_pdf_files_on_change(sender, instance, **kwargs):
     old = None
@@ -280,10 +291,13 @@ def sanitize_profile_pdf_files_on_change(sender, instance, **kwargs):
         old is None or old.pan_document.name != instance.pan_document.name
     )
 
-    if aadhaar_changed:
+    if aadhaar_changed and _is_new_uploaded_file(instance.aadhaar_document):
         instance.aadhaar_document = sanitize_uploaded_pdf(instance.aadhaar_document, "Aadhaar card")
-    if pan_changed:
+    if pan_changed and _is_new_uploaded_file(instance.pan_document):
         instance.pan_document = sanitize_uploaded_pdf(instance.pan_document, "PAN card")
+
+    if _is_new_uploaded_file(instance.profile_picture):
+        instance.profile_picture = sanitize_uploaded_image(instance.profile_picture, "Profile picture")
 
 
 @receiver(pre_save, sender=Profile)
@@ -323,6 +337,9 @@ def delete_old_property_files_on_change(sender, instance, **kwargs):
     if old.video and old.video != instance.video:
         old.video.delete(save=False)
 
+    if _is_new_uploaded_file(instance.image):
+        instance.image = sanitize_uploaded_image(instance.image, "Property image")
+
 @receiver(post_delete, sender=Property)
 def delete_property_files_on_delete(sender, instance, **kwargs):
     if instance.image:
@@ -340,6 +357,9 @@ def delete_old_propertyimage_on_change(sender, instance, **kwargs):
         return
     if old.image and old.image != instance.image:
         old.image.delete(save=False)
+
+    if _is_new_uploaded_file(instance.image):
+        instance.image = sanitize_uploaded_image(instance.image, "Property image")
 
 @receiver(post_delete, sender=PropertyImage)
 def delete_propertyimage_on_delete(sender, instance, **kwargs):

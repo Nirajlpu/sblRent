@@ -1655,10 +1655,24 @@ def download_kyc_document(request, doc_type):
     if not getattr(document_file, 'name', None):
         raise Http404("Document not found")
 
-    response = FileResponse(document_file.open('rb'), as_attachment=True, filename=os.path.basename(document_file.name))
-    response['Content-Type'] = 'application/octet-stream'
+    extension = os.path.splitext(document_file.name)[1].lower()
+    content_type_map = {
+        '.pdf': 'application/pdf',
+        '.jpg': 'image/jpeg',
+        '.jpeg': 'image/jpeg',
+        '.png': 'image/png',
+    }
+    content_type = content_type_map.get(extension, 'application/octet-stream')
+
+    response = FileResponse(
+        document_file.open('rb'),
+        as_attachment=True,
+        filename=os.path.basename(document_file.name),
+        content_type=content_type,
+    )
     response['X-Content-Type-Options'] = 'nosniff'
     response['Content-Security-Policy'] = "sandbox"
+    response['X-Download-Options'] = 'noopen'
     return response
 
 
