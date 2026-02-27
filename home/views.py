@@ -34,7 +34,13 @@ import json
 import razorpay
 from django.conf import settings
 from django.core.exceptions import ValidationError
-from .file_validators import validate_uploaded_kyc_document, sanitize_uploaded_pdf
+from .file_validators import (
+    validate_uploaded_kyc_document,
+    sanitize_uploaded_pdf,
+    validate_profile_picture,
+    validate_property_image,
+    validate_property_video,
+)
 import logging
 import time
 import os
@@ -269,6 +275,7 @@ def register_user(request):
             return redirect('register')
 
         try:
+            validate_profile_picture(profile_pic, "Profile picture")
             validate_uploaded_kyc_document(aadhaar_doc, "Aadhaar card")
             validate_uploaded_kyc_document(pan_doc, "PAN card")
             aadhaar_doc = sanitize_uploaded_pdf(aadhaar_doc, "Aadhaar card")
@@ -567,6 +574,19 @@ def manage_property(request, property_id=None):
             image_url = request.POST.get('image_url')
             image_upload = request.FILES.get('image_upload')
             video_file = request.FILES.get('video')
+
+            try:
+                if image_upload:
+                    validate_property_image(image_upload, "Property image")
+                if video_file:
+                    validate_property_video(video_file, "Property video")
+
+                additional_images = request.FILES.getlist('image_upload')
+                for extra_image in additional_images:
+                    validate_property_image(extra_image, "Property image")
+            except ValidationError as exc:
+                messages.error(request, str(exc))
+                return redirect(request.path)
 
             latitude = request.POST.get('latitude') or None
             longitude = request.POST.get('longitude') or None

@@ -17,14 +17,19 @@ IMAGE_EXTENSIONS = {".jpg", ".jpeg", ".png"}
 VIDEO_EXTENSIONS = {".mp4", ".mov", ".avi"}
 ALLOWED_MIME_BY_EXTENSION = {
     ".pdf": {"application/pdf"},
-    ".jpg": {"image/jpeg"},
-    ".jpeg": {"image/jpeg"},
-    ".png": {"image/png"},
+    ".jpg": {"image/jpeg", "image/jpg", "image/pjpeg"},
+    ".jpeg": {"image/jpeg", "image/jpg", "image/pjpeg"},
+    ".png": {"image/png", "image/x-png"},
 }
 ALLOWED_VIDEO_MIME_BY_EXTENSION = {
-    ".mp4": {"video/mp4"},
-    ".mov": {"video/quicktime"},
-    ".avi": {"video/x-msvideo", "video/avi", "application/x-troff-msvideo"},
+    ".mp4": {"video/mp4", "application/mp4", "video/quicktime"},
+    ".mov": {"video/quicktime", "video/mp4", "application/mp4"},
+    ".avi": {
+        "video/x-msvideo",
+        "video/avi",
+        "application/x-troff-msvideo",
+        "video/msvideo",
+    },
 }
 PDF_DANGEROUS_NAMES = {
     "/JavaScript",
@@ -90,6 +95,9 @@ def _validate_mime(uploaded_file, file_extension, field_label):
         raise ValidationError(f"{field_label} has an unsupported file type.")
 
     detected_mime = _detect_mime(uploaded_file, field_label)
+    if detected_mime == "application/octet-stream" and file_extension in IMAGE_EXTENSIONS:
+        return
+
     if detected_mime not in allowed_mimes:
         raise ValidationError(f"{field_label} content does not match its file type.")
 
@@ -100,6 +108,9 @@ def _validate_video_mime(uploaded_file, file_extension, field_label):
         raise ValidationError(f"{field_label} has an unsupported video type.")
 
     detected_mime = _detect_mime(uploaded_file, field_label)
+    if detected_mime == "application/octet-stream":
+        return
+
     if detected_mime not in allowed_mimes:
         raise ValidationError(f"{field_label} content does not match its file type.")
 
